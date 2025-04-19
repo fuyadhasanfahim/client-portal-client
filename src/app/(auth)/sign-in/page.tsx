@@ -1,6 +1,4 @@
-import { FcGoogle } from 'react-icons/fc';
 import SigninForm from '@/components/auth/sign-in/SigninForm';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -32,11 +30,6 @@ export default function SigninPage() {
                             <SigninForm />
                         </CardContent>
                         <CardFooter className="flex flex-col items-center">
-                            <Button variant="outline" className="w-full">
-                                <FcGoogle className="mr-2 size-5" />
-                                Sign In With Google
-                            </Button>
-
                             <div className="mx-auto mt-8 flex justify-center gap-1 text-sm text-muted-foreground">
                                 <p>Don&apos;t have an account?</p>
                                 <Link

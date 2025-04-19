@@ -11,9 +11,24 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const SignupSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    email: z
+        .string()
+        .email('Invalid email address')
+        .min(1, 'Email is required'),
+    phone: z.string().optional(),
+    company: z.string().optional(),
+    country: z.string().min(1, 'Country is required'),
+    password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
 
 export default function SignupForm() {
     const form = useForm({
+        resolver: zodResolver(SignupSchema),
         defaultValues: {
             name: '',
             email: '',
@@ -71,7 +86,7 @@ export default function SignupForm() {
                         name="phone"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Phone Number *</FormLabel>
+                                <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
                                     <Input
                                         placeholder="Enter your phone number"
