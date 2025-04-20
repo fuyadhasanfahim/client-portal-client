@@ -13,8 +13,6 @@ import {
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { FcGoogle } from 'react-icons/fc';
-import { signIn } from 'next-auth/react';
 
 export default function SigninForm() {
     const form = useForm({
@@ -98,16 +96,6 @@ export default function SigninForm() {
                     </Button>
                 </div>
             </form>
-
-            <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => signIn('google')}
-                type="button"
-            >
-                <FcGoogle className="mr-2 size-5" />
-                Sign In With Google
-            </Button>
         </Form>
     );
 }
