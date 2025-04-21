@@ -45,7 +45,7 @@ export default function SigninForm() {
                     response.error || 'Invalid credentials. Please try again.'
                 );
             } else {
-                toast.success('Sign in successful!');
+                toast.success('Sign in successful! Redirecting...');
                 form.reset();
                 router.push('/');
             }
@@ -64,6 +64,7 @@ export default function SigninForm() {
                     <FormField
                         control={form.control}
                         name="email"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Email *</FormLabel>
@@ -83,6 +84,7 @@ export default function SigninForm() {
                     <FormField
                         control={form.control}
                         name="password"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Password *</FormLabel>
@@ -103,6 +105,7 @@ export default function SigninForm() {
                         <FormField
                             control={form.control}
                             name="rememberMe"
+                            disabled={form.formState.isSubmitting}
                             render={({ field }) => (
                                 <FormItem className="flex items-center">
                                     <FormControl>

@@ -67,6 +67,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="name"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Name *</FormLabel>
@@ -86,6 +87,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="username"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Username *</FormLabel>
@@ -105,6 +107,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="email"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Email *</FormLabel>
@@ -124,6 +127,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="phone"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
@@ -142,6 +146,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="company"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Company (Optional)</FormLabel>
@@ -159,6 +164,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="country"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Country *</FormLabel>
@@ -178,6 +184,7 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="password"
+                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Password *</FormLabel>
