@@ -39,7 +39,7 @@ export default function SignupForm() {
     const onsubmit = async (data: z.infer<typeof SignupSchema>) => {
         try {
             const response = await axiosInstance.post(
-                '/auth/user/create-user',
+                '/user/create-user',
                 data
             );
 

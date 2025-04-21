@@ -1,12 +1,10 @@
-'use client'
+import { getUserData } from '@/actions/user.action';
+import IUser from '@/types/user.interface';
 
-import { useSession } from "next-auth/react";
+export default async function Page() {
+    const userData = await getUserData();
 
-export default function Page() {
-    const { data: session } = useSession();
+    const { name } = (userData as IUser) || {};
 
-    console.log('Session:', session);
-    return (
-        <div></div>
-    );
+    return <div className="text-2xl font-mono">Hi, {name}</div>;
 }
