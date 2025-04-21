@@ -33,7 +33,6 @@ export function NavUser({
         name: string;
         email: string;
         profileImage?: string;
-        username: string;
     };
 }) {
     const { isMobile } = useSidebar();
@@ -54,7 +53,7 @@ export function NavUser({
                                     alt={user?.name}
                                 />
                                 <AvatarFallback className="rounded-lg">
-                                    0
+                                    {user.name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -82,7 +81,7 @@ export function NavUser({
                                         alt={user?.name}
                                     />
                                     <AvatarFallback className="rounded-lg">
-                                        0
+                                        {user.name.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -99,11 +98,7 @@ export function NavUser({
                         <DropdownMenuGroup>
                             <DropdownMenuItem
                                 className="cursor-pointer"
-                                onClick={() =>
-                                    router.push(
-                                        `/account/profile/${user?.username}`
-                                    )
-                                }
+                                onClick={() => router.push('/account/profile')}
                             >
                                 <IconUserCircle />
                                 Account

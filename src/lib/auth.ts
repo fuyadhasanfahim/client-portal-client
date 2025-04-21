@@ -77,6 +77,11 @@ export const authOptions: NextAuthOptions = {
                     ? 365 * 24 * 60 * 60
                     : 24 * 60 * 60;
 
+                await dbConfig();
+                await UserModel.findByIdAndUpdate(user.id, {
+                    lastLogin: new Date(),
+                });
+
                 const now = Math.floor(new Date().getTime() / 1000);
 
                 token.exp = now + expiresIn;

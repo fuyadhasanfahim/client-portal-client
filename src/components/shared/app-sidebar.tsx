@@ -22,7 +22,6 @@ export function AppSidebar(
             name: string;
             email: string;
             profileImage?: string;
-            username: string;
         };
     }
 ) {
@@ -37,7 +36,7 @@ export function AppSidebar(
                             asChild
                             className="data-[slot=sidebar-menu-button]:!p-1.5"
                         >
-                            <div className='cursor-pointer flex items-center gap-2 text-xl'>
+                            <div className="cursor-pointer flex items-center gap-2 text-xl">
                                 <IconInnerShadowTop className="!size-5" />
                                 <span className="font-semibold">
                                     Client Portal

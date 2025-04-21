@@ -42,6 +42,27 @@ export default function SigninPage() {
                                     Sign Up
                                 </Link>
                             </div>
+
+                            <div className="mt-6">
+                                <p className="text-muted-foreground text-center text-xs">
+                                    By joining, you agree to our{' '}
+                                    <Link
+                                        href={'terms'}
+                                        className="text-blue-500 hover:underline"
+                                    >
+                                        Terms of Service{' '}
+                                    </Link>{' '}
+                                    and to occasionally receive emails from us.
+                                    Please read our{' '}
+                                    <Link
+                                        href={'privacy-policy'}
+                                        className="text-blue-500 hover:underline"
+                                    >
+                                        Privacy Policy
+                                    </Link>{' '}
+                                    to learn how we use your personal data.
+                                </p>
+                            </div>
                         </CardFooter>
                     </Card>
                 </div>

@@ -1,8 +1,8 @@
 export const breadcrumbs: Record<string, { title: string; href: string }[]> = {
     dashboard: [{ title: 'Dashboard', href: '/dashboard' }],
-    'dashboard-user': [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'User', href: '/dashboard/user' },
+    account: [
+        { title: 'Account', href: '/account' },
+        { title: 'Profile', href: '/account/profile' },
     ],
     'dashboard-orders': [
         { title: 'Dashboard', href: '/dashboard' },

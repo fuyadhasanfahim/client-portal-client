@@ -14,7 +14,6 @@ export default async function Layout({
         name: user.name,
         email: user.email,
         profileImage: user.profileImage || '',
-        username: user.username,
     };
 
     return (
@@ -30,7 +29,7 @@ export default async function Layout({
                 <AppSidebar user={userData} variant="inset" />
                 <SidebarInset>
                     <SiteHeader />
-                    <main className='p-4'>{children}</main>
+                    <main className="p-4">{children}</main>
                 </SidebarInset>
             </SidebarProvider>
         </NextAuthProvider>
