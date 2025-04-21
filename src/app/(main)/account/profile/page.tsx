@@ -93,8 +93,8 @@ export default async function ProfilePage() {
             </Card>
 
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="rounded-xl border border-border p-6">
-                    <CardHeader className="flex items-center gap-2 mb-4">
+                <Card className="rounded-xl border border-border">
+                    <CardHeader className="flex items-center gap-2">
                         <UserCircle className="w-5 h-5 text-blue-600" />
                         <h2 className="text-xl font-semibold">
                             Account Information
@@ -154,8 +154,8 @@ export default async function ProfilePage() {
                     </CardContent>
                 </Card>
 
-                <Card className="rounded-xl border border-border p-6">
-                    <CardHeader className="flex items-center gap-2 mb-4">
+                <Card className="rounded-xl border border-border">
+                    <CardHeader className="flex items-center gap-2">
                         <Shield className="w-5 h-5 text-blue-600" />
                         <h2 className="text-xl font-semibold">
                             Account Status
