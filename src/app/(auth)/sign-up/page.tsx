@@ -12,7 +12,7 @@ import SignupForm from '@/components/auth/sign-up/SignupForm';
 import SignupWithGoogleButton from '@/components/auth/sign-up/SignupWithGoogleButton';
 
 export const metadata: Metadata = {
-    title: 'Sign In | Client Portal',
+    title: 'Sign Up | Client Portal',
     description:
         'Welcome to the Client Portal – your gateway to seamless business management and collaboration.',
 };

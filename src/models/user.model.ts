@@ -13,7 +13,12 @@ const UserSchema: Schema = new Schema<IUser>(
             default: 'User',
         },
         isEmailVerified: { type: Boolean, default: false },
-        password: { type: String, required: true },
+        password: {
+            type: String,
+            required: function () {
+                return this.provider !== 'google';
+            },
+        },
         oldPasswords: { type: [String] },
         provider: {
             type: String,

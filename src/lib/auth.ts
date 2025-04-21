@@ -110,11 +110,13 @@ export const authOptions: NextAuthOptions = {
                         username: user?.email?.split('@')[0],
                         password: '',
                         provider: 'google',
-                        googleId: user?.id,
+                        googleId: user?.id.toString(),
                         isEmailVerified: true,
                         profileImage: user?.image,
                     });
                 }
+
+                user.id = existingUser._id.toString();
             }
 
             return true;
