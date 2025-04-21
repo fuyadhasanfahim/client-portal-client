@@ -37,7 +37,9 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     if (!user) {
-                        throw new Error('Invalid credentials! Please enter a valid email or password.');
+                        throw new Error(
+                            'Invalid credentials! Please enter a valid email or password.'
+                        );
                     }
 
                     const isValid = await bcrypt.compare(

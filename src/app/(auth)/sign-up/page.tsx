@@ -1,5 +1,3 @@
-// import { FcGoogle } from 'react-icons/fc';
-// import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -10,6 +8,8 @@ import {
 import { Metadata } from 'next';
 import Link from 'next/link';
 import SignupForm from '@/components/auth/sign-up/SignupForm';
+
+import SignupWithGoogleButton from '@/components/auth/sign-up/SignupWithGoogleButton';
 
 export const metadata: Metadata = {
     title: 'Sign In | Client Portal',
@@ -32,12 +32,9 @@ export default function SignupPage() {
                             <SignupForm />
                         </CardContent>
                         <CardFooter className="flex flex-col items-center">
-                            {/* <Button variant="outline" className="w-full">
-                                <FcGoogle className="mr-2 size-5" />
-                                Sign Up With Google
-                            </Button> */}
+                            <SignupWithGoogleButton />
 
-                            <div className="mx-auto flex justify-center gap-1 text-sm text-muted-foreground">
+                            <div className="mx-auto mt-6 flex justify-center gap-1 text-sm text-muted-foreground">
                                 <p>Already have an account?</p>
                                 <Link
                                     href="/sign-in"

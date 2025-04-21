@@ -13,5 +13,6 @@ export async function getUserData() {
     const userData = await UserModel.findById(session.user.id).select(
         '-password'
     );
+
     return userData;
 }
