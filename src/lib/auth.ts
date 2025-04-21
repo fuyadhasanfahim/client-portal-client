@@ -37,7 +37,7 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     if (!user) {
-                        throw new Error('No user found.');
+                        throw new Error('Invalid credentials! Please enter a valid email or password.');
                     }
 
                     const isValid = await bcrypt.compare(
