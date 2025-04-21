@@ -1,8 +1,7 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
-import NextAuthProvider from './NextAuthProvider';
-import { Session } from 'next-auth';
+import NextAuthProvider from './NextAuthProvider'; // now handles its own session logic
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -16,17 +15,15 @@ const geistMono = Geist_Mono({
 
 export default function RootLayout({
     children,
-    session,
-}: Readonly<{
+}: {
     children: React.ReactNode;
-    session: Session | null;
-}>) {
+}) {
     return (
         <html lang="en">
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <NextAuthProvider session={session}>
+                <NextAuthProvider>
                     {children}
                     <Toaster />
                 </NextAuthProvider>
