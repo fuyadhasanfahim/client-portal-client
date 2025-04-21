@@ -18,6 +18,7 @@ import SignupSchema from '@/validations/sign-up.schema';
 import axiosInstance from '@/lib/axios-instance';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function SignupForm() {
     const router = useRouter();
@@ -63,11 +64,13 @@ export default function SignupForm() {
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onsubmit)}>
-                <div className="space-y-5">
+                <fieldset
+                    disabled={form.formState.isSubmitting}
+                    className="space-y-5"
+                >
                     <FormField
                         control={form.control}
                         name="name"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Name *</FormLabel>
@@ -87,7 +90,6 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="username"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Username *</FormLabel>
@@ -107,7 +109,6 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="email"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Email *</FormLabel>
@@ -127,7 +128,6 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="phone"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
@@ -146,7 +146,6 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="company"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Company (Optional)</FormLabel>
@@ -164,7 +163,6 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="country"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Country *</FormLabel>
@@ -184,7 +182,6 @@ export default function SignupForm() {
                     <FormField
                         control={form.control}
                         name="password"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Password *</FormLabel>
@@ -203,8 +200,12 @@ export default function SignupForm() {
 
                     <Button
                         type="submit"
-                        className="w-full col-span-2"
+                        className={cn(
+                            'w-full col-span-2',
+                            form.formState.isSubmitting && 'cursor-not-allowed'
+                        )}
                         disabled={form.formState.isSubmitting}
+                        aria-busy={form.formState.isSubmitting}
                     >
                         {form.formState.isSubmitting ? (
                             <Loader2 className="animate-spin" />
@@ -213,7 +214,7 @@ export default function SignupForm() {
                             ? 'Signing Up...'
                             : 'Sign Up'}
                     </Button>
-                </div>
+                </fieldset>
             </form>
         </Form>
     );

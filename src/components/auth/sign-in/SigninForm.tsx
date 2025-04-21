@@ -20,6 +20,7 @@ import { signIn } from 'next-auth/react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function SigninForm() {
     const router = useRouter();
@@ -35,6 +36,7 @@ export default function SigninForm() {
 
     const onSubmit = async (data: z.infer<typeof SigninSchema>) => {
         try {
+            console.log(data);
             const response = await signIn('credentials', {
                 ...data,
                 redirect: false,
@@ -60,11 +62,13 @@ export default function SigninForm() {
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="space-y-5">
+                <fieldset
+                    disabled={form.formState.isSubmitting}
+                    className="space-y-5"
+                >
                     <FormField
                         control={form.control}
                         name="email"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Email *</FormLabel>
@@ -84,7 +88,6 @@ export default function SigninForm() {
                     <FormField
                         control={form.control}
                         name="password"
-                        disabled={form.formState.isSubmitting}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Password *</FormLabel>
@@ -105,7 +108,6 @@ export default function SigninForm() {
                         <FormField
                             control={form.control}
                             name="rememberMe"
-                            disabled={form.formState.isSubmitting}
                             render={({ field }) => (
                                 <FormItem className="flex items-center">
                                     <FormControl>
@@ -130,8 +132,12 @@ export default function SigninForm() {
 
                     <Button
                         type="submit"
-                        className="w-full col-span-2"
+                        className={cn(
+                            'w-full col-span-2',
+                            form.formState.isSubmitting && 'cursor-not-allowed'
+                        )}
                         disabled={form.formState.isSubmitting}
+                        aria-busy={form.formState.isSubmitting}
                     >
                         {form.formState.isSubmitting ? (
                             <Loader2 className="animate-spin" />
@@ -140,7 +146,7 @@ export default function SigninForm() {
                             ? 'Signing In...'
                             : 'Sign In'}
                     </Button>
-                </div>
+                </fieldset>
             </form>
         </Form>
     );
