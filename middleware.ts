@@ -1,28 +1,22 @@
-import withAuth from 'next-auth/middleware';
+import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 
 export default withAuth(
-    function middleware() {
+    function middleware(req) {
+        const { pathname } = req.nextUrl;
+        const token = req.nextauth?.token;
+
+        // Redirect logged-in users away from auth pages
+        if (token && (pathname === '/sign-in' || pathname === '/sign-up')) {
+            return NextResponse.redirect(new URL('/', req.url));
+        }
+
         return NextResponse.next();
     },
     {
         callbacks: {
-            authorized: ({ token, req }) => {
-                const { pathname } = req.nextUrl;
-
-                if (
-                    pathname.startsWith('/api/auth') ||
-                    pathname === '/sign-in' ||
-                    pathname === '/sign-up'
-                ) {
-                    return true;
-                }
-
-                if (pathname === '/') {
-                    return true;
-                }
-
-                return !!token;
+            authorized: ({ token }) => {
+                return !!token; // Let middleware decide redirect logic
             },
         },
     }

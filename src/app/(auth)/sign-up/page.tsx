@@ -1,5 +1,5 @@
-import { FcGoogle } from 'react-icons/fc';
-import { Button } from '@/components/ui/button';
+// import { FcGoogle } from 'react-icons/fc';
+// import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -32,12 +32,12 @@ export default function SignupPage() {
                             <SignupForm />
                         </CardContent>
                         <CardFooter className="flex flex-col items-center">
-                            <Button variant="outline" className="w-full">
+                            {/* <Button variant="outline" className="w-full">
                                 <FcGoogle className="mr-2 size-5" />
                                 Sign Up With Google
-                            </Button>
+                            </Button> */}
 
-                            <div className="mx-auto mt-8 flex justify-center gap-1 text-sm text-muted-foreground">
+                            <div className="mx-auto flex justify-center gap-1 text-sm text-muted-foreground">
                                 <p>Already have an account?</p>
                                 <Link
                                     href="/sign-in"

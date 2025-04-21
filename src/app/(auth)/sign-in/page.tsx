@@ -1,5 +1,5 @@
 import SigninForm from '@/components/auth/sign-in/SigninForm';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { FcGoogle } from 'react-icons/fc';
+// import { FcGoogle } from 'react-icons/fc';
 
 export const metadata: Metadata = {
     title: 'Sign In | Client Portal',
@@ -32,15 +32,15 @@ export default function SigninPage() {
                             <SigninForm />
                         </CardContent>
                         <CardFooter className="flex flex-col items-center">
-                            <Button
+                            {/* <Button
                                 variant="outline"
                                 className="w-full"
                                 type="button"
                             >
                                 <FcGoogle className="mr-2 size-5" />
                                 Sign In With Google
-                            </Button>
-                            <div className="mx-auto mt-8 flex justify-center gap-1 text-sm text-muted-foreground">
+                            </Button> */}
+                            <div className="mx-auto flex justify-center gap-1 text-sm text-muted-foreground">
                                 <p>Don&apos;t have an account?</p>
                                 <Link
                                     href="/sign-up"

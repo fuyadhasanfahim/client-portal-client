@@ -65,7 +65,21 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) {
+            if (user && account) {
+                const isRememberMe =
+                    account?.type === 'credentials' &&
+                    account?.providerAccountId === 'rememberMe';
+
+                const expiresIn = isRememberMe
+                    ? 365 * 24 * 60 * 60
+                    : 24 * 60 * 60;
+
+                const now = Math.floor(new Date().getTime() / 1000);
+
+                token.exp = now + expiresIn;
+            }
+
             if (user) {
                 token.id = user.id;
             }

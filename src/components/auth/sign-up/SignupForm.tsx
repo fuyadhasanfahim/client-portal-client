@@ -13,35 +13,56 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-
-const SignupSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    email: z
-        .string()
-        .email('Invalid email address')
-        .min(1, 'Email is required'),
-    phone: z.string().optional(),
-    company: z.string().optional(),
-    country: z.string().min(1, 'Country is required'),
-    password: z.string().min(6, 'Password must be at least 6 characters long'),
-});
+import { toast } from 'sonner';
+import SignupSchema from '@/validations/sign-up.schema';
+import axiosInstance from '@/lib/axios-instance';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function SignupForm() {
+    const router = useRouter();
+
     const form = useForm({
         resolver: zodResolver(SignupSchema),
         defaultValues: {
             name: '',
+            username: '',
             email: '',
             phone: '',
             company: '',
             country: '',
             password: '',
+            provider: 'credentials',
         },
     });
 
+    const onsubmit = async (data: z.infer<typeof SignupSchema>) => {
+        try {
+            const response = await axiosInstance.post(
+                '/auth/user/create-user',
+                data
+            );
+
+            if (response.data.success) {
+                toast.success('User created successfully! Please sign in.');
+
+                form.reset();
+                router.push('/sign-in');
+            } else {
+                toast.error(
+                    response.data.message ||
+                        'Something went wrong. Please try again.'
+                );
+            }
+        } catch (error) {
+            console.error('Error signing up:', error);
+            toast.error('Something went wrong. Please try again.');
+        }
+    };
+
     return (
         <Form {...form}>
-            <form>
+            <form onSubmit={form.handleSubmit(onsubmit)}>
                 <div className="space-y-5">
                     <FormField
                         control={form.control}
@@ -52,6 +73,25 @@ export default function SignupForm() {
                                 <FormControl>
                                     <Input
                                         placeholder="Enter your full name"
+                                        type="text"
+                                        required
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="username"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Username *</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        placeholder="Enter your full username"
                                         type="text"
                                         required
                                         {...field}
@@ -154,8 +194,17 @@ export default function SignupForm() {
                         )}
                     />
 
-                    <Button type="submit" className="w-full col-span-2">
-                        Sign Up
+                    <Button
+                        type="submit"
+                        className="w-full col-span-2"
+                        disabled={form.formState.isSubmitting}
+                    >
+                        {form.formState.isSubmitting ? (
+                            <Loader2 className="animate-spin" />
+                        ) : null}
+                        {form.formState.isSubmitting
+                            ? 'Signing Up...'
+                            : 'Sign Up'}
                     </Button>
                 </div>
             </form>
