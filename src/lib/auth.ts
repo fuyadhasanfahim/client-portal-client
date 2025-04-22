@@ -124,12 +124,7 @@ export const authOptions: NextAuthOptions = {
                     email: user?.email,
                 });
 
-                if (existingUser.provider !== 'google') {
-                    console.log("error showing ")
-                    throw new Error(
-                        'Invalid credentials! Please use credentials to sign in.'
-                    );
-                } else if (!existingUser) {
+                if (!existingUser) {
                     const newUser = await UserModel.create({
                         name: user?.name,
                         email: user?.email,

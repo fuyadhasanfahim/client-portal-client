@@ -10,7 +10,7 @@ export default function SignupWithGoogleButton() {
             variant="outline"
             type="button"
             className="w-full"
-            onClick={async () => await signIn('google')}
+            onClick={() => signIn('google')}
         >
             <FcGoogle className="mr-2 size-5" />
             Sign Up With Google
