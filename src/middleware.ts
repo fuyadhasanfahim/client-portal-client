@@ -6,18 +6,18 @@ export default withAuth(
         const { pathname } = req.nextUrl;
         const isAuthenticated = !!req.nextauth.token;
 
-        if (
-            isAuthenticated &&
-            (pathname === '/sign-in' ||
-                pathname === '/sign-up' ||
-                pathname === '/')
-        ) {
+        const isAuthPage =
+            pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up');
+
+        if (isAuthenticated && isAuthPage) {
             return NextResponse.redirect(new URL('/dashboard', req.url));
         }
 
-        const isAuthPage =
-            pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up');
-        if (!isAuthenticated && !isAuthPage) {
+        if (!isAuthenticated && isAuthPage) {
+            return NextResponse.next();
+        }
+
+        if (!isAuthenticated) {
             return NextResponse.redirect(new URL('/sign-in', req.url));
         }
 
@@ -25,13 +25,11 @@ export default withAuth(
     },
     {
         callbacks: {
-            authorized: ({}) => {
-                return true;
-            },
+            authorized: () => true,
         },
     }
 );
 
 export const config = {
-    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+    matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)'],
 };

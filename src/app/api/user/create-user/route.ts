@@ -31,25 +31,15 @@ export async function POST(req: NextRequest) {
             username,
         } = parsedData;
 
-        if (
-            !name ||
-            !email ||
-            !phone ||
-            !country ||
-            !password ||
-            !provider ||
-            !username
-        ) {
+        const userData = await UserModel.findOne({ email });
+
+        const existingUsername = await UserModel.findOne({ username });
+        if (existingUsername) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: 'Please fill all the required fields.',
-                },
+                { success: false, message: 'Username already taken.' },
                 { status: 400 }
             );
         }
-
-        const userData = await UserModel.findOne({ email });
 
         if (userData) {
             return NextResponse.json(
@@ -92,11 +82,11 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        console.error('Signup error:', error);
         return NextResponse.json(
             {
                 success: false,
                 message: 'An error occurred while creating the user.',
-                error,
             },
             { status: 500 }
         );

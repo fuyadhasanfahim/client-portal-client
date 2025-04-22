@@ -48,8 +48,10 @@ export default function SigninForm() {
                 );
             } else {
                 toast.success('Sign in successful! Redirecting...');
+
                 form.reset();
-                router.push('/');
+
+                router.push('/dashboard');
             }
         } catch (error) {
             toast.error(

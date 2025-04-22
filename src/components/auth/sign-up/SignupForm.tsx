@@ -19,6 +19,7 @@ import axiosInstance from '@/lib/axios-instance';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import axios from 'axios';
 
 export default function SignupForm() {
     const router = useRouter();
@@ -49,15 +50,15 @@ export default function SignupForm() {
 
                 form.reset();
                 router.push('/sign-in');
-            } else {
-                toast.error(
-                    response.data.message ||
-                        'Something went wrong. Please try again.'
-                );
             }
         } catch (error) {
-            console.error('Error signing up:', error);
-            toast.error('Something went wrong. Please try again.');
+            if (axios.isAxiosError(error)) {
+                toast.error(
+                    error.response?.data?.message || 'Something went wrong.'
+                );
+            } else {
+                toast.error('Something went wrong.');
+            }
         }
     };
 
@@ -135,7 +136,6 @@ export default function SignupForm() {
                                     <Input
                                         placeholder="Enter your phone number"
                                         type="tel"
-                                        required
                                         {...field}
                                     />
                                 </FormControl>
