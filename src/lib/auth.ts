@@ -42,12 +42,24 @@ export const authOptions: NextAuthOptions = {
                         );
                     }
 
-                    const isValid = await bcrypt.compare(
-                        credentials.password,
-                        user.password
-                    );
-                    if (!isValid) {
-                        throw new Error('Invalid password.');
+                    const isReused = await Promise.any(
+                        user.oldPasswords.map((oldHash: string) =>
+                            bcrypt.compare(credentials.password, oldHash)
+                        )
+                    ).catch(() => false);
+
+                    if (!isReused) {
+                        const isValid = await bcrypt.compare(
+                            credentials.password,
+                            user.password
+                        );
+                        if (!isValid) {
+                            throw new Error('Invalid password.');
+                        }
+                    } else {
+                        throw new Error(
+                            'Password has been used before. Please choose a different password.'
+                        );
                     }
 
                     return {
