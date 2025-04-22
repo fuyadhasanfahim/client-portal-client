@@ -40,6 +40,10 @@ export const authOptions: NextAuthOptions = {
                         throw new Error(
                             'Invalid credentials! Please enter a valid email or password.'
                         );
+                    } else if (user.provider !== 'credentials') {
+                        throw new Error(
+                            'Invalid credentials! Please use Google to sign in.'
+                        );
                     }
 
                     const isReused = await Promise.any(
@@ -120,20 +124,27 @@ export const authOptions: NextAuthOptions = {
                     email: user?.email,
                 });
 
-                if (!existingUser) {
-                    await UserModel.create({
+                if (existingUser.provider !== 'google') {
+                    console.log("error showing ")
+                    throw new Error(
+                        'Invalid credentials! Please use credentials to sign in.'
+                    );
+                } else if (!existingUser) {
+                    const newUser = await UserModel.create({
                         name: user?.name,
                         email: user?.email,
                         username: user?.email?.split('@')[0],
                         password: '',
                         provider: 'google',
-                        googleId: user?.id.toString(),
+                        googleId: user?.id?.toString(),
                         isEmailVerified: true,
                         profileImage: user?.image,
                     });
-                }
 
-                user.id = existingUser._id.toString();
+                    user.id = newUser._id.toString();
+                } else {
+                    user.id = existingUser._id.toString();
+                }
             }
 
             return true;

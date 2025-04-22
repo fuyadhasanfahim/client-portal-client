@@ -4,7 +4,7 @@ import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
 
-export default async function POST(req: NextRequest) {
+export async function POST(req: NextRequest) {
     try {
         const { email } = await req.json();
         if (!email) {
