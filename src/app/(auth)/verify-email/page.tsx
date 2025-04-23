@@ -1,5 +1,7 @@
 import VerifyEmail from '@/components/auth/verify-email/VerifyEmail';
+import Loading from '@/components/shared/Loading';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
     title: 'Verify Email | Client Portal',
@@ -8,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function VerifyEmailPage() {
-    return <VerifyEmail />;
+    return (
+        <Suspense fallback={<Loading />}>
+            <VerifyEmail />
+        </Suspense>
+    );
 }

@@ -46,24 +46,12 @@ export const authOptions: NextAuthOptions = {
                         );
                     }
 
-                    const isReused = await Promise.any(
-                        user.oldPasswords.map((oldHash: string) =>
-                            bcrypt.compare(credentials.password, oldHash)
-                        )
-                    ).catch(() => false);
-
-                    if (!isReused) {
-                        const isValid = await bcrypt.compare(
-                            credentials.password,
-                            user.password
-                        );
-                        if (!isValid) {
-                            throw new Error('Invalid password.');
-                        }
-                    } else {
-                        throw new Error(
-                            'Password has been used before. Please choose a different password.'
-                        );
+                    const isValid = await bcrypt.compare(
+                        credentials.password,
+                        user.password
+                    );
+                    if (!isValid) {
+                        throw new Error('Invalid password.');
                     }
 
                     return {
@@ -124,6 +112,12 @@ export const authOptions: NextAuthOptions = {
                     email: user?.email,
                 });
 
+                if (existingUser?.provider === 'credentials') {
+                    throw new Error(
+                        'Invalid credentials! Please use credentials to sign in.'
+                    );
+                }
+
                 if (!existingUser) {
                     const newUser = await UserModel.create({
                         name: user?.name,
@@ -137,9 +131,9 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     user.id = newUser._id.toString();
-                } else {
-                    user.id = existingUser._id.toString();
                 }
+
+                user.id = existingUser._id.toString();
             }
 
             return true;

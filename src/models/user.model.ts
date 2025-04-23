@@ -19,7 +19,7 @@ const UserSchema: Schema = new Schema<IUser>(
                 return this.provider !== 'google';
             },
         },
-        oldPasswords: { type: [String] },
+        oldPasswords: { type: [String], default: [] },
         provider: {
             type: String,
             enum: ['credentials', 'google'],

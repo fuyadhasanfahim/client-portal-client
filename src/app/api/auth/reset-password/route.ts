@@ -20,14 +20,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const isReused =
-            user.oldPasswords.length > 0
-                ? await Promise.any(
-                      user.oldPasswords.map((oldHash: string) =>
-                          bcrypt.compare(newPassword, oldHash)
-                      )
-                  ).catch(() => false)
-                : false;
+        const isReused = await Promise.all(
+            user.oldPasswords.map((oldHash: string) =>
+                bcrypt.compare(newPassword, oldHash)
+            )
+        ).then((results) => results.some((match) => match));
 
         if (isReused) {
             return NextResponse.json(
@@ -43,7 +40,9 @@ export async function POST(req: NextRequest) {
         user.lastPasswordChange = new Date();
         user.forgetPasswordToken = '';
         user.forgetPasswordTokenExpiry = null;
-        user.oldPasswords = [...user.oldPasswords, hashedPassword].slice(-5);
+        user.oldPasswords = Array.from(
+            new Set([...user.oldPasswords, hashedPassword])
+        ).slice(-5);
         await user.save();
 
         return NextResponse.json(

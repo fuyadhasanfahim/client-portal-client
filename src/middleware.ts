@@ -12,7 +12,7 @@ export default withAuth(
             pathname.startsWith('/forgot-password') ||
             pathname.startsWith('/reset-password');
 
-        if (isAuthenticated && isAuthPage) {
+        if ((isAuthenticated && isAuthPage) || pathname === '/') {
             return NextResponse.redirect(new URL('/dashboard', req.url));
         }
 

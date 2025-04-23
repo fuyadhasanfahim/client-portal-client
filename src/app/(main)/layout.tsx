@@ -3,6 +3,7 @@ import NextAuthProvider from '../NextAuthProvider';
 import { AppSidebar } from '@/components/shared/app-sidebar';
 import { SiteHeader } from '@/components/shared/site-header';
 import { getUserData } from '@/actions/user.action';
+import VerificationAlert from '@/components/shared/VerificationAlert';
 
 export default async function Layout({
     children,
@@ -29,7 +30,13 @@ export default async function Layout({
                 <AppSidebar user={userData} variant="inset" />
                 <SidebarInset>
                     <SiteHeader />
-                    <main className="p-4">{children}</main>
+                    <main className="p-4">
+                        {user?.isEmailVerified ? (
+                            children
+                        ) : (
+                            <VerificationAlert email={user.email} />
+                        )}
+                    </main>
                 </SidebarInset>
             </SidebarProvider>
         </NextAuthProvider>
