@@ -28,6 +28,13 @@ export async function GET(req: Request) {
             );
         }
 
+        if (user.isEmailVerified) {
+            return NextResponse.json(
+                { message: 'Email is already verified' },
+                { status: 200 }
+            );
+        }
+
         user.isEmailVerified = true;
         user.emailVerificationToken = '';
         user.emailVerificationTokenExpiry = null;

@@ -36,15 +36,18 @@ export async function POST(req: NextRequest) {
 
         const token = generateToken();
         user.emailVerificationToken = token;
-        user.emailVerificationTokenExpiry =
-            new Date().getTime() + 1000 * 60 * 60;
+        user.emailVerificationTokenExpiry = new Date(
+            Date.now() + 1000 * 60 * 60
+        );
         await user.save();
 
         const verificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/verify-email?token=${token}`;
         await sendEmail({
             to: email,
             subject: 'Verify your email',
-            html: `<p>Click <a href="${verificationUrl}">here</a> to verify your email.</p>`,
+            html: `<p>Click the link below to verify your email.</p>
+            ${verificationUrl}
+            `,
         });
 
         return NextResponse.json(

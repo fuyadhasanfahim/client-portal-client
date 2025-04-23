@@ -19,7 +19,7 @@ import axiosInstance from '@/lib/axios-instance';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import axios from 'axios';
+import ApiError from '@/components/shared/ApiError';
 
 export default function SignupForm() {
     const router = useRouter();
@@ -52,13 +52,7 @@ export default function SignupForm() {
                 router.push('/sign-in');
             }
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                toast.error(
-                    error.response?.data?.message || 'Something went wrong.'
-                );
-            } else {
-                toast.error('Something went wrong.');
-            }
+            ApiError(error);
         }
     };
 

@@ -7,7 +7,10 @@ export default withAuth(
         const isAuthenticated = !!req.nextauth.token;
 
         const isAuthPage =
-            pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up');
+            pathname.startsWith('/sign-in') ||
+            pathname.startsWith('/sign-up') ||
+            pathname.startsWith('/forgot-password') ||
+            pathname.startsWith('/reset-password');
 
         if (isAuthenticated && isAuthPage) {
             return NextResponse.redirect(new URL('/dashboard', req.url));

@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ApiError from '@/components/shared/ApiError';
 
 export default function SigninForm() {
     const router = useRouter();
@@ -54,10 +55,7 @@ export default function SigninForm() {
                 router.push('/dashboard');
             }
         } catch (error) {
-            toast.error(
-                (error as Error).message ||
-                    'Something went wrong. Please try again.'
-            );
+            ApiError(error);
         }
     };
 
@@ -125,7 +123,7 @@ export default function SigninForm() {
                         />
 
                         <Link
-                            href="/forget-password"
+                            href="/forgot-password"
                             className="text-sm text-primary hover:underline"
                         >
                             Forgot Password
