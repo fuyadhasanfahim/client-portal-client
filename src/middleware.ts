@@ -1,10 +1,12 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
+import getAccessibleRoutes from './utils/getAccessibleRoutes';
 
 export default withAuth(
-    function middleware(req) {
+    async function middleware(req) {
         const { pathname } = req.nextUrl;
         const isAuthenticated = !!req.nextauth.token;
+        const user = req.nextauth.token || {};
 
         const isAuthPage =
             pathname.startsWith('/sign-in') ||
@@ -22,6 +24,14 @@ export default withAuth(
 
         if (!isAuthenticated) {
             return NextResponse.redirect(new URL('/sign-in', req.url));
+        }
+
+        const hasAccess = await getAccessibleRoutes({
+            pathname,
+            role: user?.role as string,
+        });
+        if (hasAccess === false) {
+            return NextResponse.redirect(new URL('/dashboard', req.url));
         }
 
         return NextResponse.next();

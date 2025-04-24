@@ -22,6 +22,7 @@ export function AppSidebar(
             name: string;
             email: string;
             profileImage?: string;
+            role: string;
         };
     }
 ) {
@@ -47,7 +48,7 @@ export function AppSidebar(
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={sidebarItems} />
+                <NavMain items={sidebarItems} role={user?.role} />
             </SidebarContent>
             <SidebarFooter>
                 <NavUser user={user} />

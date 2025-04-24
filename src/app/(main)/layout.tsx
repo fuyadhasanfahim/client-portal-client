@@ -4,6 +4,12 @@ import { AppSidebar } from '@/components/shared/app-sidebar';
 import { SiteHeader } from '@/components/shared/site-header';
 import { getUserData } from '@/actions/user.action';
 import VerificationAlert from '@/components/shared/VerificationAlert';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Client Portal',
+    description: 'Client Portal',
+};
 
 export default async function Layout({
     children,
@@ -15,6 +21,7 @@ export default async function Layout({
         name: user.name,
         email: user.email,
         profileImage: user.profileImage || '',
+        role: user.role,
     };
 
     return (

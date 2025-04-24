@@ -14,20 +14,25 @@ import Link from 'next/link';
 
 export function NavMain({
     items,
+    role,
 }: {
     items: {
         title: string;
         url: string;
         icon?: Icon;
+        access: string[];
     }[];
+    role: string;
 }) {
     const pathname = usePathname();
+
+    const filteredItems = items.filter((item) => item.access.includes(role));
 
     return (
         <SidebarGroup>
             <SidebarGroupContent className="flex flex-col gap-2">
                 <SidebarMenu>
-                    {items.map((item) => (
+                    {filteredItems.map((item) => (
                         <Link key={item.title} href={item.url}>
                             <SidebarMenuItem
                                 className={cn(

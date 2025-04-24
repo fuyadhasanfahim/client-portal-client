@@ -56,6 +56,7 @@ export const authOptions: NextAuthOptions = {
 
                     return {
                         id: user._id!,
+                        role: user.role!,
                     };
                 } catch (error) {
                     throw new Error(
@@ -92,13 +93,17 @@ export const authOptions: NextAuthOptions = {
             }
 
             if (user) {
+                const db = await UserModel.findById(user.id);
+
                 token.id = user.id;
+                token.role = db.role;
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.role = token.role as string;
             }
 
             return session;
@@ -116,9 +121,7 @@ export const authOptions: NextAuthOptions = {
                     throw new Error(
                         'Invalid credentials! Please use credentials to sign in.'
                     );
-                }
-
-                if (!existingUser) {
+                } else if (!existingUser) {
                     const newUser = await UserModel.create({
                         name: user?.name,
                         email: user?.email,
@@ -131,6 +134,7 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     user.id = newUser._id.toString();
+                    return true;
                 }
 
                 user.id = existingUser._id.toString();

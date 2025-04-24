@@ -24,9 +24,6 @@ export default interface IUser {
     isDeleted: boolean;
     isBlocked: boolean;
 
-    orders: string[];
-    payments: string[];
-
     createdAt?: Date;
     updatedAt?: Date;
 }

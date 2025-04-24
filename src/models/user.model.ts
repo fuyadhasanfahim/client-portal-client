@@ -39,9 +39,6 @@ const UserSchema: Schema = new Schema<IUser>(
         isActive: { type: Boolean, default: true },
         isDeleted: { type: Boolean, default: false },
         isBlocked: { type: Boolean, default: false },
-
-        orders: { type: [String], default: [] },
-        payments: { type: [String], default: [] },
     },
     {
         timestamps: true,
