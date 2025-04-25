@@ -82,13 +82,15 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.error('Signup error:', error);
         return NextResponse.json(
             {
                 success: false,
-                message: 'An error occurred while creating the user.',
+                message: 'Something went wrong! Try again later.',
+                errorMessage: (error as Error).message,
             },
-            { status: 500 }
+            {
+                status: 500,
+            }
         );
     }
 }

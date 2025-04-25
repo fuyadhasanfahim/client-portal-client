@@ -48,8 +48,8 @@ export async function GET(req: Request) {
         return NextResponse.json(
             {
                 success: false,
-                message: 'Internal server error',
-                error,
+                message: 'Something went wrong! Try again later.',
+                errorMessage: (error as Error).message,
             },
             {
                 status: 500,
