@@ -11,6 +11,7 @@ import {
 import AddServiceForm from '@/components/services/AddServiceForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Metadata } from 'next';
+import ServicesDataTable from '@/components/services/ServicesDataTable';
 
 export const metadata: Metadata = {
     title: 'Services | Client Portal',
@@ -18,9 +19,9 @@ export const metadata: Metadata = {
         'Welcome to the Client Portal – your gateway to seamless business management and collaboration.',
 };
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
     return (
-        <section>
+        <section className="space-y-4">
             <div className="flex flex-1/2 items-center justify-between gap-6 flex-wrap">
                 <h2 className="text-base md:text-lg lg:text-xl font-semibold">
                     Active Services
@@ -49,6 +50,8 @@ export default function ServicesPage() {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            <ServicesDataTable />
         </section>
     );
 }

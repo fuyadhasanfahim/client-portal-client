@@ -99,7 +99,7 @@ export default function AddServiceForm() {
                                 variant="outline"
                                 onClick={() => append({ label: '', price: 0 })}
                             >
-                                <IconPlus className="mr-1" size={16} />
+                                <IconPlus size={16} />
                                 Add Complexity
                             </Button>
                         )}
@@ -134,13 +134,12 @@ export default function AddServiceForm() {
                                             <FormControl>
                                                 <Input
                                                     type="number"
-                                                    step="0.01"
                                                     {...field}
                                                     onChange={(e) =>
                                                         field.onChange(
                                                             parseFloat(
                                                                 e.target.value
-                                                            ) || 0
+                                                            )
                                                         )
                                                     }
                                                 />

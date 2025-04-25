@@ -1,3 +1,4 @@
+import dbConfig from '@/lib/dbConfig';
 import ServiceModel from '@/models/service.model';
 import { IComplexity } from '@/types/service.interface';
 import { addServiceSchema } from '@/validations/add-service.schema';
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
                 { status: 422 }
             );
         }
+
+        await dbConfig();
 
         const { name, complexities } = result.data;
 

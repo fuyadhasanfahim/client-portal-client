@@ -1,4 +1,5 @@
 export interface IComplexity {
+    _id?: string;
     label: string;
     price: number;
 }
