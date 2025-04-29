@@ -28,6 +28,11 @@ const serviceSchema = new Schema<IService>(
             default: [],
             required: false,
         },
+        status: {
+            type: String,
+            enum: ['Active', 'Inactive', 'Pending'],
+            default: 'Pending',
+        },
     },
     {
         timestamps: true,

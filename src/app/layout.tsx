@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import NextAuthProvider from './NextAuthProvider'; // now handles its own session logic
+import ReduxProvider from './ReduxProvider';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -23,10 +24,12 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <NextAuthProvider>
-                    {children}
-                    <Toaster />
-                </NextAuthProvider>
+                <ReduxProvider>
+                    <NextAuthProvider>
+                        {children}
+                        <Toaster />
+                    </NextAuthProvider>
+                </ReduxProvider>
             </body>
         </html>
     );

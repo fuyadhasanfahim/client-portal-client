@@ -4,6 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -21,10 +22,17 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addServiceSchema } from '@/validations/add-service.schema';
 import ApiError from '../shared/ApiError';
-import axiosInstance from '@/lib/axios-instance';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 import { DialogClose } from '../ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select';
+import { useAddServiceMutation } from '@/redux/features/services/servicesApi';
 
 export default function AddServiceForm() {
     const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -34,6 +42,7 @@ export default function AddServiceForm() {
         defaultValues: {
             name: '',
             complexities: [],
+            status: 'Pending',
         },
     });
 
@@ -42,21 +51,20 @@ export default function AddServiceForm() {
         name: 'complexities',
     });
 
+    const [addService, { isLoading }] = useAddServiceMutation();
+
     const onSubmit = async (data: z.infer<typeof addServiceSchema>) => {
         try {
-            const response = await axiosInstance.post(
-                '/services/add-service',
-                data
-            );
+            const response = await addService(data).unwrap();
 
-            if (response.status === 201) {
-                toast.success(response.data.message);
+            if (response.success) {
+                toast.success(response.message);
 
                 form.reset();
 
                 closeRef.current?.click();
             } else {
-                toast.error(response.data.error?.message);
+                toast.error(response.message);
             }
         } catch (error) {
             ApiError(error);
@@ -87,6 +95,37 @@ export default function AddServiceForm() {
                                         {...field}
                                     />
                                 </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                >
+                                    <FormControl>
+                                        <SelectTrigger className="w-38">
+                                            <SelectValue placeholder="Select value" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Active">
+                                            Active
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                    The value is by default set to Pending. You
+                                    can change it here, or later in the edit
+                                    page.
+                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -179,11 +218,12 @@ export default function AddServiceForm() {
                             type="reset"
                             variant={'outline'}
                             onClick={() => form.reset()}
+                            disabled={isLoading}
                         >
                             <IconRestore />
                             Reset
                         </Button>
-                        <Button type="submit">
+                        <Button type="submit" disabled={isLoading}>
                             <IconDeviceFloppy />
                             Add Service
                         </Button>

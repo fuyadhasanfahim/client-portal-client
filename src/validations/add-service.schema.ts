@@ -20,4 +20,5 @@ export const addServiceSchema = z.object({
             })
         )
         .optional(),
+    status: z.string(),
 });

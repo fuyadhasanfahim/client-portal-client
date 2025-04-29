@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
                 success: true,
                 data: servicesData,
                 pagination: {
-                    total: servicesData.length,
+                    totalItems: servicesData.length,
                     page,
-                    perPage: quantity,
+                    quantity,
                     totalPages: Math.ceil(servicesData.length / quantity),
                 },
             },
