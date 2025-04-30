@@ -1,10 +1,11 @@
+import dbConfig from '@/lib/dbConfig';
 import ServiceModel from '@/models/service.model';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(req: NextRequest) {
     try {
         const { id } = await req.json();
-        
+
         if (!id) {
             return NextResponse.json(
                 {
@@ -17,6 +18,8 @@ export async function DELETE(req: NextRequest) {
                 }
             );
         }
+
+        await dbConfig();
 
         await ServiceModel.findOneAndDelete({ _id: id });
 

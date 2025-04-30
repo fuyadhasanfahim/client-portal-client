@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filter: any = {};
-
         if (searchQuery) {
             filter.name = { $regex: searchQuery, $options: 'i' };
         }
@@ -22,39 +21,25 @@ export async function GET(req: NextRequest) {
 
         await dbConfig();
 
+        const totalItems = await ServiceModel.countDocuments(filter);
+
         const servicesData = await ServiceModel.find(filter)
             .skip(skip)
             .limit(quantity)
-            .sort({
-                createdAt: -1,
-            });
-
-        if (!servicesData) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: 'No service data found!',
-                },
-                {
-                    status: 404,
-                }
-            );
-        }
+            .sort({ createdAt: -1 });
 
         return NextResponse.json(
             {
                 success: true,
                 data: servicesData,
                 pagination: {
-                    totalItems: servicesData.length,
+                    totalItems,
                     page,
                     quantity,
-                    totalPages: Math.ceil(servicesData.length / quantity),
+                    totalPages: Math.ceil(totalItems / quantity),
                 },
             },
-            {
-                status: 200,
-            }
+            { status: 200 }
         );
     } catch (error) {
         return NextResponse.json(
@@ -67,3 +52,4 @@ export async function GET(req: NextRequest) {
         );
     }
 }
+

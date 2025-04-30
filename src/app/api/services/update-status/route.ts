@@ -1,3 +1,4 @@
+import dbConfig from '@/lib/dbConfig';
 import ServiceModel from '@/models/service.model';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -17,6 +18,8 @@ export async function PUT(req: NextRequest) {
                 }
             );
         }
+
+        await dbConfig();
 
         await ServiceModel.findByIdAndUpdate({ _id: id }, { $set: { status } });
 

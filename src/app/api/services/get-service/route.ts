@@ -1,5 +1,8 @@
+import dbConfig from '@/lib/dbConfig';
 import ServiceModel from '@/models/service.model';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
@@ -17,6 +20,8 @@ export async function GET(req: NextRequest) {
                 }
             );
         }
+
+        await dbConfig()
 
         const data = await ServiceModel.findById(id);
 
