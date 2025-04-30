@@ -8,6 +8,7 @@ import {
     MoreHorizontal,
     Pencil,
     Trash2,
+    CircleDashed,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -36,19 +37,32 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
+import {
+    useDeleteServiceMutation,
+    useGetServicesQuery,
+    useUpdateServiceStatusMutation,
+} from '@/redux/features/services/servicesApi';
 import IService, { IComplexity } from '@/types/service.interface';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import ApiError from '../shared/ApiError';
+import { useRouter } from 'next/navigation';
 
 export default function ServicesDataTable() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
+    const router = useRouter();
 
     const { data, isLoading } = useGetServicesQuery({
         params: { page: currentPage, quantity, searchQuery },
     });
 
-    console.log(data?.pagination);
+    const [deleteService, { isLoading: isDeleting }] =
+        useDeleteServiceMutation();
+
+    const [updateServiceStatus, { isLoading: isStatusUpdating }] =
+        useUpdateServiceStatusMutation();
 
     const services = data?.data || [];
     const pagination = data?.pagination || { totalItems: 0, totalPages: 1 };
@@ -58,12 +72,28 @@ export default function ServicesDataTable() {
         setCurrentPage(1);
     };
 
-    const handleEdit = (serviceId: string) => {
-        console.log(`Edit service with ID: ${serviceId}`);
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteService(id).unwrap();
+            toast.success('Service deleted successfully');
+        } catch (error) {
+            ApiError(error);
+        }
     };
 
-    const handleDelete = (serviceId: string) => {
-        console.log(`Delete service with ID: ${serviceId}`);
+    const handleUpdateStatus = async ({
+        id,
+        status,
+    }: {
+        id: string;
+        status: string;
+    }) => {
+        try {
+            await updateServiceStatus({ id, status }).unwrap();
+            toast.success('Successfully updated the status.');
+        } catch (error) {
+            ApiError(error);
+        }
     };
 
     return (
@@ -161,7 +191,7 @@ export default function ServicesDataTable() {
                                     <TableCell className="font-medium border-r">
                                         {service.name}
                                     </TableCell>
-                                    <TableCell className='border-r'>
+                                    <TableCell className="border-r">
                                         <div className="flex flex-wrap gap-2">
                                             {service.complexities?.map(
                                                 (tier: IComplexity) => (
@@ -180,15 +210,76 @@ export default function ServicesDataTable() {
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-center border-r">
-                                        <Badge
-                                            variant="outline"
-                                            className="gap-1"
+                                    <TableCell className="flex items-center justify-center border-r">
+                                        <Select
+                                            value={service.status}
+                                            onValueChange={(newStatus) =>
+                                                handleUpdateStatus({
+                                                    id: service._id!,
+                                                    status: newStatus,
+                                                })
+                                            }
+                                            disabled={isStatusUpdating}
                                         >
-                                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                                            Active
-                                        </Badge>
+                                            <SelectTrigger className="border-none shadow-none">
+                                                <Badge
+                                                    variant="outline"
+                                                    className="gap-1"
+                                                >
+                                                    <CircleDashed
+                                                        size={16}
+                                                        className={cn(
+                                                            service.status ===
+                                                                'Active'
+                                                                ? 'text-primary'
+                                                                : service.status ===
+                                                                  'Pending'
+                                                                ? 'text-yellow-500'
+                                                                : 'text-destructive'
+                                                        )}
+                                                    />
+                                                    {service.status}
+                                                </Badge>
+                                            </SelectTrigger>
+
+                                            <SelectContent>
+                                                <SelectItem value="Active">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="gap-1"
+                                                    >
+                                                        <CircleDashed
+                                                            size={16}
+                                                            className="text-primary"
+                                                        />
+                                                        Active
+                                                    </Badge>
+                                                </SelectItem>
+                                                <SelectItem value="Pending">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="gap-1"
+                                                    >
+                                                        <CircleDashed
+                                                            size={16}
+                                                            className="text-yellow-500"
+                                                        />
+                                                        Pending
+                                                    </Badge>
+                                                </SelectItem>
+                                                <SelectItem value="Inactive">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="gap-1"
+                                                    >
+                                                        <CircleDashed className="text-destructive" />
+                                                        Inactive
+                                                    </Badge>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </TableCell>
+
                                     <TableCell className="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -206,17 +297,20 @@ export default function ServicesDataTable() {
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem
                                                     onClick={() =>
-                                                        handleEdit(service._id!)
+                                                        router.push(
+                                                            `/services/update/${service._id!}`
+                                                        )
                                                     }
                                                 >
                                                     <Pencil className="mr-2 h-4 w-4" />{' '}
                                                     Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    className="text-red-600"
+                                                    variant="destructive"
+                                                    disabled={isDeleting}
                                                     onClick={() =>
                                                         handleDelete(
-                                                            service._id!
+                                                            service._id as string
                                                         )
                                                     }
                                                 >

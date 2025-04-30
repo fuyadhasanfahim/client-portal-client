@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const addServiceSchema = z.object({
+export const updateServiceSchema = z.object({
     name: z
         .string()
         .nonempty({ message: 'Name is required and cannot be empty.' }),
@@ -17,4 +17,5 @@ export const addServiceSchema = z.object({
             })
         )
         .optional(),
+    status: z.string().optional(),
 });
