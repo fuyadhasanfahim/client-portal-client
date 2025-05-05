@@ -1,5 +1,5 @@
 import IService, { IComplexity } from '@/types/service.interface';
-import { model, models, Schema } from 'mongoose';
+import { model, models, Schema, Types } from 'mongoose';
 
 const complexitySchema = new Schema<IComplexity>(
     {
@@ -22,6 +22,19 @@ const serviceSchema = new Schema<IService>(
         name: {
             type: String,
             required: true,
+        },
+        price: {
+            type: Number,
+            required: false,
+        },
+        accessibleTo: {
+            type: String,
+            enum: ['All', 'Custom'],
+            required: true,
+        },
+        accessList: {
+            type: Types.ObjectId,
+            ref: 'User',
         },
         complexities: {
             type: [complexitySchema],

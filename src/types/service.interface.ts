@@ -7,6 +7,9 @@ export interface IComplexity {
 export default interface IService {
     _id?: string;
     name: string;
+    price?: number;
+    accessibleTo: 'All' | 'Custom';
+    accessList?: string[];
     complexities?: IComplexity[];
     status: string;
 }

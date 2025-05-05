@@ -33,7 +33,11 @@ export default function AddServiceForm() {
         resolver: zodResolver(addServiceSchema),
         defaultValues: {
             name: '',
+            price: 0,
             complexities: [],
+            accessibleTo: 'All',
+            accessList: [],
+            status: 'Inactive',
         },
     });
 
@@ -71,23 +75,50 @@ export default function AddServiceForm() {
                     className="space-y-6 px-4"
                     onSubmit={form.handleSubmit(onSubmit)}
                 >
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Service Name *</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        placeholder="Enter the service name"
-                                        required
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Service Name *</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder="Enter the service name"
+                                            required
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name={'price'}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Price</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            value={field.value || ''}
+                                            placeholder="e.g. 0.46"
+                                            step="0.01"
+                                            min="0"
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    Number(e.target.value)
+                                                )
+                                            }
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     <div className="space-y-4">
                         {fields.map((item, index) => (
