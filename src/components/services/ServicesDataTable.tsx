@@ -153,7 +153,7 @@ export default function ServicesDataTable() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array(quantity)
+                            Array(5)
                                 .fill(0)
                                 .map((_, index) => (
                                     <TableRow key={`skeleton-${index}`}>

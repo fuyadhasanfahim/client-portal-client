@@ -27,6 +27,13 @@ export const servicesApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Services'],
             }),
+            getServicesForUser: build.query({
+                query: (userId) => ({
+                    url: 'services/get-services-for-user',
+                    params: { userId },
+                }),
+                providesTags: ['Services'],
+            }),
             deleteService: build.mutation({
                 query: (id) => ({
                     url: 'services/delete-service',
@@ -59,6 +66,7 @@ export const {
     useAddServiceMutation,
     useGetServicesQuery,
     useGetSingleServiceQuery,
+    useGetServicesForUserQuery,
     useDeleteServiceMutation,
     useUpdateServiceMutation,
     useUpdateServiceStatusMutation,
