@@ -141,6 +141,9 @@ export default function ServicesDataTable() {
                                 Pricing Tiers
                             </TableHead>
                             <TableHead className="font-medium text-center border-r">
+                                Accessible To
+                            </TableHead>
+                            <TableHead className="font-medium text-center border-r">
                                 Status
                             </TableHead>
                             <TableHead className="font-medium text-center w-20">
@@ -159,6 +162,9 @@ export default function ServicesDataTable() {
                                         </TableCell>
                                         <TableCell>
                                             <Skeleton className="h-6 w-full" />
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Skeleton className="h-6 w-16 mx-auto" />
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Skeleton className="h-6 w-16 mx-auto" />
@@ -193,22 +199,44 @@ export default function ServicesDataTable() {
                                     </TableCell>
                                     <TableCell className="border-r">
                                         <div className="flex flex-wrap gap-2">
-                                            {service.complexities?.map(
-                                                (tier: IComplexity) => (
-                                                    <Badge
-                                                        key={tier.label}
-                                                        variant="outline"
-                                                        className="bg-slate-50"
-                                                    >
-                                                        <span className="font-medium">
-                                                            {tier.label}:
-                                                        </span>{' '}
-                                                        $
-                                                        {tier.price?.toFixed(2)}
-                                                    </Badge>
+                                            {(service.complexities ?? [])
+                                                .length > 0 ? (
+                                                service.complexities?.map(
+                                                    (tier: IComplexity) => (
+                                                        <Badge
+                                                            key={tier.label}
+                                                            variant="outline"
+                                                            className="bg-slate-50"
+                                                        >
+                                                            <span className="font-medium">
+                                                                {tier.label}:
+                                                            </span>{' '}
+                                                            $
+                                                            {tier.price?.toFixed(
+                                                                2
+                                                            )}
+                                                        </Badge>
+                                                    )
                                                 )
+                                            ) : (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="bg-slate-50"
+                                                >
+                                                    ${service.price?.toFixed(2)}
+                                                </Badge>
                                             )}
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="font-medium border-r text-center">
+                                        {service.accessibleTo === 'All' ? (
+                                            service.accessibleTo
+                                        ) : (
+                                            <span>
+                                                {service.accessibleTo}:{' '}
+                                                {service.accessList?.length}
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="flex items-center justify-center border-r">
                                         <Select

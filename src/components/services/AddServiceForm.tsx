@@ -22,7 +22,6 @@ import {
     IconPackage,
     IconUsers,
     IconTag,
-    IconListCheck,
 } from '@tabler/icons-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addServiceSchema } from '@/validations/add-service.schema';
@@ -38,6 +37,8 @@ import { Checkbox } from '../ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
+import { Save, TriangleAlert, X } from 'lucide-react';
+import { Label } from '../ui/label';
 
 const dummyUsers = Array.from({ length: 50 }).map((_, i) => ({
     id: `user-${i}`,
@@ -80,10 +81,26 @@ export default function AddServiceForm() {
 
     const [addService, { isLoading }] = useAddServiceMutation();
 
+    const toggleUser = (userId: string) => {
+        setSelectedUsers((prev) =>
+            prev.includes(userId)
+                ? prev.filter((id) => id !== userId)
+                : [...prev, userId]
+        );
+    };
+
+    const filteredUsers = dummyUsers.filter(
+        (user) =>
+            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const onSubmit = async (data: z.infer<typeof addServiceSchema>) => {
         try {
             if (hasComplexPricing) {
                 data.price = 0;
+            } else {
+                data.complexities = [];
             }
 
             if (data.accessibleTo === 'Custom') {
@@ -108,36 +125,22 @@ export default function AddServiceForm() {
         }
     };
 
-    const toggleUser = (userId: string) => {
-        setSelectedUsers((prev) =>
-            prev.includes(userId)
-                ? prev.filter((id) => id !== userId)
-                : [...prev, userId]
-        );
-    };
-
-    const filteredUsers = dummyUsers.filter(
-        (user) =>
-            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     return (
-        <>
+        <section className="px-4 pb-4">
             <DialogClose asChild>
                 <Button ref={closeRef} className="hidden" />
             </DialogClose>
 
             <Form {...form}>
                 <form
-                    className="space-y-8 px-4"
+                    className="space-y-6"
                     onSubmit={form.handleSubmit(onSubmit)}
                 >
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <IconPackage size={20} />
-                                Service Information
+                                <span>Service Information</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -146,30 +149,33 @@ export default function AddServiceForm() {
                                     control={form.control}
                                     name="name"
                                     render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-slate-700">
-                                                Service Name *
+                                        <FormItem className="space-y-2">
+                                            <FormLabel>
+                                                Service Name
+                                                <span className="text-destructive">
+                                                    *
+                                                </span>
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="Enter the service name"
+                                                    placeholder="e.g. Clipping Path"
                                                     required
                                                     {...field}
                                                 />
                                             </FormControl>
-                                            <FormMessage className="text-red-500" />
+                                            <FormMessage className="text-red-500 text-xs" />
                                         </FormItem>
                                     )}
                                 />
 
-                                <div className="space-y-6">
+                                <div className="space-y-4">
                                     <FormField
                                         control={form.control}
                                         name="price"
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-slate-700">
-                                                    Price
+                                            <FormItem className="space-y-2">
+                                                <FormLabel>
+                                                    Base Price
                                                 </FormLabel>
                                                 <FormControl>
                                                     <div className="relative">
@@ -184,7 +190,7 @@ export default function AddServiceForm() {
                                                                 field.value ||
                                                                 ''
                                                             }
-                                                            placeholder="e.g. 0.46"
+                                                            placeholder="e.g. 49.99"
                                                             step="0.01"
                                                             min="0"
                                                             disabled={
@@ -203,28 +209,27 @@ export default function AddServiceForm() {
                                                     </div>
                                                 </FormControl>
                                                 {hasComplexPricing && (
-                                                    <FormDescription className="text-amber-600 text-xs">
-                                                        Fixed price is disabled
-                                                        when using complex
-                                                        pricing
+                                                    <FormDescription className="text-amber-600 text-xs flex items-center gap-1">
+                                                        <TriangleAlert
+                                                            size={16}
+                                                        />
+                                                        <span>
+                                                            Fixed price is
+                                                            disabled when using
+                                                            complex pricing
+                                                        </span>
                                                     </FormDescription>
                                                 )}
-                                                <FormMessage className="text-red-500" />
+                                                <FormMessage className="text-destructive" />
                                             </FormItem>
                                         )}
                                     />
 
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center space-x-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
                                             <Switch
                                                 checked={hasComplexPricing}
-                                                onCheckedChange={(
-                                                    checked:
-                                                        | boolean
-                                                        | ((
-                                                              prevState: boolean
-                                                          ) => boolean)
-                                                ) => {
+                                                onCheckedChange={(checked) => {
                                                     setHasComplexPricing(
                                                         checked
                                                     );
@@ -237,12 +242,9 @@ export default function AddServiceForm() {
                                                 }}
                                                 id="complex-pricing"
                                             />
-                                            <label
-                                                htmlFor="complex-pricing"
-                                                className="text-sm font-medium text-slate-700 cursor-pointer"
-                                            >
-                                                Enable Complex Pricing
-                                            </label>
+                                            <Label htmlFor="complex-pricing">
+                                                Enable Tiered Pricing
+                                            </Label>
                                         </div>
                                     </div>
                                 </div>
@@ -250,127 +252,136 @@ export default function AddServiceForm() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <IconUsers size={20} />
-                                    Access Control
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                <FormField
-                                    control={form.control}
-                                    name="accessibleTo"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-4">
-                                            <FormLabel>
-                                                Accessible To
-                                            </FormLabel>
-                                            <FormControl>
-                                                <RadioGroup
-                                                    onValueChange={(value) => {
-                                                        field.onChange(value);
-                                                        if (value === 'All') {
-                                                            setSelectedUsers(
-                                                                []
-                                                            );
-                                                        }
-                                                    }}
-                                                    defaultValue={field.value}
-                                                    className="flex space-y-x"
-                                                >
-                                                    <FormItem className="flex items-center space-x-3">
-                                                        <FormControl>
-                                                            <RadioGroupItem value="All" />
-                                                        </FormControl>
-                                                        <FormLabel>
-                                                            All Users
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                    <FormItem className="flex items-center space-x-3">
-                                                        <FormControl>
-                                                            <RadioGroupItem value="Custom" />
-                                                        </FormControl>
-                                                        <FormLabel>
-                                                            Custom
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                </RadioGroup>
-                                            </FormControl>
-                                            <FormMessage className="text-red-500" />
-                                        </FormItem>
-                                    )}
-                                />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <IconUsers size={20} />
+                                <span>Access Control</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField
+                                control={form.control}
+                                name="accessibleTo"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-4">
+                                        <FormLabel>Accessible To</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                                onValueChange={(value) => {
+                                                    field.onChange(value);
+                                                    if (value === 'All') {
+                                                        setSelectedUsers([]);
+                                                    }
+                                                }}
+                                                defaultValue={field.value}
+                                                className="flex gap-6"
+                                            >
+                                                <FormItem className="flex items-center space-x-3">
+                                                    <FormControl>
+                                                        <RadioGroupItem
+                                                            value="All"
+                                                            className="hover:border-primary transition-colors duration-200"
+                                                        />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal cursor-pointer">
+                                                        All Users
+                                                    </FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-3">
+                                                    <FormControl>
+                                                        <RadioGroupItem
+                                                            value="Custom"
+                                                            className="hover:border-primary transition-colors duration-200"
+                                                        />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal cursor-pointer">
+                                                        Custom Access
+                                                    </FormLabel>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage className="text-red-500 text-xs" />
+                                    </FormItem>
+                                )}
+                            />
 
-                                {accessibleTo === 'Custom' && (
-                                    <div className="mt-4">
-                                        <div className="relative mb-2">
-                                            <Input
-                                                type="search"
-                                                placeholder="Search users..."
-                                                value={searchQuery}
-                                                onChange={(e) =>
-                                                    setSearchQuery(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="pl-9 border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                                            />
+                            {accessibleTo === 'Custom' && (
+                                <div className="mt-6 space-y-4">
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <IconSearch
-                                                className="absolute left-3 top-2.5 text-slate-500"
+                                                className="text-slate-400"
                                                 size={18}
                                             />
                                         </div>
+                                        <Input
+                                            type="search"
+                                            placeholder="Search users by name or email..."
+                                            value={searchQuery}
+                                            onChange={(e) =>
+                                                setSearchQuery(e.target.value)
+                                            }
+                                            className="pl-10"
+                                        />
+                                    </div>
 
-                                        {selectedUsers.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 my-2 p-2 border border-slate-200 rounded-md bg-slate-50">
-                                                {selectedUsers.map((userId) => {
-                                                    const user =
-                                                        dummyUsers.find(
-                                                            (u) =>
-                                                                u.id === userId
-                                                        );
-                                                    return (
-                                                        <Badge
-                                                            key={userId}
-                                                            variant="secondary"
-                                                            className="bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                                        >
+                                    {selectedUsers.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 p-3 border rounded-lg">
+                                            {selectedUsers.map((userId) => {
+                                                const user = dummyUsers.find(
+                                                    (u) => u.id === userId
+                                                );
+                                                return (
+                                                    <Badge
+                                                        key={userId}
+                                                        variant="outline"
+                                                        className="border-primary text-primary bg-green-50"
+                                                    >
+                                                        <span className="truncate">
                                                             {user?.name}
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-auto p-0 ml-1 text-blue-800 hover:text-blue-900"
-                                                                onClick={() =>
-                                                                    toggleUser(
-                                                                        userId
-                                                                    )
-                                                                }
-                                                            >
-                                                                ×
-                                                            </Button>
-                                                        </Badge>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleUser(
+                                                                    userId
+                                                                )
+                                                            }
+                                                            className="rounded-full p-0.5 group cursor-pointer"
+                                                        >
+                                                            <X className="size-3 text-primary group-hover:text-destructive" />
+                                                        </button>
+                                                    </Badge>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
 
-                                        <ScrollArea className="h-64 w-full rounded-md border border-slate-200 mt-2">
-                                            <div className="p-2 space-y-1">
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <ScrollArea className="h-64 w-full">
+                                            <div className="divide-y">
                                                 {filteredUsers.length === 0 ? (
-                                                    <p className="text-center text-slate-500 py-4">
-                                                        No users found
-                                                    </p>
+                                                    <div className="text-center py-6">
+                                                        <p className="text-slate-500">
+                                                            No users found
+                                                            matching your search
+                                                        </p>
+                                                    </div>
                                                 ) : (
                                                     filteredUsers.map(
                                                         (user) => (
                                                             <div
                                                                 key={user.id}
-                                                                className="p-2 hover:bg-slate-50 rounded-md"
+                                                                className={`p-3 hover:bg-green-50 transition-colors ${
+                                                                    selectedUsers.includes(
+                                                                        user.id
+                                                                    )
+                                                                        ? 'bg-green-50'
+                                                                        : ''
+                                                                }`}
                                                             >
-                                                                <div className="flex items-center space-x-2">
+                                                                <div className="flex items-center gap-3">
                                                                     <Checkbox
                                                                         id={
                                                                             user.id
@@ -384,23 +395,23 @@ export default function AddServiceForm() {
                                                                             )
                                                                         }
                                                                     />
-                                                                    <div className="flex flex-col">
-                                                                        <label
-                                                                            htmlFor={
-                                                                                user.id
-                                                                            }
-                                                                            className="text-sm font-medium cursor-pointer"
-                                                                        >
+                                                                    <Label
+                                                                        htmlFor={
+                                                                            user.id
+                                                                        }
+                                                                        className="flex flex-col items-start cursor-pointer w-full"
+                                                                    >
+                                                                        <span className="text-sm font-medium text-slate-800">
                                                                             {
                                                                                 user.name
                                                                             }
-                                                                        </label>
+                                                                        </span>
                                                                         <span className="text-xs text-slate-500">
                                                                             {
                                                                                 user.email
                                                                             }
                                                                         </span>
-                                                                    </div>
+                                                                    </Label>
                                                                 </div>
                                                             </div>
                                                         )
@@ -409,74 +420,32 @@ export default function AddServiceForm() {
                                             </div>
                                         </ScrollArea>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader className="bg-slate-50 rounded-t-lg">
-                                <CardTitle className="flex items-center text-slate-800">
-                                    <IconListCheck className="mr-2" size={20} />
-                                    Status & Additional Options
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                <FormField
-                                    control={form.control}
-                                    name="status"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-4">
-                                            <FormLabel className="text-slate-700">
-                                                Service Status
-                                            </FormLabel>
-                                            <FormControl>
-                                                <RadioGroup
-                                                    onValueChange={
-                                                        field.onChange
-                                                    }
-                                                    defaultValue={field.value}
-                                                    className="flex space-x-4"
-                                                >
-                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                        <FormControl>
-                                                            <RadioGroupItem value="Active" />
-                                                        </FormControl>
-                                                        <FormLabel className="font-medium text-slate-700">
-                                                            Active
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                        <FormControl>
-                                                            <RadioGroupItem value="Inactive" />
-                                                        </FormControl>
-                                                        <FormLabel className="font-medium text-slate-700">
-                                                            Inactive
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                </RadioGroup>
-                                            </FormControl>
-                                            <FormMessage className="text-red-500" />
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                        </Card>
-                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     {hasComplexPricing && (
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader className="bg-slate-50 rounded-t-lg">
-                                <CardTitle className="flex items-center text-slate-800">
-                                    <IconTag className="mr-2" size={20} />
-                                    Pricing Tiers
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <IconTag size={20} />
+                                    <span>Pricing Tiers</span>
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="pt-6">
+                            <CardContent>
                                 <div className="space-y-6">
                                     {fields.length === 0 ? (
-                                        <div className="text-center py-6 bg-slate-50 border border-dashed border-slate-300 rounded-lg">
-                                            <p className="text-slate-600 mb-2">
-                                                No pricing tiers added yet
+                                        <div className="text-center py-8 bg-green-50 border-2 border-dashed rounded-lg">
+                                            <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                                                <IconPlus className="text-primary" />
+                                            </div>
+                                            <h3 className="text-lg font-medium text-slate-800 mb-1">
+                                                No pricing tiers yet
+                                            </h3>
+                                            <p className="text-slate-500 mb-4 max-w-md mx-auto">
+                                                Add different pricing tiers for
+                                                different service levels
                                             </p>
                                             <Button
                                                 type="button"
@@ -487,106 +456,120 @@ export default function AddServiceForm() {
                                                         price: 0,
                                                     })
                                                 }
-                                                className="bg-white hover:bg-slate-50"
+                                                className="border-primary bg-white text-primary"
                                             >
-                                                <IconPlus
-                                                    size={16}
-                                                    className="mr-1"
-                                                />
-                                                Add your first tier
+                                                <IconPlus size={16} />
+                                                Add First Tier
                                             </Button>
                                         </div>
                                     ) : (
                                         <>
-                                            {fields.map((item, index) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end p-4 border border-slate-200 rounded-lg"
-                                                >
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`complexities.${index}.label`}
-                                                        render={({ field }) => (
-                                                            <FormItem className="md:col-span-5">
-                                                                <FormLabel>
-                                                                    Tier Name *
-                                                                </FormLabel>
-                                                                <FormControl>
-                                                                    <Input
-                                                                        placeholder="e.g. Basic, Standard, Premium"
-                                                                        {...field}
-                                                                    />
-                                                                </FormControl>
-                                                                <FormMessage className="text-red-500" />
-                                                            </FormItem>
-                                                        )}
-                                                    />
+                                            <div className="space-y-4">
+                                                {fields.map((item, index) => (
+                                                    <div
+                                                        key={item.id}
+                                                        className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end p-4 border border-slate-200 rounded-lg bg-white shadow-xs"
+                                                    >
+                                                        <FormField
+                                                            control={
+                                                                form.control
+                                                            }
+                                                            name={`complexities.${index}.label`}
+                                                            render={({
+                                                                field,
+                                                            }) => (
+                                                                <FormItem className="md:col-span-5 space-y-2">
+                                                                    <FormLabel>
+                                                                        Tier
+                                                                        Name{' '}
+                                                                        <span className="text-red-500">
+                                                                            *
+                                                                        </span>
+                                                                    </FormLabel>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            placeholder="e.g. Basic, Pro, Enterprise"
+                                                                            {...field}
+                                                                        />
+                                                                    </FormControl>
+                                                                    <FormMessage className="text-red-500 text-xs" />
+                                                                </FormItem>
+                                                            )}
+                                                        />
 
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`complexities.${index}.price`}
-                                                        render={({ field }) => (
-                                                            <FormItem className="md:col-span-5">
-                                                                <FormLabel className="text-slate-700">
-                                                                    Price *
-                                                                </FormLabel>
-                                                                <FormControl>
-                                                                    <div className="relative">
-                                                                        <span className="absolute left-3 top-2.5 text-slate-500">
-                                                                            <IconCurrencyDollar
-                                                                                size={
-                                                                                    18
+                                                        <FormField
+                                                            control={
+                                                                form.control
+                                                            }
+                                                            name={`complexities.${index}.price`}
+                                                            render={({
+                                                                field,
+                                                            }) => (
+                                                                <FormItem className="md:col-span-5 space-y-2">
+                                                                    <FormLabel className="text-slate-700">
+                                                                        Price{' '}
+                                                                        <span className="text-red-500">
+                                                                            *
+                                                                        </span>
+                                                                    </FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <span className="absolute left-3 top-2.5 text-slate-500">
+                                                                                <IconCurrencyDollar
+                                                                                    size={
+                                                                                        18
+                                                                                    }
+                                                                                />
+                                                                            </span>
+                                                                            <Input
+                                                                                type="number"
+                                                                                value={
+                                                                                    field.value ||
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="e.g. 99.99"
+                                                                                step="0.01"
+                                                                                min="0"
+                                                                                className="pl-10"
+                                                                                onChange={(
+                                                                                    e
+                                                                                ) =>
+                                                                                    field.onChange(
+                                                                                        Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value
+                                                                                        )
+                                                                                    )
                                                                                 }
                                                                             />
-                                                                        </span>
-                                                                        <Input
-                                                                            type="number"
-                                                                            value={
-                                                                                field.value ||
-                                                                                ''
-                                                                            }
-                                                                            placeholder="e.g. 0.46"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            className="pl-9 border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                                                                            onChange={(
-                                                                                e
-                                                                            ) =>
-                                                                                field.onChange(
-                                                                                    Number(
-                                                                                        e
-                                                                                            .target
-                                                                                            .value
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </FormControl>
-                                                                <FormMessage className="text-red-500" />
-                                                            </FormItem>
-                                                        )}
-                                                    />
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage className="text-red-500 text-xs" />
+                                                                </FormItem>
+                                                            )}
+                                                        />
 
-                                                    <div className="md:col-span-2 flex justify-end">
-                                                        <Button
-                                                            type="button"
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                remove(index)
-                                                            }
-                                                            className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200"
-                                                        >
-                                                            <IconTrash
-                                                                size={16}
-                                                                className="mr-1"
-                                                            />
-                                                            Remove
-                                                        </Button>
+                                                        <div className="md:col-span-2 flex justify-end">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    remove(
+                                                                        index
+                                                                    )
+                                                                }
+                                                                className="border-destructive text-destructive bg-red-50"
+                                                            >
+                                                                <IconTrash
+                                                                    size={16}
+                                                                />
+                                                                Remove
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
 
                                             <Button
                                                 type="button"
@@ -597,6 +580,7 @@ export default function AddServiceForm() {
                                                         price: 0,
                                                     })
                                                 }
+                                                className="border-primary bg-white text-primary"
                                             >
                                                 <IconPlus
                                                     size={16}
@@ -611,7 +595,7 @@ export default function AddServiceForm() {
                         </Card>
                     )}
 
-                    <div className="flex items-center justify-end gap-4 w-full pt-2">
+                    <div className="flex items-center justify-end gap-3 pt-4">
                         <Button
                             type="reset"
                             variant="outline"
@@ -621,18 +605,27 @@ export default function AddServiceForm() {
                                 setHasComplexPricing(false);
                             }}
                             disabled={isLoading}
-                            className="bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                            className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                         >
-                            <IconRestore size={18} className="mr-1" />
+                            <IconRestore size={18} />
                             Reset
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                            <IconDeviceFloppy size={18} className="mr-1" />
-                            Save Service
+                            {isLoading ? (
+                                <span className="flex items-center">
+                                    <Save />
+                                    Saving...
+                                </span>
+                            ) : (
+                                <span className="flex items-center">
+                                    <IconDeviceFloppy size={18} />
+                                    Save Service
+                                </span>
+                            )}
                         </Button>
                     </div>
                 </form>
             </Form>
-        </>
+        </section>
     );
 }

@@ -34,7 +34,7 @@ export default async function ServicesPage() {
                             Add New Service
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="px-0 min-w-4xl">
+                    <DialogContent className="p-0 min-w-4xl">
                         <ScrollArea className="px-2 max-h-[80vh]">
                             <DialogHeader className="p-4">
                                 <DialogTitle>Add Service Form</DialogTitle>
