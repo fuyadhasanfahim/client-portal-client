@@ -39,12 +39,8 @@ import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { Save, TriangleAlert, X } from 'lucide-react';
 import { Label } from '../ui/label';
-
-const dummyUsers = Array.from({ length: 50 }).map((_, i) => ({
-    id: `user-${i}`,
-    name: `User ${i + 1}`,
-    email: `user${i + 1}@example.com`,
-}));
+import { useGetUsersWithRoleQuery } from '@/redux/features/users/userApi';
+import IUser from '@/types/user.interface';
 
 export default function AddServiceForm() {
     const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -80,6 +76,7 @@ export default function AddServiceForm() {
     }, [fields.length, selectedUsers, accessibleTo, form]);
 
     const [addService, { isLoading }] = useAddServiceMutation();
+    const { data, isLoading: isUserLoading } = useGetUsersWithRoleQuery('User');
 
     const toggleUser = (userId: string) => {
         setSelectedUsers((prev) =>
@@ -89,11 +86,13 @@ export default function AddServiceForm() {
         );
     };
 
-    const filteredUsers = dummyUsers.filter(
-        (user) =>
-            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredUsers = isUserLoading
+        ? []
+        : data.data.filter(
+              (user: IUser) =>
+                  user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  user.email.toLowerCase().includes(searchQuery.toLowerCase())
+          );
 
     const onSubmit = async (data: z.infer<typeof addServiceSchema>) => {
         try {
@@ -329,8 +328,9 @@ export default function AddServiceForm() {
                                     {selectedUsers.length > 0 && (
                                         <div className="flex flex-wrap gap-2 p-3 border rounded-lg">
                                             {selectedUsers.map((userId) => {
-                                                const user = dummyUsers.find(
-                                                    (u) => u.id === userId
+                                                const user = data?.data.find(
+                                                    (u: IUser) =>
+                                                        u._id === userId
                                                 );
                                                 return (
                                                     <Badge
@@ -359,9 +359,16 @@ export default function AddServiceForm() {
                                     )}
 
                                     <div className="border rounded-lg overflow-hidden">
-                                        <ScrollArea className="h-64 w-full">
+                                        <ScrollArea className="max-h-64 w-full">
                                             <div className="divide-y">
-                                                {filteredUsers.length === 0 ? (
+                                                {isUserLoading ? (
+                                                    <div className="text-center py-6">
+                                                        <p className="text-slate-500">
+                                                            Loading...
+                                                        </p>
+                                                    </div>
+                                                ) : filteredUsers.length ===
+                                                  0 ? (
                                                     <div className="text-center py-6">
                                                         <p className="text-slate-500">
                                                             No users found
@@ -370,12 +377,12 @@ export default function AddServiceForm() {
                                                     </div>
                                                 ) : (
                                                     filteredUsers.map(
-                                                        (user) => (
+                                                        (user: IUser) => (
                                                             <div
-                                                                key={user.id}
+                                                                key={user._id}
                                                                 className={`p-3 hover:bg-green-50 transition-colors ${
                                                                     selectedUsers.includes(
-                                                                        user.id
+                                                                        user._id!
                                                                     )
                                                                         ? 'bg-green-50'
                                                                         : ''
@@ -384,20 +391,20 @@ export default function AddServiceForm() {
                                                                 <div className="flex items-center gap-3">
                                                                     <Checkbox
                                                                         id={
-                                                                            user.id
+                                                                            user._id!
                                                                         }
                                                                         checked={selectedUsers.includes(
-                                                                            user.id
+                                                                            user._id!
                                                                         )}
                                                                         onCheckedChange={() =>
                                                                             toggleUser(
-                                                                                user.id
+                                                                                user._id!
                                                                             )
                                                                         }
                                                                     />
                                                                     <Label
                                                                         htmlFor={
-                                                                            user.id
+                                                                            user._id!
                                                                         }
                                                                         className="flex flex-col items-start cursor-pointer w-full"
                                                                     >
