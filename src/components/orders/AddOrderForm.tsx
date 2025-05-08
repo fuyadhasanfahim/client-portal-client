@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRef } from 'react';
-import { Button } from '../ui/button';
-import { DialogClose } from '../ui/dialog';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Form,
     FormControl,
@@ -12,207 +11,251 @@ import {
     FormLabel,
     FormMessage,
 } from '../ui/form';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Checkbox } from '../ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { useGetServicesForUserQuery } from '@/redux/features/services/servicesApi';
-import { Skeleton } from '../ui/skeleton';
-import { Checkbox } from '../ui/checkbox';
 import IService from '@/types/service.interface';
-import { Label } from '../ui/label';
+import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { toast } from 'sonner';
 
 const addOrderSchema = z.object({
-    name: z.string(),
+    services: z
+        .array(
+            z.object({
+                id: z.string(),
+                name: z.string(),
+                price: z.number().optional(),
+                complexity: z
+                    .object({
+                        label: z.string(),
+                        price: z.number(),
+                    })
+                    .optional(),
+            })
+        )
+        .min(1, 'Please select at least one service'),
 });
 
-export default function AddOrderForm({ userId }: { userId: string }) {
-    const closeRef = useRef<HTMLButtonElement | null>(null);
-    const [selectedService, setSelectedService] = useState<IService | null>(
-        null
-    );
+type FormValues = z.infer<typeof addOrderSchema>;
 
-    const form = useForm<z.infer<typeof addOrderSchema>>({
+export default function ServiceSelectForm({ userId }: { userId: string }) {
+    const { data: servicesData, isLoading: isServiceLoading } =
+        useGetServicesForUserQuery(userId);
+
+    const form = useForm<FormValues>({
         resolver: zodResolver(addOrderSchema),
-        defaultValues: {
-            name: '',
-        },
+        defaultValues: { services: [] },
     });
 
-    const { data: services, isLoading: isServiceLoading } =
-        useGetServicesForUserQuery(userId);
-    console.log(services);
+    const selectedServices = form.watch('services');
 
-    const onSubmit = async (data: z.infer<typeof addOrderSchema>) => {
+    const toggleService = (service: IService) => {
+        const index = selectedServices.findIndex((s) => s.id === service._id);
+        if (index >= 0) {
+            const updated = [...selectedServices];
+            updated.splice(index, 1);
+            form.setValue('services', updated);
+        } else {
+            const newService = {
+                id: service._id!,
+                name: service.name,
+                ...(service.complexities?.length
+                    ? { complexity: undefined }
+                    : { price: service.price ?? 0 }),
+            };
+            form.setValue('services', [...selectedServices, newService]);
+        }
+    };
+
+    const updateComplexity = (serviceId: string, value: string) => {
+        const [label, priceStr] = value.split(':$');
+        const updated = selectedServices.map((s) =>
+            s.id === serviceId
+                ? {
+                      ...s,
+                      complexity: {
+                          label: label.trim(),
+                          price: parseFloat(priceStr),
+                      },
+                      price: undefined,
+                  }
+                : s
+        );
+        form.setValue('services', updated);
+    };
+
+    const isSelected = (id: string) =>
+        selectedServices.some((s) => s.id === id);
+
+    const selectedComplexity = (id: string) => {
+        const service = selectedServices.find((s) => s.id === id);
+        return service?.complexity
+            ? `${service.complexity.label}:$${service.complexity.price}`
+            : '';
+    };
+
+    const onSubmit = (data: FormValues) => {
+        if (data.services) {
+            const invalid = data.services.filter(
+                (s) => s.complexity === undefined
+            );
+
+            if (invalid) {
+                toast.error('Selected service with complexity must be empty!');
+            }
+        }
+
         console.log(data);
     };
 
-    const handleServiceClick = (service: IService) => {
-        setSelectedService(service);
-    };
-
     return (
-        <section className="px-4 pb-4">
-            <DialogClose asChild>
-                <Button ref={closeRef} className="hidden" />
-            </DialogClose>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <Card className="shadow-none">
+                    <CardHeader>
+                        <CardTitle>
+                            Select Services{' '}
+                            <span className="text-destructive">*</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-3 gap-6 items-start">
+                        {isServiceLoading ? (
+                            [...Array(9)].map((_, i) => (
+                                <Skeleton
+                                    key={i}
+                                    className="h-[68px] w-full rounded-2xl"
+                                />
+                            ))
+                        ) : !servicesData?.data.length ? (
+                            <p className="text-sm text-muted-foreground">
+                                No services found.
+                            </p>
+                        ) : (
+                            servicesData.data.map(
+                                (service: IService, index: number) => (
+                                    <Card key={index} className="shadow-none">
+                                        <CardContent>
+                                            <FormField
+                                                name="services"
+                                                render={() => (
+                                                    <FormItem>
+                                                        <div className="flex items-center space-x-2">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={isSelected(
+                                                                        service._id!
+                                                                    )}
+                                                                    onCheckedChange={() =>
+                                                                        toggleService(
+                                                                            service
+                                                                        )
+                                                                    }
+                                                                    className="cursor-pointer"
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-medium cursor-pointer">
+                                                                {service.name}
+                                                            </FormLabel>
+                                                            {(service.price ??
+                                                                0) > 0 ? (
+                                                                <Badge className="bg-green-100 text-green-800 border-green-400">
+                                                                    $
+                                                                    {
+                                                                        service.price
+                                                                    }
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge className="bg-green-100 text-green-800 border-green-400">
+                                                                    Select
+                                                                    Complexity
+                                                                </Badge>
+                                                            )}
+                                                        </div>
 
-            <Form {...form}>
-                <form
-                    className="space-y-6"
-                    onSubmit={form.handleSubmit(onSubmit)}
-                >
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-1">
-                                Services
-                                <span className="text-destructive">*</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {isServiceLoading ? (
-                                <div className="space-y-4">
-                                    {[...Array(3)].map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-center space-x-4"
-                                        >
-                                            <Skeleton className="h-4 w-4 rounded" />
-                                            <Skeleton className="h-4 w-40" />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : services.data.length === 0 ? (
-                                <div className="text-muted-foreground text-sm">
-                                    No services found.
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-3 gap-6 items-center">
-                                    {services?.data.map(
-                                        (service: IService, index: number) => (
-                                            <div
-                                                key={index}
-                                                className="flex flex-col gap-2"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Checkbox
-                                                        id={`service-${index}`}
-                                                        onClick={() =>
-                                                            handleServiceClick(
-                                                                service
-                                                            )
-                                                        }
-                                                    />
-                                                    <Label
-                                                        htmlFor={`service-${index}`}
-                                                        className="cursor-pointer"
-                                                        onClick={() =>
-                                                            handleServiceClick(
-                                                                service
-                                                            )
-                                                        }
-                                                    >
-                                                        {service.name}
-                                                    </Label>
-                                                </div>
-                                                {selectedService?._id ===
-                                                    service._id && (
-                                                    <div className="ml-6 mt-1 space-y-2">
-                                                        {service.accessibleTo ===
-                                                            'Custom' && (
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="text-green-600 border-green-600"
-                                                            >
-                                                                Exclusive for
-                                                                you
-                                                            </Badge>
-                                                        )}
-                                                        {service.complexities &&
-                                                            service.complexities
-                                                                .length > 0 && (
-                                                                <div className="text-sm text-muted-foreground">
-                                                                    <p className="font-medium">
-                                                                        Complexity
-                                                                        options:
-                                                                    </p>
-                                                                    <ul className="list-disc pl-5">
-                                                                        {service.complexities.map(
-                                                                            (
-                                                                                complexity,
-                                                                                idx
-                                                                            ) => (
-                                                                                <li
-                                                                                    key={
-                                                                                        idx
-                                                                                    }
-                                                                                >
-                                                                                    <FormField
-                                                                                        control={
-                                                                                            form.control
+                                                        {isSelected(
+                                                            service._id!
+                                                        ) &&
+                                                            (service
+                                                                .complexities
+                                                                ?.length ?? 0) >
+                                                                0 && (
+                                                                <div className="pl-6 pt-2">
+                                                                    <FormLabel className="text-sm">
+                                                                        Select
+                                                                        Complexity:
+                                                                    </FormLabel>
+                                                                    <FormControl>
+                                                                        <RadioGroup
+                                                                            value={selectedComplexity(
+                                                                                service._id!
+                                                                            )}
+                                                                            onValueChange={(
+                                                                                val
+                                                                            ) =>
+                                                                                updateComplexity(
+                                                                                    service._id!,
+                                                                                    val
+                                                                                )
+                                                                            }
+                                                                            className="space-y-2 mt-2"
+                                                                        >
+                                                                            {service.complexities?.map(
+                                                                                (
+                                                                                    c
+                                                                                ) => (
+                                                                                    <FormItem
+                                                                                        key={
+                                                                                            c.label
                                                                                         }
-                                                                                        name="name"
-                                                                                        render={({
-                                                                                            field,
-                                                                                        }) => (
-                                                                                            <FormItem className="space-y-3">
-                                                                                                <FormLabel>
-                                                                                                    Select
-                                                                                                    Complexity
-                                                                                                </FormLabel>
-                                                                                                <FormControl>
-                                                                                                    <RadioGroup
-                                                                                                        onValueChange={
-                                                                                                            field.onChange
-                                                                                                        }
-                                                                                                        defaultValue={
-                                                                                                            field.value
-                                                                                                        }
-                                                                                                        className="flex flex-col space-y-1"
-                                                                                                    >
-                                                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                                                            <FormControl>
-                                                                                                                <RadioGroupItem
-                                                                                                                    value={`${complexity.label}: $ ${complexity.price}`}
-                                                                                                                />
-                                                                                                            </FormControl>
-                                                                                                            <FormLabel className="font-normal">
-                                                                                                                {
-                                                                                                                    complexity.label
-                                                                                                                }
-
-                                                                                                                :
-                                                                                                                $
-                                                                                                                {
-                                                                                                                    complexity.price
-                                                                                                                }
-                                                                                                            </FormLabel>
-                                                                                                        </FormItem>
-                                                                                                    </RadioGroup>
-                                                                                                </FormControl>
-                                                                                                <FormMessage />
-                                                                                            </FormItem>
-                                                                                        )}
-                                                                                    />
-                                                                                </li>
-                                                                            )
-                                                                        )}
-                                                                    </ul>
+                                                                                        className="flex items-center space-x-2"
+                                                                                    >
+                                                                                        <FormControl>
+                                                                                            <RadioGroupItem
+                                                                                                value={`${c.label}:$${c.price}`}
+                                                                                            />
+                                                                                        </FormControl>
+                                                                                        <FormLabel>
+                                                                                            {
+                                                                                                c.label
+                                                                                            }{' '}
+                                                                                            -
+                                                                                            $
+                                                                                            {
+                                                                                                c.price
+                                                                                            }
+                                                                                        </FormLabel>
+                                                                                    </FormItem>
+                                                                                )
+                                                                            )}
+                                                                        </RadioGroup>
+                                                                    </FormControl>
                                                                 </div>
                                                             )}
-                                                    </div>
+                                                    </FormItem>
                                                 )}
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </form>
-            </Form>
-        </section>
+                                            />
+                                        </CardContent>
+                                    </Card>
+                                )
+                            )
+                        )}
+                        <FormMessage />
+                    </CardContent>
+                </Card>
+
+                {form.formState.errors.services && (
+                    <p className="text-destructive text-sm">
+                        {form.formState.errors.services.message}
+                    </p>
+                )}
+
+                <Button type="submit" className="w-full">
+                    Submit
+                </Button>
+            </form>
+        </Form>
     );
 }
