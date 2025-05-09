@@ -20,6 +20,9 @@ import IService from '@/types/service.interface';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
+import { Star } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 const addOrderSchema = z.object({
     services: z
@@ -34,9 +37,23 @@ const addOrderSchema = z.object({
                         price: z.number(),
                     })
                     .optional(),
+                colorCode: z.string().optional(),
+                width: z.coerce.number().optional(),
+                height: z.coerce.number().optional(),
             })
         )
         .min(1, 'Please select at least one service'),
+    userId: z.string().nonempty(),
+    OrderCreationDate: z.date(),
+    driveLink: z.string().nonempty(),
+    numberOfImages: z.number().nonnegative(),
+    pricePerImage: z.number().nonnegative(),
+    returnFormate: z.string().nonempty(),
+    orderInstructions: z.string().nonempty(),
+    images: z.string().optional(),
+    paymentStatus: z.string().nonempty(),
+    paymentMethod: z.string().nonempty(),
+    totalPrice: z.number().nonnegative(),
 });
 
 type FormValues = z.infer<typeof addOrderSchema>;
@@ -99,12 +116,37 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
 
     const onSubmit = (data: FormValues) => {
         if (data.services) {
-            const invalid = data.services.filter(
-                (s) => s.complexity === undefined
+            const invalidComplexities = data.services.filter(
+                (s) =>
+                    !s.complexity &&
+                    servicesData?.data?.find(
+                        (svc: IService) => svc._id === s.id
+                    )?.complexities?.length > 0
             );
 
-            if (invalid) {
-                toast.error('Selected service with complexity must be empty!');
+            if (invalidComplexities.length > 0) {
+                toast.error(
+                    'Please select complexity for all services that require it.'
+                );
+                return;
+            }
+
+            const colorCorrection = data.services.find(
+                (s) => s.name === 'Color Correction'
+            );
+            if (colorCorrection && !colorCorrection.colorCode?.trim()) {
+                toast.error('Please enter a color code for Color Correction.');
+                return;
+            }
+
+            const imageResize = data.services.find(
+                (s) => s.name === 'Images Resizing'
+            );
+            if (imageResize && (!imageResize.width || !imageResize.height)) {
+                toast.error(
+                    'Please enter both width and height for Images Resizing in pixels.'
+                );
+                return;
             }
         }
 
@@ -123,7 +165,7 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                     </CardHeader>
                     <CardContent className="grid grid-cols-3 gap-6 items-start">
                         {isServiceLoading ? (
-                            [...Array(9)].map((_, i) => (
+                            [...Array(10)].map((_, i) => (
                                 <Skeleton
                                     key={i}
                                     className="h-[68px] w-full rounded-2xl"
@@ -161,14 +203,24 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                                                             </FormLabel>
                                                             {(service.price ??
                                                                 0) > 0 ? (
-                                                                <Badge className="bg-green-100 text-green-800 border-green-400">
+                                                                <Badge
+                                                                    variant={
+                                                                        'outline'
+                                                                    }
+                                                                    className="bg-green-50 text-green-800 border-green-400"
+                                                                >
                                                                     $
                                                                     {
                                                                         service.price
                                                                     }
                                                                 </Badge>
                                                             ) : (
-                                                                <Badge className="bg-green-100 text-green-800 border-green-400">
+                                                                <Badge
+                                                                    variant={
+                                                                        'outline'
+                                                                    }
+                                                                    className="bg-green-50 text-green-800 border-green-400"
+                                                                >
                                                                     Select
                                                                     Complexity
                                                                 </Badge>
@@ -185,7 +237,20 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                                                                 <div className="pl-6 pt-2">
                                                                     <FormLabel className="text-sm">
                                                                         Select
-                                                                        Complexity:
+                                                                        Complexity:{' '}
+                                                                        {service.accessList?.includes(
+                                                                            userId
+                                                                        ) && (
+                                                                            <Badge
+                                                                                variant={
+                                                                                    'outline'
+                                                                                }
+                                                                                className="bg-green-50 text-green-800 border-green-400"
+                                                                            >
+                                                                                <Star className="fill-primary" />
+                                                                                Exclusive
+                                                                            </Badge>
+                                                                        )}
                                                                     </FormLabel>
                                                                     <FormControl>
                                                                         <RadioGroup
@@ -232,6 +297,164 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                                                                             )}
                                                                         </RadioGroup>
                                                                     </FormControl>
+                                                                </div>
+                                                            )}
+
+                                                        {isSelected(
+                                                            service._id!
+                                                        ) &&
+                                                            service.name ===
+                                                                'Color Correction' && (
+                                                                <div className="flex items-center gap-2 mt-4">
+                                                                    <Label
+                                                                        htmlFor="colorCode"
+                                                                        className="text-nowrap"
+                                                                    >
+                                                                        Color
+                                                                        Code
+                                                                    </Label>
+                                                                    <Input
+                                                                        type="text"
+                                                                        placeholder="Enter your color code here"
+                                                                        value={
+                                                                            selectedServices.find(
+                                                                                (
+                                                                                    s
+                                                                                ) =>
+                                                                                    s.id ===
+                                                                                    service._id!
+                                                                            )
+                                                                                ?.colorCode ||
+                                                                            ''
+                                                                        }
+                                                                        onChange={(
+                                                                            e
+                                                                        ) => {
+                                                                            const updated =
+                                                                                selectedServices.map(
+                                                                                    (
+                                                                                        s
+                                                                                    ) =>
+                                                                                        s.id ===
+                                                                                        service._id!
+                                                                                            ? {
+                                                                                                  ...s,
+                                                                                                  colorCode:
+                                                                                                      e
+                                                                                                          .target
+                                                                                                          .value,
+                                                                                              }
+                                                                                            : s
+                                                                                );
+                                                                            form.setValue(
+                                                                                'services',
+                                                                                updated
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                        {isSelected(
+                                                            service._id!
+                                                        ) &&
+                                                            service.name ===
+                                                                'Images Resizing' && (
+                                                                <div className="flex items-center gap-4 mt-4">
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <Label htmlFor="width">
+                                                                            Width
+                                                                        </Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            placeholder="Enter your width in pixels"
+                                                                            value={
+                                                                                selectedServices.find(
+                                                                                    (
+                                                                                        s
+                                                                                    ) =>
+                                                                                        s.id ===
+                                                                                        service._id!
+                                                                                )
+                                                                                    ?.width ||
+                                                                                ''
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) => {
+                                                                                const updated =
+                                                                                    selectedServices.map(
+                                                                                        (
+                                                                                            s
+                                                                                        ) =>
+                                                                                            s.id ===
+                                                                                            service._id!
+                                                                                                ? {
+                                                                                                      ...s,
+                                                                                                      width:
+                                                                                                          parseInt(
+                                                                                                              e
+                                                                                                                  .target
+                                                                                                                  .value
+                                                                                                          ) ||
+                                                                                                          0,
+                                                                                                  }
+                                                                                                : s
+                                                                                    );
+                                                                                form.setValue(
+                                                                                    'services',
+                                                                                    updated
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <Label htmlFor="height">
+                                                                            Height
+                                                                        </Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            placeholder="Enter your height in pixels"
+                                                                            value={
+                                                                                selectedServices.find(
+                                                                                    (
+                                                                                        s
+                                                                                    ) =>
+                                                                                        s.id ===
+                                                                                        service._id!
+                                                                                )
+                                                                                    ?.height ||
+                                                                                ''
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) => {
+                                                                                const updated =
+                                                                                    selectedServices.map(
+                                                                                        (
+                                                                                            s
+                                                                                        ) =>
+                                                                                            s.id ===
+                                                                                            service._id!
+                                                                                                ? {
+                                                                                                      ...s,
+                                                                                                      height:
+                                                                                                          parseInt(
+                                                                                                              e
+                                                                                                                  .target
+                                                                                                                  .value
+                                                                                                          ) ||
+                                                                                                          0,
+                                                                                                  }
+                                                                                                : s
+                                                                                    );
+                                                                                form.setValue(
+                                                                                    'services',
+                                                                                    updated
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                     </FormItem>
