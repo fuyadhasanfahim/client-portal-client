@@ -1,4 +1,4 @@
-import IService, { IComplexity } from '@/types/service.interface';
+import IService, { IComplexity, IType } from '@/types/service.interface';
 import { model, models, Schema } from 'mongoose';
 
 const complexitySchema = new Schema<IComplexity>(
@@ -14,6 +14,20 @@ const complexitySchema = new Schema<IComplexity>(
     },
     {
         timestamps: true,
+        _id: false,
+    }
+);
+
+const typeSchema = new Schema<IType>(
+    {
+        title: {
+            type: String,
+            required: true,
+        },
+    },
+    {
+        timestamps: true,
+        _id: false,
     }
 );
 
@@ -38,7 +52,10 @@ const serviceSchema = new Schema<IService>(
         complexities: {
             type: [complexitySchema],
             default: [],
-            required: false,
+        },
+        types: {
+            type: [typeSchema],
+            default: [],
         },
         status: {
             type: String,

@@ -77,8 +77,14 @@ export default function EditServicePage() {
                 complexities: data.data.complexities,
                 accessibleTo: data.data.accessibleTo,
                 accessList: data.data.accessList,
+                types: data.data.types,
             });
+
             setSelectedUsers(data.data.accessList);
+            setHasComplexPricing(
+                Array.isArray(data.data.complexities) &&
+                    data.data.complexities.length > 0
+            );
         }
     }, [data, isLoading, form]);
 
@@ -89,9 +95,16 @@ export default function EditServicePage() {
         name: 'complexities',
     });
 
-    useEffect(() => {
-        setHasComplexPricing(fields.length > 0);
+    const {
+        fields: typeFields,
+        append: appendType,
+        remove: removeType,
+    } = useFieldArray({
+        control: form.control,
+        name: 'types',
+    });
 
+    useEffect(() => {
         if (selectedUsers.length > 0 && accessibleTo === 'Custom') {
             form.setValue('accessList', selectedUsers);
         }
@@ -270,13 +283,127 @@ export default function EditServicePage() {
                                                     }}
                                                     id="complex-pricing"
                                                 />
-                                                <Label htmlFor="complex-pricing">
+                                                <FormLabel htmlFor="complex-pricing">
                                                     Enable Tiered Pricing
-                                                </Label>
+                                                </FormLabel>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-800">
+                                    <IconTag
+                                        size={20}
+                                        className="text-primary"
+                                    />
+                                    Service Types
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {typeFields.length === 0 ? (
+                                    <div className="text-center py-10 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
+                                        <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                                            <IconPlus className="text-primary" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-slate-800 mb-1">
+                                            No service types added yet
+                                        </h3>
+                                        <p className="text-slate-600 text-sm mb-4 max-w-md mx-auto">
+                                            Add custom labels like Add-ons,
+                                            Express Service, etc. to help
+                                            categorize services
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                appendType({ title: '' })
+                                            }
+                                            className="border-primary text-primary bg-white hover:bg-primary hover:text-white transition"
+                                        >
+                                            <IconPlus
+                                                size={16}
+                                                className="mr-1"
+                                            />
+                                            Add First Type
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="space-y-4">
+                                            {typeFields.map(
+                                                (item, index: number) => (
+                                                    <div
+                                                        key={index}
+                                                        className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end p-4 border border-slate-200 rounded-lg bg-white shadow-sm"
+                                                    >
+                                                        <FormField
+                                                            control={
+                                                                form.control
+                                                            }
+                                                            name={`types.${index}.title`}
+                                                            render={({
+                                                                field,
+                                                            }) => (
+                                                                <FormItem className="md:col-span-10">
+                                                                    <FormLabel className="flex items-center gap-1">
+                                                                        Type
+                                                                        Title{' '}
+                                                                        <span className="text-red-500">
+                                                                            *
+                                                                        </span>
+                                                                    </FormLabel>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            placeholder="e.g. Add-on, Fast Delivery"
+                                                                            {...field}
+                                                                        />
+                                                                    </FormControl>
+                                                                    <FormMessage className="text-red-500 text-xs" />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+
+                                                        <div className="md:col-span-2">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    removeType(
+                                                                        index
+                                                                    )
+                                                                }
+                                                                className="text-destructive bg-red-50 border-destructive hover:bg-red-500 hover:text-white transition-all duration-200"
+                                                            >
+                                                                <IconTrash
+                                                                    size={16}
+                                                                    className="mr-1"
+                                                                />{' '}
+                                                                Remove
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                appendType({ title: '' })
+                                            }
+                                            className="border-primary text-primary bg-white hover:bg-primary hover:text-white transition"
+                                        >
+                                            <IconPlus size={16} />
+                                            Add Another Type
+                                        </Button>
+                                    </>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -304,7 +431,7 @@ export default function EditServicePage() {
                                                             );
                                                         }
                                                     }}
-                                                    value={field.value}
+                                                    defaultValue={field.value}
                                                     className="flex gap-6"
                                                 >
                                                     <FormItem className="flex items-center space-x-3">
@@ -510,7 +637,10 @@ export default function EditServicePage() {
                                             <>
                                                 <div className="space-y-4">
                                                     {fields.map(
-                                                        (item, index) => (
+                                                        (
+                                                            item,
+                                                            index: number
+                                                        ) => (
                                                             <div
                                                                 key={item.id}
                                                                 className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end p-4 border border-slate-200 rounded-lg bg-white shadow-xs"
@@ -647,9 +777,7 @@ export default function EditServicePage() {
                             <Button
                                 type="reset"
                                 variant="outline"
-                                onClick={() => {
-                                    router.push('/services');
-                                }}
+                                onClick={() => router.push('/services')}
                                 disabled={isUpdating}
                                 className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                             >
@@ -672,14 +800,14 @@ export default function EditServicePage() {
                             </Button>
                             <Button type="submit" disabled={isUpdating}>
                                 {isUpdating ? (
-                                    <span className="flex items-center">
+                                    <span className="flex items-center gap-2">
                                         <Save />
                                         Saving...
                                     </span>
                                 ) : (
-                                    <span className="flex items-center">
+                                    <span className="flex items-center gap-2">
                                         <IconDeviceFloppy size={18} />
-                                        Save Service
+                                        Save Changes
                                     </span>
                                 )}
                             </Button>

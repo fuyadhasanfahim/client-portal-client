@@ -4,6 +4,11 @@ export interface IComplexity {
     price: number;
 }
 
+export interface IType {
+    _id?: string;
+    title: string;
+}
+
 export default interface IService {
     _id?: string;
     name: string;
@@ -11,5 +16,6 @@ export default interface IService {
     accessibleTo: 'All' | 'Custom';
     accessList?: string[];
     complexities?: IComplexity[];
-    status: string;
+    types?: IType[];
+    status: 'Active' | 'Inactive' | 'Pending';
 }

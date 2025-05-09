@@ -42,7 +42,7 @@ import {
     useGetServicesQuery,
     useUpdateServiceStatusMutation,
 } from '@/redux/features/services/servicesApi';
-import IService, { IComplexity } from '@/types/service.interface';
+import IService from '@/types/service.interface';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ApiError from '../shared/ApiError';
@@ -138,6 +138,9 @@ export default function ServicesDataTable() {
                                 Name
                             </TableHead>
                             <TableHead className="font-medium text-center border-r">
+                                Types
+                            </TableHead>
+                            <TableHead className="font-medium text-center border-r">
                                 Pricing Tiers
                             </TableHead>
                             <TableHead className="font-medium text-center border-r">
@@ -157,27 +160,22 @@ export default function ServicesDataTable() {
                                 .fill(0)
                                 .map((_, index) => (
                                     <TableRow key={`skeleton-${index}`}>
-                                        <TableCell>
-                                            <Skeleton className="h-6 w-full" />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Skeleton className="h-6 w-full" />
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Skeleton className="h-6 w-16 mx-auto" />
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Skeleton className="h-6 w-16 mx-auto" />
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Skeleton className="h-6 w-6 mx-auto rounded-full" />
-                                        </TableCell>
+                                        {Array(6)
+                                            .fill(0)
+                                            .map((_, i) => (
+                                                <TableCell
+                                                    key={i}
+                                                    className="text-center"
+                                                >
+                                                    <Skeleton className="h-6 w-full mx-auto" />
+                                                </TableCell>
+                                            ))}
                                     </TableRow>
                                 ))
                         ) : services.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={4}
+                                    colSpan={6}
                                     className="h-24 text-center"
                                 >
                                     <div className="flex flex-col items-center justify-center space-y-2">
@@ -195,14 +193,47 @@ export default function ServicesDataTable() {
                                     className="hover:bg-slate-50 transition-colors"
                                 >
                                     <TableCell className="font-medium border-r">
-                                        {service.name}
+                                        <span
+                                            className="text-primary font-semibold underline cursor-pointer"
+                                            onClick={() =>
+                                                router.push(
+                                                    `/services/update/${service._id!}`
+                                                )
+                                            }
+                                        >
+                                            {service.name}
+                                        </span>
                                     </TableCell>
+
+                                    <TableCell className="border-r text-sm text-gray-700">
+                                        <div className="flex flex-wrap gap-2">
+                                            {(service.types ?? []).length >
+                                            0 ? (
+                                                service.types?.map(
+                                                    (type, idx) => (
+                                                        <Badge
+                                                            key={idx}
+                                                            className="bg-blue-50 border border-blue-300 text-blue-800"
+                                                            variant="outline"
+                                                        >
+                                                            {type.title}
+                                                        </Badge>
+                                                    )
+                                                )
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    —
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TableCell>
+
                                     <TableCell className="border-r">
                                         <div className="flex flex-wrap gap-2">
                                             {(service.complexities ?? [])
                                                 .length > 0 ? (
                                                 service.complexities?.map(
-                                                    (tier: IComplexity) => (
+                                                    (tier) => (
                                                         <Badge
                                                             key={tier.label}
                                                             variant="outline"
@@ -223,21 +254,28 @@ export default function ServicesDataTable() {
                                                     variant="outline"
                                                     className="bg-slate-50"
                                                 >
-                                                    ${service.price?.toFixed(2)}
+                                                    {service.price
+                                                        ? `$${service.price?.toFixed(
+                                                              2
+                                                          )}`
+                                                        : 'Free'}
                                                 </Badge>
                                             )}
                                         </div>
                                     </TableCell>
+
                                     <TableCell className="font-medium border-r text-center">
                                         {service.accessibleTo === 'All' ? (
                                             service.accessibleTo
                                         ) : (
                                             <span>
                                                 {service.accessibleTo}:{' '}
-                                                {service.accessList?.length}
+                                                {service.accessList?.length ||
+                                                    0}
                                             </span>
                                         )}
                                     </TableCell>
+
                                     <TableCell className="flex items-center justify-center border-r">
                                         <Select
                                             value={service.status}
@@ -269,41 +307,36 @@ export default function ServicesDataTable() {
                                                     {service.status}
                                                 </Badge>
                                             </SelectTrigger>
-
                                             <SelectContent>
-                                                <SelectItem value="Active">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="gap-1"
+                                                {[
+                                                    'Active',
+                                                    'Pending',
+                                                    'Inactive',
+                                                ].map((status) => (
+                                                    <SelectItem
+                                                        key={status}
+                                                        value={status}
                                                     >
-                                                        <CircleDashed
-                                                            size={16}
-                                                            className="text-primary"
-                                                        />
-                                                        Active
-                                                    </Badge>
-                                                </SelectItem>
-                                                <SelectItem value="Pending">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="gap-1"
-                                                    >
-                                                        <CircleDashed
-                                                            size={16}
-                                                            className="text-yellow-500"
-                                                        />
-                                                        Pending
-                                                    </Badge>
-                                                </SelectItem>
-                                                <SelectItem value="Inactive">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="gap-1"
-                                                    >
-                                                        <CircleDashed className="text-destructive" />
-                                                        Inactive
-                                                    </Badge>
-                                                </SelectItem>
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="gap-1"
+                                                        >
+                                                            <CircleDashed
+                                                                size={16}
+                                                                className={
+                                                                    status ===
+                                                                    'Active'
+                                                                        ? 'text-primary'
+                                                                        : status ===
+                                                                          'Pending'
+                                                                        ? 'text-yellow-500'
+                                                                        : 'text-destructive'
+                                                                }
+                                                            />
+                                                            {status}
+                                                        </Badge>
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </TableCell>
