@@ -9,6 +9,8 @@ import {
     Pencil,
     Trash2,
     CircleDashed,
+    CircleCheck,
+    TriangleAlert,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -43,7 +45,6 @@ import {
     useUpdateServiceStatusMutation,
 } from '@/redux/features/services/servicesApi';
 import IService from '@/types/service.interface';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ApiError from '../shared/ApiError';
 import { useRouter } from 'next/navigation';
@@ -213,7 +214,7 @@ export default function ServicesDataTable() {
                                                     (type, idx) => (
                                                         <Badge
                                                             key={idx}
-                                                            className="bg-blue-50 border border-blue-300 text-blue-800"
+                                                            className="bg-green-50 border border-green-300 text-green-800"
                                                             variant="outline"
                                                         >
                                                             {type.title}
@@ -292,18 +293,24 @@ export default function ServicesDataTable() {
                                                     variant="outline"
                                                     className="gap-1"
                                                 >
-                                                    <CircleDashed
-                                                        size={16}
-                                                        className={cn(
-                                                            service.status ===
-                                                                'Active'
-                                                                ? 'text-primary'
-                                                                : service.status ===
-                                                                  'Pending'
-                                                                ? 'text-yellow-500'
-                                                                : 'text-destructive'
-                                                        )}
-                                                    />
+                                                    {service.status ===
+                                                    'Active' ? (
+                                                        <CircleCheck
+                                                            size={16}
+                                                            className="fill-primary text-white"
+                                                        />
+                                                    ) : service.status ===
+                                                      'Pending' ? (
+                                                        <CircleDashed
+                                                            size={16}
+                                                            className="bg-amber-600 rounded-full text-white"
+                                                        />
+                                                    ) : (
+                                                        <TriangleAlert
+                                                            size={16}
+                                                            className="fill-destructive text-white"
+                                                        />
+                                                    )}
                                                     {service.status}
                                                 </Badge>
                                             </SelectTrigger>
@@ -321,18 +328,24 @@ export default function ServicesDataTable() {
                                                             variant="outline"
                                                             className="gap-1"
                                                         >
-                                                            <CircleDashed
-                                                                size={16}
-                                                                className={
-                                                                    status ===
-                                                                    'Active'
-                                                                        ? 'text-primary'
-                                                                        : status ===
-                                                                          'Pending'
-                                                                        ? 'text-yellow-500'
-                                                                        : 'text-destructive'
-                                                                }
-                                                            />
+                                                            {status ===
+                                                            'Active' ? (
+                                                                <CircleCheck
+                                                                    size={16}
+                                                                    className="fill-primary text-white"
+                                                                />
+                                                            ) : status ===
+                                                              'Pending' ? (
+                                                                <CircleDashed
+                                                                    size={16}
+                                                                    className="bg-amber-600 rounded-full text-white"
+                                                                />
+                                                            ) : (
+                                                                <TriangleAlert
+                                                                    size={16}
+                                                                    className="fill-destructive text-white"
+                                                                />
+                                                            )}
                                                             {status}
                                                         </Badge>
                                                     </SelectItem>
