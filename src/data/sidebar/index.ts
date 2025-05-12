@@ -1,5 +1,4 @@
-import { IconDashboard, IconServer } from '@tabler/icons-react';
-import { Package2 } from 'lucide-react';
+import { IconDashboard, IconPackage, IconServer } from '@tabler/icons-react';
 
 export const sidebarItems = [
     {
@@ -11,7 +10,7 @@ export const sidebarItems = [
     {
         title: 'Orders',
         url: '/orders',
-        icon: Package2,
+        icon: IconPackage,
         access: ['Admin', 'User', 'SuperAdmin', 'Developer'],
     },
     {
