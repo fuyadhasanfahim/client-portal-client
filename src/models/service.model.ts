@@ -14,7 +14,6 @@ const complexitySchema = new Schema<IComplexity>(
     },
     {
         timestamps: true,
-        _id: false,
     }
 );
 
@@ -27,7 +26,6 @@ const typeSchema = new Schema<IType>(
     },
     {
         timestamps: true,
-        _id: false,
     }
 );
 
