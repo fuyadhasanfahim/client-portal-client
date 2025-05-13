@@ -123,7 +123,7 @@ export default function AccessControl({
                             <div className="flex flex-wrap gap-2 p-3 border rounded-lg">
                                 {selectedUsers.map((userId) => {
                                     const user = data?.data.find(
-                                        (u: IUser) => u._id === userId
+                                        (u: IUser) => u.userId === userId
                                     );
                                     return (
                                         <Badge
@@ -168,10 +168,10 @@ export default function AccessControl({
                                     ) : (
                                         filteredUsers.map((user: IUser) => (
                                             <div
-                                                key={user._id}
+                                                key={user.userId}
                                                 className={`p-3 hover:bg-green-50 transition-colors ${
                                                     selectedUsers.includes(
-                                                        user._id!
+                                                        user.userId
                                                     )
                                                         ? 'bg-green-50'
                                                         : ''
@@ -179,18 +179,18 @@ export default function AccessControl({
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <Checkbox
-                                                        id={user._id!}
+                                                        id={user.userId}
                                                         checked={selectedUsers.includes(
-                                                            user._id!
+                                                            user.userId!
                                                         )}
                                                         onCheckedChange={() =>
                                                             toggleUser(
-                                                                user._id!
+                                                                user.userId
                                                             )
                                                         }
                                                     />
                                                     <Label
-                                                        htmlFor={user._id!}
+                                                        htmlFor={user.userId}
                                                         className="flex flex-col items-start cursor-pointer w-full"
                                                     >
                                                         <span className="text-sm font-medium text-slate-800">

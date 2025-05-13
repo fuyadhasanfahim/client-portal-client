@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConfig from './dbConfig';
 import bcrypt from 'bcryptjs';
 import UserModel from '@/models/user.model';
+import UserIdModel from '@/models/userid.model';
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -55,7 +56,7 @@ export const authOptions: NextAuthOptions = {
                     }
 
                     return {
-                        id: user._id!,
+                        id: user.userId,
                         role: user.role!,
                     };
                 } catch (error) {
@@ -83,9 +84,12 @@ export const authOptions: NextAuthOptions = {
                     : 24 * 60 * 60;
 
                 await dbConfig();
-                await UserModel.findByIdAndUpdate(user.id, {
-                    lastLogin: new Date(),
-                });
+                await UserModel.findOneAndUpdate(
+                    { userId: user.id },
+                    {
+                        lastLogin: new Date(),
+                    }
+                );
 
                 const now = Math.floor(new Date().getTime() / 1000);
 
@@ -93,7 +97,8 @@ export const authOptions: NextAuthOptions = {
             }
 
             if (user) {
-                const db = await UserModel.findById(user.id);
+                const db = await UserModel.findOne({ userId: user.id });
+                console.log('database', db);
 
                 token.id = user.id;
                 token.role = db.role;
@@ -122,7 +127,14 @@ export const authOptions: NextAuthOptions = {
                         'Invalid credentials! Please use credentials to sign in.'
                     );
                 } else if (!existingUser) {
+                    const userId = await UserIdModel.findOneAndUpdate(
+                        { id: 'userId' },
+                        { $inc: { seq: 1 } },
+                        { new: true, upsert: true }
+                    );
+
                     const newUser = await UserModel.create({
+                        userId: userId.seq,
                         name: user?.name,
                         email: user?.email,
                         username: user?.email?.split('@')[0],
@@ -133,11 +145,11 @@ export const authOptions: NextAuthOptions = {
                         profileImage: user?.image,
                     });
 
-                    user.id = newUser._id.toString();
+                    user.id = newUser.userId;
                     return true;
                 }
 
-                user.id = existingUser._id.toString();
+                user.id = existingUser.userId;
             }
 
             return true;

@@ -134,6 +134,40 @@ export default function FormServices({
                                                 )
                                             )}
 
+                                            {selected?.types?.some(
+                                                (type) =>
+                                                    type.title === 'Custom Size'
+                                            ) && (
+                                                <div className="mt-4 w-full flex items-center gap-6">
+                                                    <div className="flex flex-col gap-2 w-full">
+                                                        <Label htmlFor="width">
+                                                            Width *
+                                                        </Label>
+                                                        <Input
+                                                            name="width"
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            placeholder="Enter the width in pixels"
+                                                            {...form.register}
+                                                        />
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 w-full">
+                                                        <Label htmlFor="height">
+                                                            Height *
+                                                        </Label>
+                                                        <Input
+                                                            name="height"
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            placeholder="Enter the height in pixels"
+                                                            {...form.register}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Custom Color Code input */}
                                             {selected?.name ===
                                                 'Background Removal' &&
@@ -195,12 +229,7 @@ export default function FormServices({
                                             </p>
                                             <FormControl>
                                                 <RadioGroup
-                                                    value={
-                                                        selected
-                                                            ?.complexities?.[0]
-                                                            ? `${selected.complexities[0].label}:$${selected.complexities[0].price}`
-                                                            : ''
-                                                    }
+                                                    value={`${selected?.complexity?.label}:$${selected?.complexity?.price}`}
                                                     onValueChange={(val) =>
                                                         updateComplexity(
                                                             service._id!,

@@ -18,7 +18,7 @@ export default async function AddNewOrderPage() {
                 <CardTitle>Add New Order</CardTitle>
             </CardHeader>
             <CardContent>
-                <AddOrderForm userId={(data?._id).toString()} />
+                <AddOrderForm userId={data?.userId} />
             </CardContent>
         </Card>
     );

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
         await dbConfig();
 
-        const user = await UserModel.findById(userId);
+        const user = await UserModel.findOne({ userId });
 
         if (!user) {
             return NextResponse.json(
@@ -57,10 +57,10 @@ export async function GET(req: NextRequest) {
 
         const filteredServices = services.filter((service: IService) => {
             if (service.status !== 'Active') {
-            return false;
+                return false;
             }
             if (service.accessibleTo === 'All') {
-            return true;
+                return true;
             }
             return service.accessList?.some((list: string) => list === userId);
         });

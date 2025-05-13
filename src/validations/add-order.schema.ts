@@ -9,17 +9,11 @@ export const addOrderSchema = z.object({
                     message: 'Name is required and cannot be empty.',
                 }),
                 price: z.number().nonnegative().optional(),
-                complexities: z
-                    .array(
-                        z.object({
-                            label: z.string().nonempty({
-                                message: 'Complexity label is required.',
-                            }),
-                            price: z.number().nonnegative({
-                                message: 'Price must be non-negative.',
-                            }),
-                        })
-                    )
+                complexity: z
+                    .object({
+                        label: z.string().nonempty(),
+                        price: z.number().nonnegative(),
+                    })
                     .optional(),
                 types: z
                     .array(
@@ -34,32 +28,27 @@ export const addOrderSchema = z.object({
             })
         )
         .min(1, { message: 'Please select at least one service' }),
+    width: z.number().optional(),
+    height: z.number().optional(),
     userId: z.string().nonempty({ message: 'User ID is required.' }),
     downloadLink: z.string().nonempty({ message: 'User ID is required.' }),
-    // OrderCreationDate: z.date({
-    //     required_error: 'Order Creation Date is required.',
-    // }),
-    // driveLink: z.string().nonempty({ message: 'Drive link is required.' }),
-    // numberOfImages: z
-    //     .number()
-    //     .nonnegative({ message: 'Number of images must be non-negative.' }),
-    // pricePerImage: z
-    //     .number()
-    //     .nonnegative({ message: 'Price per image must be non-negative.' }),
-    // returnFormate: z
-    //     .string()
-    //     .nonempty({ message: 'Return format is required.' }),
-    // orderInstructions: z
-    //     .string()
-    //     .nonempty({ message: 'Order instructions are required.' }),
-    // images: z.string().optional(),
-    // paymentStatus: z
-    //     .string()
-    //     .nonempty({ message: 'Payment status is required.' }),
-    // paymentMethod: z
-    //     .string()
-    //     .nonempty({ message: 'Payment method is required.' }),
-    // totalPrice: z
-    //     .number()
-    //     .nonnegative({ message: 'Total price must be non-negative.' }),
+    date: z.date({
+        required_error: 'Order Creation Date is required.',
+    }),
+    numberOfImages: z
+        .number()
+        .nonnegative({ message: 'Number of images must be non-negative.' }),
+    price: z.number().nonnegative({ message: 'Price must be non-negative.' }),
+    totalPrice: z
+        .number()
+        .nonnegative({ message: 'Price must be non-negative.' }),
+    returnFormate: z
+        .string()
+        .nonempty({ message: 'Return format is required.' }),
+    instructions: z
+        .string()
+        .nonempty({ message: 'Order instructions are required.' }),
+    paymentOption: z.string().nonempty(),
+    paymentMethod: z.string().nonempty(),
+    isPaymentCompleted: z.boolean(),
 });

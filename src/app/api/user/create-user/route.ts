@@ -1,5 +1,6 @@
 import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
+import UserIdModel from '@/models/userid.model';
 import SignupSchema from '@/validations/sign-up.schema';
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
@@ -51,9 +52,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const userId = await UserIdModel.findOneAndUpdate(
+            { id: 'userId' },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true }
+        );
+
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const newUser = await UserModel.create({
+            userId: userId.seq,
             name,
             email,
             phone,

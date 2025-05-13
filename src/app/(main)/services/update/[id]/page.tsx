@@ -70,6 +70,8 @@ export default function EditServicePage() {
 
     useEffect(() => {
         if (data && !isLoading) {
+            console.log(data.data)
+            
             form.reset({
                 name: data.data.name,
                 status: data.data.status,
@@ -431,7 +433,7 @@ export default function EditServicePage() {
                                                             );
                                                         }
                                                     }}
-                                                    defaultValue={field.value}
+                                                    value={field.value}
                                                     className="flex gap-6"
                                                 >
                                                     <FormItem className="flex items-center space-x-3">
@@ -491,7 +493,7 @@ export default function EditServicePage() {
                                                     const user =
                                                         userData?.data.find(
                                                             (u: IUser) =>
-                                                                u._id === userId
+                                                                u.userId === userId
                                                         );
                                                     return (
                                                         <Badge
@@ -542,11 +544,11 @@ export default function EditServicePage() {
                                                             (user: IUser) => (
                                                                 <div
                                                                     key={
-                                                                        user._id
+                                                                        user.userId
                                                                     }
                                                                     className={`p-3 hover:bg-green-50 transition-colors ${
                                                                         selectedUsers.includes(
-                                                                            user._id!
+                                                                            user.userId
                                                                         )
                                                                             ? 'bg-green-50'
                                                                             : ''
@@ -555,20 +557,20 @@ export default function EditServicePage() {
                                                                     <div className="flex items-center gap-3">
                                                                         <Checkbox
                                                                             id={
-                                                                                user._id!
+                                                                                user.userId
                                                                             }
                                                                             checked={selectedUsers.includes(
-                                                                                user._id!
+                                                                                user.userId!
                                                                             )}
                                                                             onCheckedChange={() =>
                                                                                 toggleUser(
-                                                                                    user._id!
+                                                                                    user.userId
                                                                                 )
                                                                             }
                                                                         />
                                                                         <Label
                                                                             htmlFor={
-                                                                                user._id!
+                                                                                user.userId
                                                                             }
                                                                             className="flex flex-col items-start cursor-pointer w-full"
                                                                         >
