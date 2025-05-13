@@ -16,7 +16,10 @@ export default function validateServiceSelection(
 
     const needsTypes = (originalService.types?.length ?? 0) > 0;
     const hasSelectedTypes = (selected.types?.length ?? 0) > 0;
-    const hasSelectedComplexity = (selected.complexities?.length ?? 0) > 0;
+
+    const hasSelectedComplexity =
+        !!selected.complexity?.label &&
+        selected.complexity?.price !== undefined;
 
     const requiresColorCode = selected.types?.some(
         (t) => t.title === 'Custom Color'
