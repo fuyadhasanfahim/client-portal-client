@@ -94,11 +94,10 @@ export default function FormInformation({
                                 min="0"
                                 required
                                 placeholder="Enter the number of images"
-                                value={field.value ?? ''}
-                                onChange={(e) => {
-                                    const value = parseInt(e.target.value);
-                                    field.onChange(isNaN(value) ? 0 : value);
-                                }}
+                                value={field.value || ''}
+                                onChange={(e) =>
+                                    field.onChange(Number(e.target.value))
+                                }
                             />
                         </FormControl>
                         <FormMessage />

@@ -1,17 +1,23 @@
+'use client';
+
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { z } from 'zod';
 import { cn } from '@/lib/utils';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
     FormControl,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
-} from '../ui/form';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { Calendar } from '../ui/calendar';
-import { format } from 'date-fns';
-import { z } from 'zod';
+} from '@/components/ui/form';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { addOrderSchema } from '@/validations/add-order.schema';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -38,7 +44,7 @@ export default function MyDatePicker({
                                     )}
                                 >
                                     {field.value ? (
-                                        format(field.value, 'PPP')
+                                        format(new Date(field.value), 'PPP')
                                     ) : (
                                         <span>Pick a date</span>
                                     )}
@@ -49,7 +55,7 @@ export default function MyDatePicker({
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="single"
-                                selected={field.value}
+                                selected={new Date(field.value)}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
                                     date > new Date() ||

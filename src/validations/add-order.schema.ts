@@ -61,9 +61,7 @@ export const addOrderSchema = z.object({
     downloadLink: z
         .string()
         .nonempty({ message: 'Download link is required.' }),
-    date: z.date({
-        required_error: 'Order Creation Date is required.',
-    }),
+    date: z.string(),
     numberOfImages: z
         .number()
         .nonnegative({ message: 'Number of images must be non-negative.' }),

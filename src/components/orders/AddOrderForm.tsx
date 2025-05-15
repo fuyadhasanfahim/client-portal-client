@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { Form } from '../ui/form';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
@@ -12,26 +12,26 @@ import { useGetServicesForUserQuery } from '@/redux/features/services/servicesAp
 import FormServices from './form-components/FormServices';
 import { addOrderSchema } from '@/validations/add-order.schema';
 import IService from '@/types/service.interface';
-import validateServiceSelection from '@/utils/validateServiceSelection';
 import FormInformation from './form-components/FormInformation';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import FormPayments from './form-components/FormPayments';
-import { v4 } from 'uuid';
+import { useAddOrderMutation } from '@/redux/features/orders/ordersApi';
+import ApiError from '../shared/ApiError';
+import { nanoid } from 'nanoid';
 
 export default function ServiceSelectForm({ userId }: { userId: string }) {
     const { data: servicesData, isLoading: isServiceLoading } =
         useGetServicesForUserQuery(userId);
-    const [generatedOrderId, setGeneratedOrderId] = useState(() => v4());
 
     const form = useForm<z.infer<typeof addOrderSchema>>({
         resolver: zodResolver(addOrderSchema),
         defaultValues: {
             services: [],
             userId: userId,
-            orderId: generatedOrderId,
+            orderId: nanoid(12),
             downloadLink: '',
-            date: new Date(),
+            date: new Date().toISOString(),
             numberOfImages: 0,
             price: 0,
             returnFormate: '',
@@ -44,12 +44,21 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
     const selectedServices = form.watch('services');
     const numberOfImages = form.watch('numberOfImages');
     const approximatePrice =
-        selectedServices.reduce((sum, service) => {
-            const price = service.complexity?.price ?? service.price ?? 0;
-            return sum + price;
-        }, 0) * numberOfImages;
+        (
+            selectedServices.reduce((sum, service) => {
+                const complexityPrice =
+                    'complexity' in service && service.complexity?.price
+                        ? service.complexity.price
+                        : 0;
 
-    form.setValue('price', approximatePrice);
+                const priceToUse = complexityPrice || service.price || 0;
+                return sum + priceToUse;
+            }, 0) * numberOfImages
+        ).toFixed(2) || 0;
+
+    useEffect(() => {
+        form.setValue('price', Number(approximatePrice));
+    }, [approximatePrice, form]);
 
     const [step, setStep] = useState(1);
     const totalSteps = 3;
@@ -62,6 +71,7 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
 
     const toggleService = (service: IService) => {
         const exists = isSelected(service._id!);
+
         const updated = exists
             ? selectedServices.filter((s) => s._id !== service._id)
             : [
@@ -71,12 +81,14 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                       name: service.name,
                       price: service.price,
                       types: [],
-                      complexity: {
-                          label: '',
-                          price: 0,
-                      },
+                      ...(service.price
+                          ? {}
+                          : service.complexities?.length
+                          ? {}
+                          : {}),
                   },
               ];
+
         form.setValue('services', updated);
     };
 
@@ -98,30 +110,44 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
 
     const updateComplexity = (serviceId: string, value: string) => {
         const [label, priceStr] = value.split(':$');
-        const parsedPrice = parseFloat(priceStr);
+        const parsedPrice = parseFloat(priceStr || '0');
 
-        const updated = selectedServices.map((s) =>
-            s._id === serviceId
-                ? {
-                      ...s,
-                      complexity: {
-                          label,
-                          price: parsedPrice,
-                      },
-                  }
-                : s
-        );
+        const updated = selectedServices.map((s) => {
+            if (s._id !== serviceId) return s;
+
+            const original = servicesData.find(
+                (srv: IService) => srv._id === serviceId
+            );
+
+            if (
+                !original ||
+                !original.complexities ||
+                original.complexities.length === 0
+            ) {
+                return s;
+            }
+
+            if (!label.trim()) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { complexity, ...rest } = s;
+                return rest;
+            }
+
+            return {
+                ...s,
+                complexity: {
+                    label,
+                    price: parsedPrice,
+                },
+            };
+        });
 
         form.setValue('services', updated);
     };
 
     const allValid = selectedServices.every((s) => {
-        const original = servicesData?.data.find(
-            (os: IService) => os._id === s._id
-        );
-        return original
-            ? validateServiceSelection(s._id!, original, selectedServices)
-            : true;
+        if (!s.price && (!s.complexity || !s.complexity.label)) return false;
+        return true;
     });
 
     const isStepValidSilent = () => {
@@ -211,16 +237,47 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
             form.watch('paymentMethod')
         )
             return 'Save and Proceed to Payment';
+
+        if (isSubmitting) {
+            return 'Submitting...';
+        }
         return 'Next';
     };
 
-    const onSubmit = (data: z.infer<typeof addOrderSchema>) => {
-        console.log(data);
+    const [addOrder, { isLoading: isSubmitting }] = useAddOrderMutation();
 
+    const onSubmit = async (data: z.infer<typeof addOrderSchema>) => {
         if (step < totalSteps) {
             setStep((prev) => prev + 1);
         } else {
-            console.log('✅ Final submission:', data);
+            try {
+                const response = await addOrder(data).unwrap();
+
+                if (response.success) {
+                    const newOrderId = nanoid(12);
+
+                    setStep(1);
+                    form.reset({
+                        services: [],
+                        userId: userId,
+                        orderId: newOrderId,
+                        downloadLink: '',
+                        date: new Date().toISOString(),
+                        numberOfImages: 0,
+                        price: 0,
+                        returnFormate: '',
+                        instructions: '',
+                        paymentOption: 'Pay Later',
+                        paymentMethod: '',
+                    });
+
+                    toast.success(response.message);
+                } else {
+                    toast.error(response.message);
+                }
+            } catch (error) {
+                ApiError(error);
+            }
         }
     };
 
@@ -275,14 +332,14 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                         type="button"
                         variant="outline"
                         onClick={() => {
-                            setGeneratedOrderId(v4());
+                            const newOrderId = nanoid(12);
+
                             form.reset({
-                                ...form.getValues(),
                                 services: [],
-                                userId,
-                                orderId: generatedOrderId,
+                                userId: userId,
+                                orderId: newOrderId,
                                 downloadLink: '',
-                                date: new Date(),
+                                date: new Date().toISOString(),
                                 numberOfImages: 0,
                                 price: 0,
                                 returnFormate: '',
@@ -290,6 +347,7 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                                 paymentOption: 'Pay Later',
                                 paymentMethod: '',
                             });
+
                             setStep(1);
                         }}
                     >
@@ -311,7 +369,11 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                         }}
                     >
                         {getButtonLabel()}
-                        <ArrowRight />
+                        {isSubmitting ? (
+                            <Loader2 className="animate-spin" />
+                        ) : (
+                            <ArrowRight />
+                        )}
                     </Button>
                 </div>
             </form>
