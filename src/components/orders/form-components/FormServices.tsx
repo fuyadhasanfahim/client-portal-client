@@ -104,35 +104,31 @@ export default function FormServices({
                                             <p className="font-semibold">
                                                 Select Types:
                                             </p>
-                                            {(service.types ?? []).map(
-                                                (t, idx) => (
-                                                    <FormItem
-                                                        key={idx}
-                                                        className="flex items-center space-x-2"
-                                                    >
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={selected?.types?.some(
-                                                                    (
-                                                                        sel: IType
-                                                                    ) =>
-                                                                        sel.title ===
-                                                                        t.title
-                                                                )}
-                                                                onCheckedChange={() =>
-                                                                    toggleType(
-                                                                        service._id!,
-                                                                        t.title
-                                                                    )
-                                                                }
-                                                            />
-                                                        </FormControl>
-                                                        <FormLabel>
-                                                            {t.title}
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                )
-                                            )}
+                                            {(service.types ?? []).map((t) => (
+                                                <FormItem
+                                                    key={`${service._id}-${t.title}`}
+                                                    className="flex items-center space-x-2"
+                                                >
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={selected?.types?.some(
+                                                                (sel: IType) =>
+                                                                    sel.title ===
+                                                                    t.title
+                                                            )}
+                                                            onCheckedChange={() =>
+                                                                toggleType(
+                                                                    service._id!,
+                                                                    t.title
+                                                                )
+                                                            }
+                                                        />
+                                                    </FormControl>
+                                                    <FormLabel>
+                                                        {t.title}
+                                                    </FormLabel>
+                                                </FormItem>
+                                            ))}
 
                                             {selected?.types?.some(
                                                 (type) =>
@@ -144,12 +140,39 @@ export default function FormServices({
                                                             Width *
                                                         </Label>
                                                         <Input
-                                                            name="width"
                                                             type="number"
-                                                            step="0.01"
                                                             min="0"
-                                                            placeholder="Enter the width in pixels"
-                                                            {...form.register}
+                                                            placeholder="Enter the width"
+                                                            value={
+                                                                selected?.width ??
+                                                                ''
+                                                            }
+                                                            onChange={(e) => {
+                                                                const value =
+                                                                    parseFloat(
+                                                                        e.target
+                                                                            .value
+                                                                    );
+                                                                const updated =
+                                                                    selectedServices.map(
+                                                                        (s) =>
+                                                                            s._id ===
+                                                                            service._id
+                                                                                ? {
+                                                                                      ...s,
+                                                                                      width: isNaN(
+                                                                                          value
+                                                                                      )
+                                                                                          ? undefined
+                                                                                          : value,
+                                                                                  }
+                                                                                : s
+                                                                    );
+                                                                form.setValue(
+                                                                    'services',
+                                                                    updated
+                                                                );
+                                                            }}
                                                         />
                                                     </div>
                                                     <div className="flex flex-col gap-2 w-full">
@@ -157,12 +180,39 @@ export default function FormServices({
                                                             Height *
                                                         </Label>
                                                         <Input
-                                                            name="height"
                                                             type="number"
-                                                            step="0.01"
                                                             min="0"
-                                                            placeholder="Enter the height in pixels"
-                                                            {...form.register}
+                                                            placeholder="Enter the height"
+                                                            value={
+                                                                selected?.height ??
+                                                                ''
+                                                            }
+                                                            onChange={(e) => {
+                                                                const value =
+                                                                    parseFloat(
+                                                                        e.target
+                                                                            .value
+                                                                    );
+                                                                const updated =
+                                                                    selectedServices.map(
+                                                                        (s) =>
+                                                                            s._id ===
+                                                                            service._id
+                                                                                ? {
+                                                                                      ...s,
+                                                                                      width: isNaN(
+                                                                                          value
+                                                                                      )
+                                                                                          ? undefined
+                                                                                          : value,
+                                                                                  }
+                                                                                : s
+                                                                    );
+                                                                form.setValue(
+                                                                    'services',
+                                                                    updated
+                                                                );
+                                                            }}
                                                         />
                                                     </div>
                                                 </div>
@@ -221,8 +271,7 @@ export default function FormServices({
                                 {isSelected(service._id!) &&
                                     (service.complexities ?? []).length > 0 &&
                                     (!service.types?.length ||
-                                        (selected?.types &&
-                                            selected.types.length > 0)) && (
+                                        selected?.types?.length) && (
                                         <div className="pl-6 space-y-2">
                                             <p className="font-semibold">
                                                 Select Complexity:

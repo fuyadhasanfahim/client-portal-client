@@ -17,6 +17,7 @@ export default async function Layout({
     children: React.ReactNode;
 }) {
     const user = await getUserData();
+    
     const userData = {
         name: user.name,
         email: user.email,

@@ -19,6 +19,8 @@ import { z } from 'zod';
 import MyDatePicker from '@/components/shared/MyDatePicker';
 import { Textarea } from '@/components/ui/textarea';
 
+const returnFormats = ['PSD', 'JPEG', 'PNG', 'GIF'];
+
 export default function FormInformation({
     form,
 }: {
@@ -87,14 +89,16 @@ export default function FormInformation({
                         <FormControl>
                             <Input
                                 type="number"
-                                step="0.01"
+                                inputMode="numeric"
+                                step="1"
                                 min="0"
                                 required
                                 placeholder="Enter the number of images"
-                                value={field.value || ''}
-                                onChange={(e) =>
-                                    field.onChange(Number(e.target.value))
-                                }
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    field.onChange(isNaN(value) ? 0 : value);
+                                }}
                             />
                         </FormControl>
                         <FormMessage />
@@ -109,8 +113,7 @@ export default function FormInformation({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>
-                            Approximate Price{' '}
-                            <span className="text-destructive">*</span>{' '}
+                            Price <span className="text-destructive">*</span>{' '}
                         </FormLabel>
                         <FormControl>
                             <Input
@@ -133,9 +136,10 @@ export default function FormInformation({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>
-                            Return File formate{' '}
-                            <span className="text-destructive">*</span>{' '}
+                            Return File Format{' '}
+                            <span className="text-destructive">*</span>
                         </FormLabel>
+
                         <FormControl>
                             <Select
                                 onValueChange={(value) => field.onChange(value)}
@@ -145,13 +149,11 @@ export default function FormInformation({
                                     <SelectValue placeholder="Select the Return File formate" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {['PSD', 'JPEG', 'PNG', 'GIF'].map(
-                                        (i, index) => (
-                                            <SelectItem key={index} value={i}>
-                                                {i}
-                                            </SelectItem>
-                                        )
-                                    )}
+                                    {returnFormats.map((format) => (
+                                        <SelectItem key={format} value={format}>
+                                            {format}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </FormControl>

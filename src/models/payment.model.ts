@@ -8,19 +8,9 @@ const paymentSchema = new Schema<IPayment>(
             ref: 'User',
             required: true,
         },
-        orderId: { type: String, ref: 'Order' },
-        method: { type: String, enum: ['stripe'], required: true },
-        option: {
-            type: String,
-            enum: ['Pay Later', 'Pay Now'],
-            required: true,
-        },
-        provider: {
-            type: String,
-            enum: ['Visa', 'Master Card', 'Paypal', 'American Express'],
-        },
-        stripePaymentIntentId: { type: String },
-        stripeCustomerId: { type: String },
+        orderId: { type: String, ref: 'Order', required: true },
+        paymentIntentId: { type: String },
+        customerId: { type: String },
         amount: { type: Number, required: true },
         currency: { type: String, default: 'USD' },
         status: {

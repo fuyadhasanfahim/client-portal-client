@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,50 +17,39 @@ import FormInformation from './form-components/FormInformation';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import FormPayments from './form-components/FormPayments';
+import { v4 } from 'uuid';
 
 export default function ServiceSelectForm({ userId }: { userId: string }) {
     const { data: servicesData, isLoading: isServiceLoading } =
         useGetServicesForUserQuery(userId);
+    const [generatedOrderId, setGeneratedOrderId] = useState(() => v4());
 
     const form = useForm<z.infer<typeof addOrderSchema>>({
         resolver: zodResolver(addOrderSchema),
         defaultValues: {
             services: [],
-            width: 0,
-            height: 0,
             userId: userId,
+            orderId: generatedOrderId,
             downloadLink: '',
             date: new Date(),
             numberOfImages: 0,
             price: 0,
             returnFormate: '',
             instructions: '',
-            totalPrice: 0,
-            paymentOption: '',
+            paymentOption: 'Pay Later',
             paymentMethod: '',
-            isPaymentCompleted: false,
         },
     });
 
     const selectedServices = form.watch('services');
     const numberOfImages = form.watch('numberOfImages');
     const approximatePrice =
-        (
-            selectedServices.reduce((sum, service) => {
-                const complexityPrice =
-                    'complexity' in service && service.complexity?.price
-                        ? service.complexity.price
-                        : 0;
+        selectedServices.reduce((sum, service) => {
+            const price = service.complexity?.price ?? service.price ?? 0;
+            return sum + price;
+        }, 0) * numberOfImages;
 
-                const priceToUse = complexityPrice || service.price || 0;
-                return sum + priceToUse;
-            }, 0) * numberOfImages
-        ).toFixed(2) || 0;
-
-    useEffect(() => {
-        form.setValue('price', Number(approximatePrice));
-        form.setValue('totalPrice', Number(approximatePrice));
-    }, [approximatePrice, form]);
+    form.setValue('price', approximatePrice);
 
     const [step, setStep] = useState(1);
     const totalSteps = 3;
@@ -149,12 +138,7 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
         }
 
         if (step === 3) {
-            return (
-                !!form.watch('totalPrice') &&
-                !!form.watch('paymentOption') &&
-                !!form.watch('paymentMethod') &&
-                !!form.watch('isPaymentCompleted')
-            );
+            return !!form.watch('paymentOption');
         }
 
         return true;
@@ -201,13 +185,8 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
 
         if (step === 3) {
             const missingFields: string[] = [];
-            if (!form.watch('totalPrice')) missingFields.push('Total Price');
             if (!form.watch('paymentOption'))
                 missingFields.push('Payment Option');
-            if (!form.watch('paymentMethod'))
-                missingFields.push('Payment Method');
-            if (!form.watch('isPaymentCompleted'))
-                missingFields.push('Payment Method');
 
             if (missingFields.length > 0) {
                 toast.error(
@@ -224,7 +203,20 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
         return true;
     };
 
+    const getButtonLabel = () => {
+        if (step < totalSteps) return 'Next';
+        if (form.watch('paymentOption') === 'Pay Later') return 'Submit';
+        if (
+            form.watch('paymentOption') === 'Pay Now' &&
+            form.watch('paymentMethod')
+        )
+            return 'Save and Proceed to Payment';
+        return 'Next';
+    };
+
     const onSubmit = (data: z.infer<typeof addOrderSchema>) => {
+        console.log(data);
+
         if (step < totalSteps) {
             setStep((prev) => prev + 1);
         } else {
@@ -283,8 +275,22 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                         type="button"
                         variant="outline"
                         onClick={() => {
+                            setGeneratedOrderId(v4());
+                            form.reset({
+                                ...form.getValues(),
+                                services: [],
+                                userId,
+                                orderId: generatedOrderId,
+                                downloadLink: '',
+                                date: new Date(),
+                                numberOfImages: 0,
+                                price: 0,
+                                returnFormate: '',
+                                instructions: '',
+                                paymentOption: 'Pay Later',
+                                paymentMethod: '',
+                            });
                             setStep(1);
-                            form.reset();
                         }}
                     >
                         <RefreshCw />
@@ -300,11 +306,11 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                             if (step < totalSteps) {
                                 setStep((prev) => prev + 1);
                             } else {
-                                form.handleSubmit(onSubmit)();
+                                onSubmit(form.getValues());
                             }
                         }}
                     >
-                        {step === totalSteps ? 'Submit' : 'Next'}
+                        {getButtonLabel()}
                         <ArrowRight />
                     </Button>
                 </div>
