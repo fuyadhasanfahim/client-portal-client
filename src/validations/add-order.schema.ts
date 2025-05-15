@@ -74,4 +74,5 @@ export const addOrderSchema = z.object({
         .nonempty({ message: 'Order instructions are required.' }),
     paymentOption: z.string().nonempty(),
     paymentMethod: z.string().optional(),
+    isPaid: z.boolean().optional(),
 });

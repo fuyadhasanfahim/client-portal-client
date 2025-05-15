@@ -6,5 +6,7 @@ export default interface IPayment {
     customerId?: string;
     amount: number;
     currency?: string;
+    tax?: number;
+    totalAmount?: number;
     status: string;
 }

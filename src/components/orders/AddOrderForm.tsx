@@ -38,6 +38,7 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
             instructions: '',
             paymentOption: 'Pay Later',
             paymentMethod: '',
+            isPaid: false,
         },
     });
 
@@ -164,6 +165,12 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
         }
 
         if (step === 3) {
+            if (
+                form.watch('paymentMethod') === 'Card Payment' &&
+                form.watch('isPaid') === false
+            ) {
+                return false;
+            }
             return !!form.watch('paymentOption');
         }
 
@@ -296,10 +303,10 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
 
                 {step === 1 && (
                     <div>
-                        <h3>
+                        <h2 className="text-2xl font-bold mb-8 text-gray-800 border-b pb-4">
                             Select Services{' '}
                             <span className="text-destructive">*</span>
-                        </h3>
+                        </h2>
                         <FormServices
                             servicesData={servicesData?.data}
                             isServiceLoading={isServiceLoading}

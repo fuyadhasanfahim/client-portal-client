@@ -31,6 +31,7 @@ const OrderSchema: Schema = new Schema<IOrder>(
         instructions: { type: String, required: true },
         paymentOption: { type: String, required: true },
         paymentMethod: { type: String },
+        isPaid: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

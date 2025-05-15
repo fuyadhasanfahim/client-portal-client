@@ -62,7 +62,7 @@ export default function FormServices({
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start pb-6">
             {servicesData.map((service) => {
                 const selected = getServiceData(service._id!);
 

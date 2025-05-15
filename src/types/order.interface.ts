@@ -28,4 +28,5 @@ export interface IOrder {
     instructions: string;
     paymentOption: string;
     paymentMethod?: string;
+    isPaid?: boolean;
 }
