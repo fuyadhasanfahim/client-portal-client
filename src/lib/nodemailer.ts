@@ -11,14 +11,15 @@ export const transporter = nodemailer.createTransport({
 });
 
 interface EmailOptions {
+    from?: string;
     to: string;
     subject: string;
     html: string;
 }
 
-export const sendEmail = async ({ to, subject, html }: EmailOptions) => {
+export const sendEmail = async ({ to, subject, html, from }: EmailOptions) => {
     await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: from ? from : process.env.EMAIL_USER,
         to,
         subject,
         html,

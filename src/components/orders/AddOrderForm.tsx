@@ -81,7 +81,6 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
                       _id: service._id,
                       name: service.name,
                       price: service.price,
-                      types: [],
                       ...(service.price
                           ? {}
                           : service.complexities?.length
@@ -97,15 +96,26 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
         const updated = selectedServices.map((s) => {
             if (s._id === serviceId) {
                 const types = s.types ?? [];
+
+                const updatedTypes = types.some((t) => t.title === type)
+                    ? types.filter((t) => t.title !== type)
+                    : [...types, { title: type }];
+
+                if (updatedTypes.length === 0) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { types, ...rest } = s;
+                    return rest;
+                }
+
                 return {
                     ...s,
-                    types: types.some((t) => t.title === type)
-                        ? types.filter((t) => t.title !== type)
-                        : [...types, { title: type }],
+                    types: updatedTypes,
                 };
             }
+
             return s;
         });
+
         form.setValue('services', updated);
     };
 
@@ -255,36 +265,42 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
 
     const onSubmit = async (data: z.infer<typeof addOrderSchema>) => {
         if (step < totalSteps) {
-            setStep((prev) => prev + 1);
-        } else {
-            try {
-                const response = await addOrder(data).unwrap();
-
-                if (response.success) {
-                    const newOrderId = nanoid(12);
-
-                    setStep(1);
-                    form.reset({
-                        services: [],
-                        userId: userId,
-                        orderId: newOrderId,
-                        downloadLink: '',
-                        date: new Date().toISOString(),
-                        numberOfImages: 0,
-                        price: 0,
-                        returnFormate: '',
-                        instructions: '',
-                        paymentOption: 'Pay Later',
-                        paymentMethod: '',
-                    });
-
-                    toast.success(response.message);
-                } else {
-                    toast.error(response.message);
-                }
-            } catch (error) {
-                ApiError(error);
+            if (!isStepValidSilent()) {
+                validateStepWithToast();
+                return;
             }
+
+            setStep((prev) => prev + 1);
+            return;
+        }
+
+        try {
+            const response = await addOrder(data).unwrap();
+
+            if (response.success) {
+                const newOrderId = nanoid(12);
+
+                setStep(1);
+                form.reset({
+                    services: [],
+                    userId: userId,
+                    orderId: newOrderId,
+                    downloadLink: '',
+                    date: new Date().toISOString(),
+                    numberOfImages: 0,
+                    price: 0,
+                    returnFormate: '',
+                    instructions: '',
+                    paymentOption: 'Pay Later',
+                    paymentMethod: '',
+                });
+
+                toast.success(response.message);
+            } else {
+                toast.error(response.message);
+            }
+        } catch (error) {
+            ApiError(error);
         }
     };
 
