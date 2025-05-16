@@ -270,8 +270,18 @@ export default function FormServices({
                                 {/* Complexity */}
                                 {isSelected(service._id!) &&
                                     (service.complexities ?? []).length > 0 &&
+                                    (service.types ?? []).length > 0 &&
+                                    !selected?.types?.length && (
+                                        <div className="pl-6 text-sm text-destructive">
+                                            Please select at least one type to
+                                            enable complexity selection.
+                                        </div>
+                                    )}
+
+                                {isSelected(service._id!) &&
+                                    (service.complexities ?? []).length > 0 &&
                                     (!service.types?.length ||
-                                        selected?.types?.length) && (
+                                        (service.types ?? []).length > 0) && (
                                         <div className="pl-6 space-y-2">
                                             <p className="font-semibold">
                                                 Select Complexity:
@@ -308,7 +318,6 @@ export default function FormServices({
                                             </FormControl>
                                         </div>
                                     )}
-
                                 <FormMessage />
                             </FormItem>
                         )}

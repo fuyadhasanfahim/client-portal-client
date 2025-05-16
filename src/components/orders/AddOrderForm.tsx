@@ -116,7 +116,7 @@ export default function ServiceSelectForm({ userId }: { userId: string }) {
         const updated = selectedServices.map((s) => {
             if (s._id !== serviceId) return s;
 
-            const original = servicesData.find(
+            const original = servicesData.data.find(
                 (srv: IService) => srv._id === serviceId
             );
 

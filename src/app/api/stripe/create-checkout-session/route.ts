@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConfig from '@/lib/dbConfig';
 import { stripe } from '@/lib/stripe';
+import OrderSessionModel from '@/models/order-session.model';
+import { nanoid } from 'nanoid';
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { orderId, userId, price } = body;
+        const { orderId, userId, price, paymentOption } = body;
 
         if (!orderId || !userId || !price) {
             return NextResponse.json(
@@ -18,6 +20,13 @@ export async function POST(req: NextRequest) {
         }
 
         await dbConfig();
+
+        const orderSessionId = nanoid(10);
+
+        await OrderSessionModel.create({
+            sessionId: orderSessionId,
+            fullOrder: body,
+        });
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
@@ -35,10 +44,12 @@ export async function POST(req: NextRequest) {
                     quantity: 1,
                 },
             ],
-            return_url: `https://your-site.com/order/complete?session_id={CHECKOUT_SESSION_ID}`,
+            return_url: `http://localhost:3000/orders/order-payment/complete?session_id={CHECKOUT_SESSION_ID}`,
             metadata: {
                 orderId,
                 userId,
+                paymentOption,
+                orderSessionId,
             },
         });
 

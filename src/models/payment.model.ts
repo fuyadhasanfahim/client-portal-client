@@ -13,12 +13,11 @@ const paymentSchema = new Schema<IPayment>(
         paymentIntentId: { type: String },
         customerId: { type: String },
         amount: { type: Number, required: true },
-        currency: { type: String, default: 'USD' },
+        currency: { type: String },
         tax: { type: Number },
         totalAmount: { type: Number },
         status: {
             type: String,
-            enum: ['Pending', 'Succeeded', 'Failed'],
             required: true,
         },
     },

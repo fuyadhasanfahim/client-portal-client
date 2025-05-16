@@ -43,20 +43,18 @@ export default function FormPayments({
     useEffect(() => {
         if (shouldShowCheckout && !clientSecret) {
             const fetchClientSecret = async () => {
+                const orderData = form.getValues();
+
                 const response = await fetch(
                     '/api/stripe/create-checkout-session',
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            orderId: form.getValues('orderId'),
-                            userId: form.getValues('userId'),
-                            price: form.getValues('price'),
-                        }),
+                        body: JSON.stringify(orderData),
                     }
                 );
-                const data = await response.json();
 
+                const data = await response.json();
                 setClientSecret(data.client_secret);
             };
 
