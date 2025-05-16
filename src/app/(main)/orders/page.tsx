@@ -18,10 +18,10 @@ export default async function OrdersPage() {
                     Orders Summery
                 </h2>
 
-                <Link href={'/orders/add-new-order'}>
+                <Link href={'/orders/new-order'}>
                     <Button>
                         <IconPlus />
-                        Add New Order
+                        New Order
                     </Button>
                 </Link>
             </div>

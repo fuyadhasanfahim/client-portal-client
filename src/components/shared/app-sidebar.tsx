@@ -2,13 +2,10 @@
 
 import * as React from 'react';
 import { IconInnerShadowTop } from '@tabler/icons-react';
-
 import { NavMain } from '@/components/shared/nav-main';
-import { NavUser } from '@/components/shared/nav-user';
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -50,9 +47,6 @@ export function AppSidebar(
             <SidebarContent>
                 <NavMain items={sidebarItems} role={user?.role} />
             </SidebarContent>
-            <SidebarFooter>
-                <NavUser user={user} />
-            </SidebarFooter>
         </Sidebar>
     );
 }

@@ -17,7 +17,7 @@ export default async function Layout({
     children: React.ReactNode;
 }) {
     const user = await getUserData();
-    
+
     const userData = {
         name: user.name,
         email: user.email,
@@ -35,9 +35,9 @@ export default async function Layout({
                     } as React.CSSProperties
                 }
             >
-                <AppSidebar user={userData} variant="inset" />
+                <AppSidebar user={userData} />
                 <SidebarInset>
-                    <SiteHeader />
+                    <SiteHeader user={userData} />
                     <main className="p-4">
                         {user?.isEmailVerified ? (
                             children

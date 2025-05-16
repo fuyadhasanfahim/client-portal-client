@@ -1,47 +1,36 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { breadcrumbs } from '@/data/header';
+import { NavUser } from './nav-user';
+import { Separator } from '../ui/separator';
+import { usePathname } from 'next/navigation';
+import { SiteHeaders } from '@/data/header';
 
-export function SiteHeader() {
+export function SiteHeader({
+    user,
+}: {
+    user: {
+        name: string;
+        email: string;
+        profileImage?: string;
+    };
+}) {
     const pathname = usePathname();
-    const key = pathname.split('/').filter(Boolean).join('-');
-
-    const currentBreadcrumbs = breadcrumbs[key] || [];
 
     return (
-        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-            <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-                <SidebarTrigger className="-ml-1" />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        {currentBreadcrumbs.map((item, index) => (
-                            <BreadcrumbItem key={index}>
-                                {index < currentBreadcrumbs.length - 1 ? (
-                                    <>
-                                        <BreadcrumbLink href={item.href}>
-                                            {item.title}
-                                        </BreadcrumbLink>
-                                        <BreadcrumbSeparator />
-                                    </>
-                                ) : (
-                                    <BreadcrumbPage>
-                                        {item.title}
-                                    </BreadcrumbPage>
-                                )}
-                            </BreadcrumbItem>
-                        ))}
-                    </BreadcrumbList>
-                </Breadcrumb>
+        <header className="flex h-16 shrink-0 px-4 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+            <div className="flex w-full items-center justify-between">
+                <div className="flex items-center gap-4 h-5">
+                    <SidebarTrigger />
+                    <Separator orientation="vertical" />
+                    <h3 className="text-lg font-semibold">
+                        {SiteHeaders.find((s) => s.href === pathname)?.title ??
+                            ''}
+                    </h3>
+                </div>
+                <div>
+                    <NavUser user={user} />
+                </div>
             </div>
         </header>
     );

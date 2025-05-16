@@ -1,11 +1,18 @@
-export const breadcrumbs: Record<string, { title: string; href: string }[]> = {
-    dashboard: [{ title: 'Dashboard', href: '/dashboard' }],
-    account: [
-        { title: 'Account', href: '/account' },
-        { title: 'Profile', href: '/account/profile' },
-    ],
-    'dashboard-orders': [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Orders', href: '/dashboard/orders' },
-    ],
-};
+export const SiteHeaders = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Orders',
+        href: '/orders',
+    },
+    {
+        title: 'New Order',
+        href: '/orders/new-order',
+    },
+    {
+        title: 'Services',
+        href: '/services',
+    },
+];

@@ -38,14 +38,14 @@ export function NavMain({
                                 className={cn(
                                     'rounded-md',
                                     pathname.startsWith(item.url) &&
-                                        'bg-stone-200'
+                                        'bg-green-100'
                                 )}
                             >
                                 <SidebarMenuButton
-                                    className="cursor-pointer"
+                                    className="cursor-pointer text-gray-600 font-semibold hover:text-gray-600 hover:bg-green-50"
                                     tooltip={item.title}
                                 >
-                                    {item.icon && <item.icon />}
+                                    {item.icon && <item.icon className='' />}
                                     <span>{item.title}</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

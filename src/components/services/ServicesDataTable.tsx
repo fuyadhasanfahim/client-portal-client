@@ -35,7 +35,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -98,7 +97,7 @@ export default function ServicesDataTable() {
     };
 
     return (
-        <Card className="w-full p-4 space-y-4">
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <form onSubmit={handleSearch} className="w-full">
                     <div className="relative w-full sm:w-64">
@@ -434,6 +433,6 @@ export default function ServicesDataTable() {
                     </Button>
                 </div>
             </div>
-        </Card>
+        </div>
     );
 }
