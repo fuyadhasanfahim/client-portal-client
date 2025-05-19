@@ -8,7 +8,7 @@ export const SiteHeaders = [
         href: '/orders',
     },
     {
-        title: 'New Order',
+        title: 'Orders / New Order',
         href: '/orders/new-order',
     },
     {

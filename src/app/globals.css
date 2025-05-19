@@ -44,7 +44,7 @@
 }
 
 :root {
-    --radius: 0.75rem;
+    --radius: 1rem;
     --background: oklch(1 0 0);
     --foreground: oklch(0.141 0.005 285.823);
     --card: oklch(1 0 0);
@@ -83,7 +83,8 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground font-medium;
+        font-family: 'Synonym', sans-serif;
     }
 }
 

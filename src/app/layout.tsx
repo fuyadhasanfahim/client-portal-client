@@ -21,6 +21,13 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
+            <head>
+                {/* Font family Excon */}
+                <link
+                    href="https://api.fontshare.com/v2/css?f[]=synonym@1&display=swap"
+                    rel="stylesheet"
+                />
+            </head>
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
