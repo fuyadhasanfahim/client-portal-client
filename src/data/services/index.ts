@@ -1,85 +1,66 @@
 const services = [
     {
         name: 'Path Creation',
-        value: 'path-creation',
-        radios: [
+        complexities: [
             {
                 name: 'Clipping Path',
-                value: 'clipping-path',
+                price: 5,
             },
             {
-                name: 'Multi-Clipping Path',
-                value: 'multi-clipping-path',
+                name: 'Multi-clipping Path',
+                price: 5,
             },
         ],
     },
     {
         name: 'Background Removal',
-        value: 'background-removal',
+        price: 4.5,
     },
     {
         name: 'Shadow Creation',
-        value: 'shadow-creation',
-        radios: [
+        complexities: [
             {
                 name: 'Drop Shadow',
-                value: 'drop-shadow',
+                price: 5,
             },
             {
                 name: 'Existing Shadow',
-                value: 'existing-shadow',
-            },
-            {
-                name: 'Floating shadow',
-                value: 'floating-shadow',
-            },
-            {
-                name: 'Natural Shadow',
-                value: 'natural-shadow',
-            },
-            {
-                name: 'Reflection Shadow',
-                value: 'reflection-shadow',
+                price: 5,
             },
         ],
     },
     {
         name: 'Photo Retouching',
-        value: 'photo-retouching',
-        checkboxes: [
+        types: [
             {
                 name: 'Dust, spot and scratch removal',
-                value: 'dust-spot-scratch-removal',
-                radios: [
+                complexities: [
                     {
                         name: 'Basic retouching',
-                        value: 'basic-retouching',
+                        price: 6,
                     },
                     {
-                        name: 'Advanced retouching',
-                        value: 'advanced-retouching',
+                        name: 'Complex retouching',
+                        price: 6,
                     },
                 ],
             },
             {
                 name: 'Wrinkle on clothing',
-                value: 'wrinkle-on-clothing',
             },
             {
                 name: 'Beauty airbrushing',
-                value: 'beauty-airbrushing',
             },
             {
                 name: 'Camera reflection removal',
-                value: 'camera-reflection-removal',
-                radios: [
+                complexities: [
                     {
                         name: 'Basic retouching',
-                        value: 'basic-retouching',
+                        price: 6,
                     },
                     {
-                        name: 'Advance retouching',
-                        value: 'advance-retouching',
+                        name: 'Complex retouching',
+                        price: 6,
                     },
                 ],
             },
@@ -87,34 +68,29 @@ const services = [
     },
     {
         name: 'Ghost mannequin',
-        value: 'ghost-mannequin',
+        price: 7,
     },
     {
         name: 'Color change',
-        value: 'color-change',
-        instruction:
-            "For each color variant, provide a color code or approximate name. If you have swatch files or color reference images, simply note them here and upload under 'Supporting files' in the 'Preferences' step later.",
+        price: 5,
         inputs: true,
+        instruction:
+            'Lorem ipsum dolor sit amet consectetur adipisicing elit. Autem officiis quis tenetur sapiente obcaecati similique quo eveniet labore iste eaque doloribus sequi dolorem, ex, aliquam architecto est itaque dignissimos voluptatum.',
     },
     {
         name: 'Vector conversion',
-        value: 'vector-conversion',
-        radios: [
+        complexities: [
             {
                 name: 'Logo',
-                value: 'logo',
+                price: 7,
             },
             {
-                name: 'Artwork',
-                value: 'artwork',
+                name: 'Logo',
+                price: 7,
             },
             {
-                name: 'Line drawing',
-                value: 'line-drawing',
-            },
-            {
-                name: 'Illustration',
-                value: 'illustration',
+                name: 'Logo',
+                price: 7,
             },
         ],
     },

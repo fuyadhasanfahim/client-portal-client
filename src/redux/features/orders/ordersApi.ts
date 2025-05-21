@@ -11,8 +11,23 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
+            newDraftOrder: build.mutation({
+                query: ({ data, userID }) => ({
+                    url: `orders/drafts/new-draft?user-id=${userID}`,
+                    method: 'POST',
+                    body: data,
+                }),
+                invalidatesTags: ['Orders'],
+            }),
+            getDraftOrder: build.query({
+                query: (id) => ({
+                    url: `orders/drafts/get-draft?id=${id}`,
+                    method: 'GET',
+                }),
+                providesTags: ['Orders'],
+            }),
         };
     },
 });
 
-export const { useAddOrderMutation } = ordersApi;
+export const { useAddOrderMutation, useNewDraftOrderMutation, useGetDraftOrderQuery } = ordersApi;

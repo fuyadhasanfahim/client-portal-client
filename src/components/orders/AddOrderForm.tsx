@@ -14,7 +14,7 @@ import { addOrderSchema } from '@/validations/add-order.schema';
 import IService from '@/types/service.interface';
 import FormInformation from './form-components/FormInformation';
 import { Badge } from '../ui/badge';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import FormPayments from './form-components/FormPayments';
 import { useAddOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '../shared/ApiError';

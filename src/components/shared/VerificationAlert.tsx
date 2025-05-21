@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import axiosInstance from '@/lib/axios-instance';
 import { Button } from '../ui/button';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import ApiError from './ApiError';
 import { Card, CardContent, CardFooter } from '../ui/card';

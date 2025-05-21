@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConfig from '@/lib/dbConfig';
 import { stripe } from '@/lib/stripe';
-import OrderSessionModel from '@/models/order-session.model';
+import OrderSessionModel from '@/models/draft-order.model';
 import { nanoid } from 'nanoid';
 
 export async function POST(req: NextRequest) {

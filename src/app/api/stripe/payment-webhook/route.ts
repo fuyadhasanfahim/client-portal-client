@@ -3,7 +3,7 @@ import { stripe } from '@/lib/stripe';
 import dbConfig from '@/lib/dbConfig';
 import OrderModel from '@/models/order.model';
 import PaymentModel from '@/models/payment.model';
-import OrderSessionModel from '@/models/order-session.model';
+import OrderSessionModel from '@/models/draft-order.model';
 import Stripe from 'stripe';
 import UserModel from '@/models/user.model';
 import { sendEmail } from '@/lib/nodemailer';

@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { signIn } from 'next-auth/react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

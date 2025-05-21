@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 export default function ApiError(error: unknown) {
     if (error instanceof AxiosError) {

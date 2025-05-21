@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import SignupSchema from '@/validations/sign-up.schema';
 import axiosInstance from '@/lib/axios-instance';
 import { useRouter } from 'next/navigation';

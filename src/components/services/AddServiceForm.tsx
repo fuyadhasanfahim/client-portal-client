@@ -7,7 +7,7 @@ import { IconDeviceFloppy, IconRestore } from '@tabler/icons-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addServiceSchema } from '@/validations/add-service.schema';
 import ApiError from '../shared/ApiError';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { useRef, useState, useEffect } from 'react';
 import { DialogClose } from '../ui/dialog';
 import { useAddServiceMutation } from '@/redux/features/services/servicesApi';

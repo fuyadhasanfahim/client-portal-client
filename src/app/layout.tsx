@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Toaster } from '@/components/ui/sonner';
-import NextAuthProvider from './NextAuthProvider'; // now handles its own session logic
+import { Toaster } from 'react-hot-toast';
+import NextAuthProvider from './NextAuthProvider';
 import ReduxProvider from './ReduxProvider';
 
 const geistSans = Geist({

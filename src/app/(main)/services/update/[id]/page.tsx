@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import ApiError from '@/components/shared/ApiError';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import {
     useGetSingleServiceQuery,
@@ -70,8 +70,8 @@ export default function EditServicePage() {
 
     useEffect(() => {
         if (data && !isLoading) {
-            console.log(data.data)
-            
+            console.log(data.data);
+
             form.reset({
                 name: data.data.name,
                 status: data.data.status,
@@ -493,7 +493,8 @@ export default function EditServicePage() {
                                                     const user =
                                                         userData?.data.find(
                                                             (u: IUser) =>
-                                                                u.userId === userId
+                                                                u.userId ===
+                                                                userId
                                                         );
                                                     return (
                                                         <Badge

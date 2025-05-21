@@ -44,7 +44,7 @@ import {
     useUpdateServiceStatusMutation,
 } from '@/redux/features/services/servicesApi';
 import IService from '@/types/service.interface';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import ApiError from '../shared/ApiError';
 import { useRouter } from 'next/navigation';
 
