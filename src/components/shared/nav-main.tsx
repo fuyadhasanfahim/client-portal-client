@@ -34,7 +34,7 @@ export function NavMain({
         <SidebarGroup>
             <SidebarGroupContent className="flex flex-col gap-2">
                 <SidebarMenu>
-                    <Link href={'/orders/new-new-order'}>
+                    <Link href={'/orders/new-order'}>
                         <SidebarMenuItem>
                             <SidebarMenuButton
                                 className="hover:bg-primary/90 hover:text-white transition-colors duration-200 ease-in"
