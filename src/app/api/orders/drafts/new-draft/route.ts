@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
             userId,
         });
 
-        const draftOrderId = draftOrder._id.toString();
+        const draftOrderId = draftOrder._id;
 
         return NextResponse.json(
             {
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        console.log(error)
         return NextResponse.json(
             {
                 success: false,

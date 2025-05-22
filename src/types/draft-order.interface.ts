@@ -1,22 +1,28 @@
-export interface IDraftService {
+export interface IDraftComplexity {
+    _id: string;
+    name: string;
+    price: number;
+}
+
+export interface IDraftType {
+    _id: string;
     name: string;
     price?: number;
-    types?: {
-        name: string;
-        complexity: {
-            name: string;
-            price: number;
-        };
-    }[];
     complexity?: {
+        _id: string;
         name: string;
         price: number;
     };
+}
+
+export interface IDraftService {
+    _id: string;
+    name: string;
+    price?: number;
+    inputs?: boolean;
     colorCodes?: string[];
-    resizing?: {
-        width: number;
-        height: number;
-    };
+    types?: IDraftType[];
+    complexity?: IDraftComplexity;
 }
 
 export interface IDraftOrder {

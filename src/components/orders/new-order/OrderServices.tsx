@@ -1,7 +1,7 @@
 'use client';
 
-import ApiError from '@/components/shared/ApiError';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     Card,
     CardContent,
@@ -10,712 +10,466 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { ArrowRightIcon, Loader2, X } from 'lucide-react';
 import services from '@/data/services';
 import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
-import newOrderServiceSchema from '@/validations/new-order.schema';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRightIcon, Loader2, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-
-interface Service {
-    name: string;
-    price?: number;
-    types?: {
-        name: string;
-        complexities?: {
-            name: string;
-            price: number;
-        }[];
-    }[];
-    complexities?: {
-        name: string;
-        price: number;
-    }[];
-    inputs?: boolean;
-    instruction?: string;
-}
+import ApiError from '@/components/shared/ApiError';
+import { IDraftService, IDraftType } from '@/types/draft-order.interface';
+import toast from 'react-hot-toast';
 
 export default function OrderServices({ userID }: { userID: string }) {
-    const form = useForm<z.infer<typeof newOrderServiceSchema>>({
-        resolver: zodResolver(newOrderServiceSchema),
-        defaultValues: {
-            serviceNames: [],
-            types: [],
-            options: [],
-        },
-    });
-
-    const router = useRouter();
     const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+    const [selectedServices, setSelectedServices] = useState<IDraftService[]>(
+        []
+    );
+    const [errors, setErrors] = useState<string[]>([]);
+    const router = useRouter();
 
-    const onSubmit = async (data: z.infer<typeof newOrderServiceSchema>) => {
-        try {
-            // Transform the form data to match your API requirements
-            const transformedServices = data.serviceNames
-                .map((service) => {
-                    const serviceDef = services.find(
-                        (s) => s.name === service.name
-                    );
-                    if (!serviceDef) return null;
-
-                    // Find selected types for this service
-                    const selectedTypes = data.types
-                        .filter((type) =>
-                            serviceDef.types?.some(
-                                (st) => st.name === type.name
-                            )
-                        )
-                        .map((type) => ({
-                            name: type.name,
-                            complexity: type.complexity
-                                ? {
-                                      name: type.complexity.name,
-                                      price: type.complexity.price,
-                                  }
-                                : undefined,
-                        }));
-
-                    // Find service-level complexity if no types are selected
-                    const serviceComplexity =
-                        selectedTypes.length === 0 && data.complexity
-                            ? {
-                                  name: data.complexity.name,
-                                  price: data.complexity.price,
-                              }
-                            : undefined;
-
-                    // Transform options
-                    const serviceOptions = data.options.map((option) => ({
-                        colorCodes: option.colorCodes || [],
-                        dimensions:
-                            option.height && option.width
-                                ? { height: option.height, width: option.width }
-                                : undefined,
-                    }));
-
-                    return {
-                        name: service.name,
-                        price: service.price,
-                        ...(selectedTypes.length > 0
-                            ? { types: selectedTypes }
-                            : {}),
-                        ...(serviceComplexity
-                            ? { complexity: serviceComplexity }
-                            : {}),
-                        ...(serviceOptions.length > 0
-                            ? { options: serviceOptions }
-                            : {}),
-                    };
-                })
-                .filter(Boolean);
-
-            const response = await newDraftOrder({
-                data: {
-                    services: transformedServices,
+    const toggleService = (service: {
+        _id: string;
+        name: string;
+        price?: number;
+        inputs?: boolean;
+    }) => {
+        const exists = selectedServices.find((s) => s._id === service._id);
+        if (exists) {
+            setSelectedServices((prev) =>
+                prev.filter((s) => s._id !== service._id)
+            );
+        } else {
+            setSelectedServices((prev) => [
+                ...prev,
+                {
+                    _id: service._id,
+                    name: service.name,
+                    price: service.price,
+                    inputs: service.inputs || false,
+                    colorCodes: service.inputs ? [''] : [],
+                    types: [],
+                    complexity: undefined,
                 },
+            ]);
+        }
+    };
+
+    const updateService = (index: number, updated: Partial<IDraftService>) => {
+        const copy = [...selectedServices];
+        copy[index] = { ...copy[index], ...updated };
+        setSelectedServices(copy);
+    };
+
+    const handleSubmit = async () => {
+        const validationErrors: string[] = [];
+
+        const validServices = selectedServices.map((service) => {
+            const definition = services.find((s) => s._id === service._id);
+            if (!definition) return null;
+
+            const hasComplexities = (definition.complexities ?? []).length > 0;
+            const hasTypes = (definition.types ?? []).length > 0;
+
+            if (hasComplexities && !service.complexity) {
+                validationErrors.push(`${service.name}: Select a complexity.`);
+            }
+
+            if (hasTypes) {
+                if (!service.types?.length) {
+                    validationErrors.push(
+                        `${service.name}: Select at least one type.`
+                    );
+                }
+
+                service.types?.forEach((type: IDraftType) => {
+                    const defType = definition.types?.find(
+                        (t) => t._id === type._id
+                    );
+                    if (defType?.complexities?.length && !type.complexity) {
+                        validationErrors.push(
+                            `${service.name} > ${type.name}: Select a complexity.`
+                        );
+                    }
+                });
+            }
+
+            return {
+                _id: service._id,
+                name: service.name,
+                ...(service.price && { price: service.price }),
+                ...(service.inputs && { inputs: true }),
+                ...(service.colorCodes?.length && {
+                    colorCodes: service.colorCodes.filter(
+                        (c: string) => c.trim() !== ''
+                    ),
+                }),
+                ...(service.complexity && { complexity: service.complexity }),
+                ...(service.types?.length && { types: service.types }),
+            };
+        });
+
+        if (validationErrors.length) {
+            setErrors(validationErrors);
+            return;
+        }
+
+        try {
+            const response = await newDraftOrder({
+                data: { services: validServices },
                 userID,
             });
 
             if (response?.data?.success) {
-                form.reset();
+                toast.success(
+                    'Draft order created successfully. Redirecting to details page...'
+                );
+
+                setSelectedServices([]);
                 router.push(
                     `/orders/new-order/${response.data.draftOrderId}/details`
                 );
             }
-        } catch (error) {
-            ApiError(error);
+        } catch (err) {
+            ApiError(err);
         }
     };
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <Card className="max-w-2xl mx-auto">
-                    <CardHeader>
-                        <CardTitle className="text-2xl">
-                            Order Your Edits
-                        </CardTitle>
-                        <CardDescription className="text-base">
-                            Tell us what you need, and we&apos;ll generate
-                            instant pricing on the spot.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <FormField
-                            control={form.control}
-                            name="serviceNames"
-                            render={({ field }) => (
-                                <FormItem className="space-y-2">
-                                    <CardTitle>
-                                        What services do you need today?
-                                    </CardTitle>
-                                    <div className="grid grid-cols-1 gap-4 pt-6">
-                                        {services.map((service: Service) => {
-                                            const isSelected =
-                                                field.value?.some(
-                                                    (s) =>
-                                                        s.name === service.name
+        <form
+            onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+            }}
+        >
+            <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                    <CardTitle className="text-2xl">Order Your Edits</CardTitle>
+                    <CardDescription>
+                        Tell us what you need, and we&apos;ll generate instant
+                        pricing.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {services.map((service) => {
+                        const selected = selectedServices.find(
+                            (s) => s._id === service._id
+                        );
+                        const selectedIndex = selectedServices.findIndex(
+                            (s) => s._id === service._id
+                        );
+
+                        return (
+                            <Card key={service._id}>
+                                <CardContent className="space-y-4">
+                                    {/* Service Select */}
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            id={service.name}
+                                            checked={!!selected}
+                                            onCheckedChange={() =>
+                                                toggleService(service)
+                                            }
+                                        />
+                                        <Label htmlFor={service.name}>
+                                            {service.name}
+                                        </Label>
+                                    </div>
+
+                                    {/* Flat complexity */}
+                                    {selected && service.complexities && (
+                                        <RadioGroup
+                                            value={
+                                                selected?.complexity?.name || ''
+                                            }
+                                            onValueChange={(val) => {
+                                                const found =
+                                                    service.complexities.find(
+                                                        (c) => c.name === val
+                                                    );
+                                                updateService(selectedIndex, {
+                                                    complexity: found,
+                                                });
+                                            }}
+                                        >
+                                            {service.complexities.map((c) => (
+                                                <div
+                                                    key={c._id}
+                                                    className="flex items-center gap-3 pl-4"
+                                                >
+                                                    <RadioGroupItem
+                                                        id={c.name}
+                                                        value={c.name}
+                                                    />
+                                                    <Label htmlFor={c.name}>
+                                                        {c.name}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                    )}
+
+                                    {/* Types + complexity */}
+                                    {selected &&
+                                        service.types?.map((type) => {
+                                            const typeSelected =
+                                                selected.types?.find(
+                                                    (t: { _id: string }) =>
+                                                        t._id === type._id
                                                 );
-
                                             return (
-                                                <Card key={service.name}>
-                                                    <CardContent className="space-y-4">
-                                                        {/* Service Checkbox */}
-                                                        <FormItem className="flex items-center gap-3">
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                    checked={
-                                                                        isSelected
+                                                <div
+                                                    key={type._id}
+                                                    className="pl-4 space-y-2"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox
+                                                            id={type.name}
+                                                            checked={
+                                                                !!typeSelected
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked
+                                                            ) => {
+                                                                const types =
+                                                                    selected.types ||
+                                                                    [];
+                                                                const updated =
+                                                                    checked
+                                                                        ? [
+                                                                              ...types,
+                                                                              {
+                                                                                  _id: type._id,
+                                                                                  name: type.name,
+                                                                                  ...(type.price && {
+                                                                                      price: type.price,
+                                                                                  }),
+                                                                                  ...(type.complexities &&
+                                                                                  type
+                                                                                      .complexities
+                                                                                      .length >
+                                                                                      0
+                                                                                      ? {
+                                                                                            complexity:
+                                                                                                undefined,
+                                                                                        }
+                                                                                      : {}),
+                                                                              },
+                                                                          ]
+                                                                        : types.filter(
+                                                                              (t: {
+                                                                                  _id: string;
+                                                                              }) =>
+                                                                                  t._id !==
+                                                                                  type._id
+                                                                          );
+                                                                updateService(
+                                                                    selectedIndex,
+                                                                    {
+                                                                        types: updated,
                                                                     }
-                                                                    onCheckedChange={(
-                                                                        checked
-                                                                    ) => {
-                                                                        const current =
-                                                                            field.value ||
-                                                                            [];
-                                                                        const updated =
-                                                                            checked
-                                                                                ? [
-                                                                                      ...current,
-                                                                                      {
-                                                                                          name: service.name,
-                                                                                          price: service.price,
-                                                                                      },
-                                                                                  ]
-                                                                                : current.filter(
-                                                                                      (
-                                                                                          s
-                                                                                      ) =>
-                                                                                          s.name !==
-                                                                                          service.name
-                                                                                  );
-                                                                        field.onChange(
-                                                                            updated
+                                                                );
+                                                            }}
+                                                        />
+                                                        <Label
+                                                            htmlFor={type.name}
+                                                        >
+                                                            {type.name}
+                                                        </Label>
+                                                    </div>
+
+                                                    {typeSelected &&
+                                                        (
+                                                            type.complexities ??
+                                                            []
+                                                        ).length > 0 && (
+                                                            <RadioGroup
+                                                                className="pt-1"
+                                                                value={
+                                                                    typeSelected
+                                                                        ?.complexity
+                                                                        ?.name ||
+                                                                    ''
+                                                                }
+                                                                onValueChange={(
+                                                                    val
+                                                                ) => {
+                                                                    const comp =
+                                                                        type.complexities?.find(
+                                                                            (
+                                                                                c
+                                                                            ) =>
+                                                                                c.name ===
+                                                                                val
                                                                         );
-                                                                    }}
-                                                                />
-                                                            </FormControl>
-                                                            <FormLabel>
-                                                                {service.name}
-                                                            </FormLabel>
-                                                        </FormItem>
-
-                                                        {/* Nested Type Checkboxes */}
-                                                        {isSelected &&
-                                                            service.types?.map(
-                                                                (type) => {
-                                                                    const isTypeSelected =
-                                                                        form
-                                                                            .watch(
-                                                                                'types'
-                                                                            )
-                                                                            ?.some(
-                                                                                (
-                                                                                    t
-                                                                                ) =>
-                                                                                    t.name ===
-                                                                                    type.name
-                                                                            );
-
-                                                                    return (
+                                                                    const updated =
+                                                                        selected.types?.map(
+                                                                            (
+                                                                                t: IDraftType
+                                                                            ) =>
+                                                                                t._id ===
+                                                                                type._id
+                                                                                    ? {
+                                                                                          ...t,
+                                                                                          complexity:
+                                                                                              comp,
+                                                                                      }
+                                                                                    : t
+                                                                        );
+                                                                    updateService(
+                                                                        selectedIndex,
+                                                                        {
+                                                                            types: updated,
+                                                                        }
+                                                                    );
+                                                                }}
+                                                            >
+                                                                {type.complexities?.map(
+                                                                    (c) => (
                                                                         <div
                                                                             key={
-                                                                                type.name
+                                                                                c._id
                                                                             }
-                                                                            className="pl-4 space-y-2"
+                                                                            className="flex items-center gap-2 pl-10"
                                                                         >
-                                                                            <FormField
-                                                                                control={
-                                                                                    form.control
+                                                                            <RadioGroupItem
+                                                                                id={
+                                                                                    c.name
                                                                                 }
-                                                                                name="types"
-                                                                                render={({
-                                                                                    field: typesField,
-                                                                                }) => (
-                                                                                    <FormItem className="flex items-center gap-3">
-                                                                                        <FormControl>
-                                                                                            <Checkbox
-                                                                                                checked={
-                                                                                                    isTypeSelected
-                                                                                                }
-                                                                                                onCheckedChange={(
-                                                                                                    checked
-                                                                                                ) => {
-                                                                                                    const current =
-                                                                                                        typesField.value ||
-                                                                                                        [];
-                                                                                                    const updated =
-                                                                                                        checked
-                                                                                                            ? [
-                                                                                                                  ...current,
-                                                                                                                  {
-                                                                                                                      name: type.name,
-                                                                                                                  },
-                                                                                                              ]
-                                                                                                            : current.filter(
-                                                                                                                  (
-                                                                                                                      t
-                                                                                                                  ) =>
-                                                                                                                      t.name !==
-                                                                                                                      type.name
-                                                                                                              );
-                                                                                                    typesField.onChange(
-                                                                                                        updated
-                                                                                                    );
-                                                                                                }}
-                                                                                            />
-                                                                                        </FormControl>
-                                                                                        <FormLabel>
-                                                                                            {
-                                                                                                type.name
-                                                                                            }
-                                                                                        </FormLabel>
-                                                                                    </FormItem>
-                                                                                )}
+                                                                                value={
+                                                                                    c.name
+                                                                                }
                                                                             />
-
-                                                                            {/* Nested Complexities under Type */}
-                                                                            {isTypeSelected &&
-                                                                                (
-                                                                                    type.complexities ??
-                                                                                    []
-                                                                                )
-                                                                                    .length >
-                                                                                    0 && (
-                                                                                    <FormField
-                                                                                        control={
-                                                                                            form.control
-                                                                                        }
-                                                                                        name="types"
-                                                                                        render={({
-                                                                                            field: typesField,
-                                                                                        }) => {
-                                                                                            const typeIndex =
-                                                                                                typesField.value?.findIndex(
-                                                                                                    (
-                                                                                                        t
-                                                                                                    ) =>
-                                                                                                        t.name ===
-                                                                                                        type.name
-                                                                                                ) ??
-                                                                                                -1;
-
-                                                                                            return (
-                                                                                                <FormItem className="space-y-2 pl-6">
-                                                                                                    <FormControl>
-                                                                                                        <RadioGroup
-                                                                                                            value={
-                                                                                                                (typeIndex >=
-                                                                                                                    0 &&
-                                                                                                                    typesField
-                                                                                                                        .value?.[
-                                                                                                                        typeIndex
-                                                                                                                    ]
-                                                                                                                        ?.complexity
-                                                                                                                        ?.name) ||
-                                                                                                                ''
-                                                                                                            }
-                                                                                                            onValueChange={(
-                                                                                                                value
-                                                                                                            ) => {
-                                                                                                                const current =
-                                                                                                                    [
-                                                                                                                        ...(typesField.value ||
-                                                                                                                            []),
-                                                                                                                    ];
-                                                                                                                if (
-                                                                                                                    typeIndex >=
-                                                                                                                    0
-                                                                                                                ) {
-                                                                                                                    const selectedComplexity =
-                                                                                                                        type.complexities?.find(
-                                                                                                                            (
-                                                                                                                                c
-                                                                                                                            ) =>
-                                                                                                                                c.name ===
-                                                                                                                                value
-                                                                                                                        );
-                                                                                                                    current[
-                                                                                                                        typeIndex
-                                                                                                                    ] =
-                                                                                                                        {
-                                                                                                                            ...current[
-                                                                                                                                typeIndex
-                                                                                                                            ],
-                                                                                                                            complexity:
-                                                                                                                                selectedComplexity
-                                                                                                                                    ? {
-                                                                                                                                          name: selectedComplexity.name,
-                                                                                                                                          price: selectedComplexity.price,
-                                                                                                                                      }
-                                                                                                                                    : undefined,
-                                                                                                                        };
-                                                                                                                }
-                                                                                                                typesField.onChange(
-                                                                                                                    current
-                                                                                                                );
-                                                                                                            }}
-                                                                                                        >
-                                                                                                            {type.complexities?.map(
-                                                                                                                (
-                                                                                                                    complexity
-                                                                                                                ) => (
-                                                                                                                    <FormItem
-                                                                                                                        key={
-                                                                                                                            complexity.name
-                                                                                                                        }
-                                                                                                                        className="flex items-center space-x-3 space-y-0"
-                                                                                                                    >
-                                                                                                                        <FormControl>
-                                                                                                                            <RadioGroupItem
-                                                                                                                                value={
-                                                                                                                                    complexity.name
-                                                                                                                                }
-                                                                                                                            />
-                                                                                                                        </FormControl>
-                                                                                                                        <FormLabel>
-                                                                                                                            {
-                                                                                                                                complexity.name
-                                                                                                                            }{' '}
-                                                                                                                            ($
-                                                                                                                            {
-                                                                                                                                complexity.price
-                                                                                                                            }
-
-                                                                                                                            )
-                                                                                                                        </FormLabel>
-                                                                                                                    </FormItem>
-                                                                                                                )
-                                                                                                            )}
-                                                                                                        </RadioGroup>
-                                                                                                    </FormControl>
-                                                                                                </FormItem>
-                                                                                            );
-                                                                                        }}
-                                                                                    />
-                                                                                )}
-                                                                        </div>
-                                                                    );
-                                                                }
-                                                            )}
-
-                                                        {/* Flat Complexity Radios */}
-                                                        {isSelected &&
-                                                            (
-                                                                service.complexities ??
-                                                                []
-                                                            ).length > 0 && (
-                                                                <FormField
-                                                                    control={
-                                                                        form.control
-                                                                    }
-                                                                    name="complexity"
-                                                                    render={({
-                                                                        field,
-                                                                    }) => (
-                                                                        <FormItem className="space-y-2 pl-4">
-                                                                            <FormControl>
-                                                                                <RadioGroup
-                                                                                    value={
-                                                                                        field
-                                                                                            .value
-                                                                                            ?.name ||
-                                                                                        ''
-                                                                                    }
-                                                                                    onValueChange={(
-                                                                                        value
-                                                                                    ) => {
-                                                                                        const selected =
-                                                                                            service.complexities?.find(
-                                                                                                (
-                                                                                                    c
-                                                                                                ) =>
-                                                                                                    c.name ===
-                                                                                                    value
-                                                                                            );
-                                                                                        field.onChange(
-                                                                                            selected
-                                                                                                ? {
-                                                                                                      name: selected.name,
-                                                                                                      price: selected.price,
-                                                                                                  }
-                                                                                                : undefined
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    {service.complexities?.map(
-                                                                                        (
-                                                                                            complexity
-                                                                                        ) => (
-                                                                                            <FormItem
-                                                                                                key={
-                                                                                                    complexity.name
-                                                                                                }
-                                                                                                className="flex items-center space-x-3 space-y-0"
-                                                                                            >
-                                                                                                <FormControl>
-                                                                                                    <RadioGroupItem
-                                                                                                        value={
-                                                                                                            complexity.name
-                                                                                                        }
-                                                                                                    />
-                                                                                                </FormControl>
-                                                                                                <FormLabel>
-                                                                                                    {
-                                                                                                        complexity.name
-                                                                                                    }{' '}
-                                                                                                    ($
-                                                                                                    {
-                                                                                                        complexity.price
-                                                                                                    }
-
-                                                                                                    )
-                                                                                                </FormLabel>
-                                                                                            </FormItem>
-                                                                                        )
-                                                                                    )}
-                                                                                </RadioGroup>
-                                                                            </FormControl>
-                                                                        </FormItem>
-                                                                    )}
-                                                                />
-                                                            )}
-
-                                                        {/* Input Fields (e.g. Color Code) */}
-                                                        {isSelected &&
-                                                            service.inputs && (
-                                                                <FormField
-                                                                    control={
-                                                                        form.control
-                                                                    }
-                                                                    name="options"
-                                                                    render={({
-                                                                        field,
-                                                                    }) => (
-                                                                        <FormItem className="space-y-2 pt-2">
-                                                                            <p className="text-sm text-muted-foreground">
-                                                                                {
-                                                                                    service.instruction
-                                                                                }
-                                                                            </p>
-                                                                            {(
-                                                                                field.value ||
-                                                                                []
-                                                                            ).map(
-                                                                                (
-                                                                                    option,
-                                                                                    index
-                                                                                ) => (
-                                                                                    <div
-                                                                                        key={
-                                                                                            index
-                                                                                        }
-                                                                                        className="space-y-2"
-                                                                                    >
-                                                                                        <div className="flex items-center gap-2">
-                                                                                            <FormControl>
-                                                                                                <Input
-                                                                                                    value={
-                                                                                                        option
-                                                                                                            .colorCodes?.[0] ||
-                                                                                                        ''
-                                                                                                    }
-                                                                                                    onChange={(
-                                                                                                        e
-                                                                                                    ) => {
-                                                                                                        const updated =
-                                                                                                            [
-                                                                                                                ...(field.value ||
-                                                                                                                    []),
-                                                                                                            ];
-                                                                                                        updated[
-                                                                                                            index
-                                                                                                        ] =
-                                                                                                            {
-                                                                                                                ...updated[
-                                                                                                                    index
-                                                                                                                ],
-                                                                                                                colorCodes:
-                                                                                                                    [
-                                                                                                                        e
-                                                                                                                            .target
-                                                                                                                            .value,
-                                                                                                                    ],
-                                                                                                            };
-                                                                                                        field.onChange(
-                                                                                                            updated
-                                                                                                        );
-                                                                                                    }}
-                                                                                                    placeholder="Enter color code"
-                                                                                                />
-                                                                                            </FormControl>
-                                                                                            <Button
-                                                                                                type="button"
-                                                                                                variant="outline"
-                                                                                                size="icon"
-                                                                                                onClick={() => {
-                                                                                                    const updated =
-                                                                                                        (
-                                                                                                            field.value ||
-                                                                                                            []
-                                                                                                        ).filter(
-                                                                                                            (
-                                                                                                                _,
-                                                                                                                i
-                                                                                                            ) =>
-                                                                                                                i !==
-                                                                                                                index
-                                                                                                        );
-                                                                                                    field.onChange(
-                                                                                                        updated
-                                                                                                    );
-                                                                                                }}
-                                                                                            >
-                                                                                                <X className="text-destructive" />
-                                                                                            </Button>
-                                                                                        </div>
-                                                                                        <div className="flex gap-2">
-                                                                                            <FormControl>
-                                                                                                <Input
-                                                                                                    type="number"
-                                                                                                    value={
-                                                                                                        option.height ||
-                                                                                                        ''
-                                                                                                    }
-                                                                                                    onChange={(
-                                                                                                        e
-                                                                                                    ) => {
-                                                                                                        const updated =
-                                                                                                            [
-                                                                                                                ...(field.value ||
-                                                                                                                    []),
-                                                                                                            ];
-                                                                                                        updated[
-                                                                                                            index
-                                                                                                        ] =
-                                                                                                            {
-                                                                                                                ...updated[
-                                                                                                                    index
-                                                                                                                ],
-                                                                                                                height: Number(
-                                                                                                                    e
-                                                                                                                        .target
-                                                                                                                        .value
-                                                                                                                ),
-                                                                                                            };
-                                                                                                        field.onChange(
-                                                                                                            updated
-                                                                                                        );
-                                                                                                    }}
-                                                                                                    placeholder="Height"
-                                                                                                />
-                                                                                            </FormControl>
-                                                                                            <FormControl>
-                                                                                                <Input
-                                                                                                    type="number"
-                                                                                                    value={
-                                                                                                        option.width ||
-                                                                                                        ''
-                                                                                                    }
-                                                                                                    onChange={(
-                                                                                                        e
-                                                                                                    ) => {
-                                                                                                        const updated =
-                                                                                                            [
-                                                                                                                ...(field.value ||
-                                                                                                                    []),
-                                                                                                            ];
-                                                                                                        updated[
-                                                                                                            index
-                                                                                                        ] =
-                                                                                                            {
-                                                                                                                ...updated[
-                                                                                                                    index
-                                                                                                                ],
-                                                                                                                width: Number(
-                                                                                                                    e
-                                                                                                                        .target
-                                                                                                                        .value
-                                                                                                                ),
-                                                                                                            };
-                                                                                                        field.onChange(
-                                                                                                            updated
-                                                                                                        );
-                                                                                                    }}
-                                                                                                    placeholder="Width"
-                                                                                                />
-                                                                                            </FormControl>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )
-                                                                            )}
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="outline"
-                                                                                className="w-full"
-                                                                                onClick={() =>
-                                                                                    field.onChange(
-                                                                                        [
-                                                                                            ...(field.value ||
-                                                                                                []),
-                                                                                            {
-                                                                                                colorCodes:
-                                                                                                    [
-                                                                                                        '',
-                                                                                                    ],
-                                                                                            },
-                                                                                        ]
-                                                                                    )
+                                                                            <Label
+                                                                                htmlFor={
+                                                                                    c.name
                                                                                 }
                                                                             >
-                                                                                Add
-                                                                                Another
-                                                                                Option
-                                                                            </Button>
-                                                                        </FormItem>
-                                                                    )}
-                                                                />
-                                                            )}
-                                                    </CardContent>
-                                                </Card>
+                                                                                {
+                                                                                    c.name
+                                                                                }
+                                                                            </Label>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </RadioGroup>
+                                                        )}
+                                                </div>
                                             );
                                         })}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </CardContent>
-                    <CardFooter>
-                        <Button
-                            className="w-full"
-                            size="lg"
-                            type="submit"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? 'Uploading...' : 'Upload Images'}
-                            {isLoading ? (
-                                <Loader2 className="ml-2 animate-spin" />
-                            ) : (
-                                <ArrowRightIcon className="ml-2" />
-                            )}
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </form>
-        </Form>
+
+                                    {/* Input Fields (color codes) */}
+                                    {selected && service.inputs && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                                {service.instruction}
+                                            </p>
+                                            {selected.colorCodes?.map(
+                                                (code: string, i: number) => (
+                                                    <div
+                                                        key={i}
+                                                        className="flex items-center gap-2"
+                                                    >
+                                                        <Input
+                                                            value={code}
+                                                            onChange={(e) => {
+                                                                const updated =
+                                                                    [
+                                                                        ...selected.colorCodes!,
+                                                                    ];
+                                                                updated[i] =
+                                                                    e.target.value;
+                                                                updateService(
+                                                                    selectedIndex,
+                                                                    {
+                                                                        colorCodes:
+                                                                            updated,
+                                                                    }
+                                                                );
+                                                            }}
+                                                            placeholder="Enter color code"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                const updated =
+                                                                    selected.colorCodes?.filter(
+                                                                        (
+                                                                            _: string,
+                                                                            j: number
+                                                                        ) =>
+                                                                            j !==
+                                                                            i
+                                                                    );
+                                                                updateService(
+                                                                    selectedIndex,
+                                                                    {
+                                                                        colorCodes:
+                                                                            updated,
+                                                                    }
+                                                                );
+                                                            }}
+                                                        >
+                                                            <X className="text-destructive" />
+                                                        </Button>
+                                                    </div>
+                                                )
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const updated = [
+                                                        ...(selected.colorCodes ||
+                                                            []),
+                                                        '',
+                                                    ];
+                                                    updateService(
+                                                        selectedIndex,
+                                                        {
+                                                            colorCodes: updated,
+                                                        }
+                                                    );
+                                                }}
+                                            >
+                                                Add Color
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+
+                    {/* Error Messages */}
+                    {errors.length > 0 && (
+                        <div className="text-red-500 text-sm space-y-1">
+                            {errors.map((err, i) => (
+                                <div key={i}>• {err}</div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+
+                <CardFooter>
+                    <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Uploading...' : 'Upload Images'}
+                        {isLoading ? (
+                            <Loader2 className="ml-2 animate-spin" />
+                        ) : (
+                            <ArrowRightIcon className="ml-2" />
+                        )}
+                    </Button>
+                </CardFooter>
+            </Card>
+        </form>
     );
 }

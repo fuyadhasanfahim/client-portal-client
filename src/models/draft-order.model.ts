@@ -3,29 +3,32 @@ import { IDraftOrder, IDraftService } from '@/types/draft-order.interface';
 
 const draftServiceSchema = new Schema<IDraftService>(
     {
+        _id: { type: String, required: true },
         name: { type: String, required: true },
         price: { type: Number },
-
+        inputs: { type: Boolean, default: false },
+        colorCodes: [{ type: String }],
         types: [
             {
+                _id: { type: String, required: true },
                 name: { type: String, required: true },
                 complexity: {
-                    name: { type: String, required: true },
-                    price: { type: Number, required: true },
+                    type: {
+                        _id: { type: String, required: true },
+                        name: { type: String, required: true },
+                        price: { type: Number, required: true },
+                    },
+                    required: false,
                 },
             },
         ],
-
         complexity: {
-            name: { type: String, required: true },
-            price: { type: Number, required: true },
-        },
-
-        colorCodes: [{ type: String }],
-
-        resizing: {
-            width: { type: Number, required: true },
-            height: { type: Number, required: true },
+            type: {
+                _id: { type: String, required: true },
+                name: { type: String, required: true },
+                price: { type: Number, required: true },
+            },
+            required: false,
         },
     },
     {
