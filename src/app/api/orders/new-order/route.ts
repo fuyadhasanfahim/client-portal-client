@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OrderModel from '@/models/order.model';
 import dbConfig from '@/lib/dbConfig';
-import { OrderServiceValidation } from '@/validations/order.schema';
+import OrderModel from '@/models/order.model';
 import { z } from 'zod';
+import { OrderServiceValidation } from '@/validations/order.schema';
 
 const OrderServicesValidation = z.object({
     services: z.array(OrderServiceValidation).min(1),
@@ -11,9 +11,7 @@ const OrderServicesValidation = z.object({
 export async function POST(req: NextRequest) {
     try {
         await dbConfig();
-
         const body = await req.json();
-
         const {
             userId,
             services,
@@ -28,6 +26,7 @@ export async function POST(req: NextRequest) {
             instructions,
             supportingFileDownloadLink,
             total,
+            paymentOption,
         } = body.data;
 
         if (!orderId) {
@@ -47,6 +46,7 @@ export async function POST(req: NextRequest) {
             const newOrder = await OrderModel.create({
                 userId,
                 services,
+                status: 'draft',
             });
 
             return NextResponse.json(
@@ -56,10 +56,27 @@ export async function POST(req: NextRequest) {
                 },
                 { status: 201 }
             );
-        } else if (orderId && !total) {
+        }
+
+        const order = await OrderModel.findById(orderId);
+        if (!order) {
+            return NextResponse.json(
+                { success: false, message: 'Order not found' },
+                { status: 404 }
+            );
+        }
+
+        const isDetailsStep =
+            downloadLink ||
+            images ||
+            returnFileFormat ||
+            backgroundOption ||
+            instructions;
+
+        if (isDetailsStep && typeof total !== 'number') {
             if (
                 !downloadLink ||
-                !images ||
+                typeof images !== 'number' ||
                 !returnFileFormat ||
                 !backgroundOption ||
                 !instructions
@@ -67,50 +84,24 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json(
                     {
                         success: false,
-                        message: 'All order details are required!',
+                        message: 'All required order details must be provided.',
                     },
-                    { status: 404 }
+                    { status: 400 }
                 );
             }
 
-            const order = await OrderModel.findById(orderId);
-            if (!order) {
-                return NextResponse.json(
-                    { success: false, message: 'Order not found' },
-                    { status: 404 }
-                );
-            }
-
-            order.downloadLink = downloadLink;
-            order.images = images;
-            order.returnFileFormat = returnFileFormat;
-            order.backgroundOption = backgroundOption;
-            order.imageResizing = imageResizing;
-            order.width = width;
-            order.height = height;
-            order.instructions = instructions;
-            order.supportingFileDownloadLink = supportingFileDownloadLink;
-            order.status = 'awaiting-payment';
-
-            await order.save();
-
-            return NextResponse.json(
-                {
-                    success: true,
-                    orderId: order._id.toString(),
-                },
-                { status: 200 }
-            );
-        } else if (orderId && total) {
-            const order = await OrderModel.findById(orderId);
-            if (!order) {
-                return NextResponse.json(
-                    { success: false, message: 'Order not found' },
-                    { status: 404 }
-                );
-            }
-
-            order.total = total;
+            Object.assign(order, {
+                downloadLink,
+                images,
+                returnFileFormat,
+                backgroundOption,
+                imageResizing,
+                width,
+                height,
+                instructions,
+                supportingFileDownloadLink,
+                status: 'awaiting-payment',
+            });
 
             await order.save();
 
@@ -122,6 +113,39 @@ export async function POST(req: NextRequest) {
                 { status: 200 }
             );
         }
+
+        if (typeof total === 'number') {
+            order.total = total;
+            await order.save();
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    orderId: order._id.toString(),
+                },
+                { status: 200 }
+            );
+        }
+
+        if (paymentOption === 'pay-later') {
+            order.paymentOption = paymentOption;
+            order.status = 'awaiting-payment';
+            await order.save();
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: 'Payment option saved as pay-later',
+                    orderId: order._id.toString(),
+                },
+                { status: 200 }
+            );
+        }
+
+        return NextResponse.json(
+            { success: false, message: 'Invalid data submitted' },
+            { status: 400 }
+        );
     } catch (error) {
         return NextResponse.json(
             {

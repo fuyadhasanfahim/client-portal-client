@@ -4,6 +4,7 @@ import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -16,6 +17,10 @@ import {
     EmbeddedCheckout,
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { Button } from '@/components/ui/button';
+import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
+import ApiError from '@/components/shared/ApiError';
+import { useRouter } from 'next/navigation';
 
 const paymentOptions = [
     {
@@ -50,7 +55,7 @@ export default function RootNewOrderPayment({
 
     console.log(id);
 
-    const [paymentOption, setPaymentOption] = useState('pay-later');
+    const [paymentOption, setPaymentOption] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clientSecret, setClientSecret] = useState('');
 
@@ -82,6 +87,28 @@ export default function RootNewOrderPayment({
     const stripePromise = loadStripe(
         process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
     );
+
+    const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+
+    const router = useRouter();
+
+    const handlePayment = async () => {
+        try {
+            const response = await newDraftOrder({
+                data: {
+                    orderId: id,
+                    paymentOption,
+                },
+            });
+
+            console.log(response);
+            if (response?.data?.success) {
+                router.push(`/orders`);
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
 
     return (
         <section className="grid grid-cols-2 gap-6">
@@ -189,6 +216,17 @@ export default function RootNewOrderPayment({
                         </RadioGroup>
                     </div>
                 </CardContent>
+                {paymentOption === 'pay-later' && (
+                    <CardFooter>
+                        <Button
+                            className="w-full"
+                            disabled={isLoading}
+                            onClick={handlePayment}
+                        >
+                            Place Order
+                        </Button>
+                    </CardFooter>
+                )}
             </Card>
 
             {paymentOption === 'pay-now' &&
@@ -210,7 +248,7 @@ export default function RootNewOrderPayment({
                                     stripe={stripePromise}
                                     options={{ clientSecret }}
                                 >
-                                    <EmbeddedCheckout className='w-full' />
+                                    <EmbeddedCheckout className="w-full" />
                                 </EmbeddedCheckoutProvider>
                             ) : (
                                 <p className="text-muted-foreground text-sm">
