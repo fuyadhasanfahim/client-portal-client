@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
             height,
             instructions,
             supportingFileDownloadLink,
+            total,
         } = body.data;
 
         if (!orderId) {
@@ -46,18 +47,16 @@ export async function POST(req: NextRequest) {
             const newOrder = await OrderModel.create({
                 userId,
                 services,
-                status: 'draft',
             });
 
             return NextResponse.json(
                 {
                     success: true,
-                    message: 'Draft order created successfully',
                     draftOrderId: newOrder._id.toString(),
                 },
                 { status: 201 }
             );
-        } else if (orderId) {
+        } else if (orderId && !total) {
             if (
                 !downloadLink ||
                 !images ||
@@ -98,7 +97,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: true,
-                    message: 'Draft order created successfully',
+                    orderId: order._id.toString(),
+                },
+                { status: 200 }
+            );
+        } else if (orderId && total) {
+            const order = await OrderModel.findById(orderId);
+            if (!order) {
+                return NextResponse.json(
+                    { success: false, message: 'Order not found' },
+                    { status: 404 }
+                );
+            }
+
+            order.total = total;
+
+            await order.save();
+
+            return NextResponse.json(
+                {
+                    success: true,
                     orderId: order._id.toString(),
                 },
                 { status: 200 }

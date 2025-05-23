@@ -23,7 +23,7 @@ export default function RootNewOrderDetails({
 }) {
     const { id } = React.use(params);
     const route = useRouter();
-    const { data, isLoading, isError } = useGetDraftOrderQuery(id);
+    const { data, isLoading, isError } = useGetDraftOrderQuery({id, status: 'awaiting-details'});
 
     let content;
 
@@ -31,7 +31,7 @@ export default function RootNewOrderDetails({
         content = <SelectedServiceLoadingCard />;
     } else if (!isLoading && isError) {
         content = (
-            <Card className="max-w-2xl border border-red-300 bg-red-50 text-red-700 rounded-xl shadow-sm">
+            <Card className="max-w-2xl border border-red-300 bg-red-50 text-destructive rounded-xl shadow-sm">
                 <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
                     <AlertTriangle className="w-8 h-8 text-destructive" />
                     <p className="text-center text-base font-medium">
@@ -75,9 +75,9 @@ export default function RootNewOrderDetails({
     }
 
     return (
-        <div className="grid grid-cols-2 gap-6 items-start">
+        <section className="grid grid-cols-2 gap-6 items-start">
             <OrderDetails id={id} />
             {content}
-        </div>
+        </section>
     );
 }

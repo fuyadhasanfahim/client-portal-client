@@ -5,12 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
     try {
         const id = req.nextUrl.searchParams.get('id');
+        const status = req.nextUrl.searchParams.get('status');
 
         await dbConfig();
 
         const draftOrder = await OrderModel.findOne({
             _id: id,
-            status: 'awaiting-details',
+            status,
         });
 
         return NextResponse.json(

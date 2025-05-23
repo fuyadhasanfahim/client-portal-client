@@ -1,3 +1,4 @@
+import RootNewOrderReview from '@/components/orders/new-order/RootNewOrderReview';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -9,5 +10,5 @@ export default function NewOrderReviewPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    return <>{params.id}</>;
+    return <RootNewOrderReview params={params} />;
 }

@@ -20,8 +20,8 @@ export const ordersApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Orders'],
             }),
             getDraftOrder: build.query({
-                query: (id) => ({
-                    url: `orders/get-draft-order?id=${id}`,
+                query: ({id, status}) => ({
+                    url: `orders/get-draft-order?id=${id}&status=${status}`,
                     method: 'GET',
                 }),
                 providesTags: ['Orders'],

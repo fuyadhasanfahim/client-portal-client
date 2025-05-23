@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
+import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import dbConfig from '@/lib/dbConfig';
 import OrderModel from '@/models/order.model';
 import PaymentModel from '@/models/payment.model';
-import Stripe from 'stripe';
 import UserModel from '@/models/user.model';
 import { sendEmail } from '@/lib/nodemailer';
 
@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
             process.env.STRIPE_WEBHOOK_SECRET!
         );
     } catch (err) {
-        console.error('[WEBHOOK_SIGNATURE_ERROR]', err);
         return new Response(`Webhook Error: ${(err as Error).message}`, {
             status: 400,
         });
@@ -35,25 +34,28 @@ export async function POST(req: NextRequest) {
 
         try {
             const metadata = session.metadata;
-            const orderSessionId = metadata?.orderSessionId;
+            const orderId = metadata?.orderId;
+            const userId = metadata?.userId;
 
-            if (!orderSessionId) {
-                console.error('Missing orderSessionId in metadata');
+            if (!orderId || !userId) {
                 return new Response('Invalid metadata', { status: 400 });
             }
 
             await dbConfig();
 
-            const user = await UserModel.findOne({ userId: metadata.userId });
-
-            await OrderModel.create({
+            await OrderModel.findByIdAndUpdate(orderId, {
                 isPaid: true,
+                status: 'paid',
+                paymentOption: metadata.paymentOption,
+                paymentMethod: metadata.paymentMethod,
+                paymentId: session.payment_intent?.toString(),
             });
 
             await PaymentModel.create({
-                userId: metadata.userId,
-                orderId: metadata.orderId,
+                userId,
+                orderId,
                 paymentOption: metadata.paymentOption,
+                paymentMethod: metadata.paymentMethod,
                 paymentIntentId: session.payment_intent?.toString(),
                 customerId: session.customer?.toString(),
                 amount: session.amount_subtotal! / 100,
@@ -63,94 +65,29 @@ export async function POST(req: NextRequest) {
                 totalAmount: session.amount_total! / 100,
                 currency: session.currency,
                 status: session.payment_status,
-                createdAt: new Date(),
             });
 
-            const email = {
-                from: user.email,
-                to: process.env.EMAIL_USER!,
-                subject: `🧾 New Order Received from ${metadata.userId}`,
-                html: `<!DOCTYPE html>
-                            <html lang="en">
-                            <head>
-                            <meta charset="UTF-8" />
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-                            <style>
-                                body {
-                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                background-color: #f9f9f9;
-                                padding: 20px;
-                                color: #333;
-                                }
-                                .container {
-                                max-width: 600px;
-                                margin: auto;
-                                background: #ffffff;
-                                border-radius: 8px;
-                                border: 1px solid #e5e5e5;
-                                padding: 24px;
-                                }
-                                .header {
-                                text-align: center;
-                                border-bottom: 1px solid #ddd;
-                                padding-bottom: 16px;
-                                margin-bottom: 24px;
-                                }
-                                .header h1 {
-                                color: #34a853;
-                                font-size: 24px;
-                                margin: 0;
-                                }
-                                .content p {
-                                margin-bottom: 16px;
-                                font-size: 15px;
-                                }
-                                .highlight {
-                                background-color: #f1f5f9;
-                                padding: 10px 15px;
-                                border-left: 4px solid #34a853;
-                                margin: 12px 0;
-                                font-family: monospace;
-                                }
-                                .footer {
-                                font-size: 12px;
-                                color: #888;
-                                text-align: center;
-                                margin-top: 32px;
-                                border-top: 1px solid #e5e5e5;
-                                padding-top: 16px;
-                                }
-                            </style>
-                            </head>
-                            <body>
-                            <div class="container">
-                                <div class="header">
-                                <h1>🧾 New Order Submitted</h1>
-                                </div>
-                                <div class="content">
-                                <p><strong>User ID:</strong> ${
-                                    metadata.userId
-                                }</p>
-                                <p><strong>Order ID:</strong> ${
-                                    metadata.orderId
-                                }</p>
-                                <p>A new order form has been submitted by the user. Please check the dashboard or your admin panel for full details and begin processing the order accordingly.</p>
-                                <p class="highlight">No further action is required from the user. A confirmation email has been sent to them.</p>
-                                </div>
-                                <div class="footer">
-                                <p>&copy; ${new Date().getFullYear()} Client Portal. All rights reserved.</p>
-                                </div>
-                            </div>
-                            </body>
-                            </html>`,
-            };
+            const user = await UserModel.findOne({ userId });
+            if (user?.email) {
+                const email = {
+                    from: process.env.EMAIL_USER!,
+                    to: process.env.EMAIL_USER!,
+                    subject: `✅ Payment Completed - Order #${orderId}`,
+                    html: `
+                        <div style="font-family: Arial; font-size: 15px;">
+                            <h2>New Order Fulfilled</h2>
+                            <p><strong>User ID:</strong> ${userId}</p>
+                            <p><strong>Order ID:</strong> ${orderId}</p>
+                            <p>Order has been marked as <strong>fulfilled</strong> and payment was successfully processed via Stripe.</p>
+                        </div>
+                        `,
+                };
 
-            await sendEmail(email);
-
-            console.log('✅ Order & Payment stored successfully');
+                await sendEmail(email);
+            }
         } catch (error) {
-            console.error('[WEBHOOK_HANDLER_ERROR]', error);
-            return new Response('Internal server error', { status: 500 });
+            console.log('Stripe webhook error', error);
+            return new Response('Webhook processing error', { status: 500 });
         }
     }
 

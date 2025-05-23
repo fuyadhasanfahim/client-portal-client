@@ -23,14 +23,14 @@ export interface IOrderService {
 }
 
 export type OrderStatus =
-    | 'draft'
     | 'awaiting-details'
     | 'awaiting-payment'
-    | 'payment-processing'
+    | 'paid'
     | 'confirmed'
     | 'in-progress'
     | 'completed'
-    | 'cancelled';
+    | 'cancelled'
+    | 'pending';
 
 export interface IOrder {
     _id?: string;
@@ -45,8 +45,10 @@ export interface IOrder {
     height?: number;
     instructions?: string;
     supportingFileDownloadLink?: string;
+    total?: number;
     paymentOption?: string;
     paymentMethod?: string;
+    paymentId?: string;
     isPaid?: boolean;
     status: OrderStatus;
     createdAt?: string;

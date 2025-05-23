@@ -36,6 +36,7 @@ export const OrderValidation = z.object({
     height: z.number().int().nonnegative().optional(),
     instructions: z.string().optional(),
     supportingFileDownloadLink: z.string().url().optional(),
+    total: z.number().nonnegative().optional(),
     paymentOption: z.string().optional(),
     paymentMethod: z.string().optional(),
     isPaid: z.boolean().optional(),
@@ -43,7 +44,7 @@ export const OrderValidation = z.object({
         .enum([
             'awaiting-details',
             'awaiting-payment',
-            'payment-processing',
+            'paid',
             'confirmed',
             'in-progress',
             'completed',
