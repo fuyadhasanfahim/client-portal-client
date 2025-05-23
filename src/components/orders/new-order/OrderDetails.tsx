@@ -1,8 +1,13 @@
-import { Button } from '@/components/ui/button';
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -15,7 +20,6 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -23,288 +27,335 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
-import { UseFormReturn } from 'react-hook-form';
+import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
+import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
+import toast from 'react-hot-toast';
+import ApiError from '@/components/shared/ApiError';
+import { useRouter } from 'next/navigation';
 
-export default function OrderDetails({
-    form,
-}: {
-    form: UseFormReturn<{
-        downloadLink: string;
-        images: string;
-        returnFileFormat: string;
-        backgroundOption: string;
-        imageResizing: string;
-        width: number;
-        height: number;
-        instructions: string;
-        supportingFileDownloadLink: string;
-    }>;
-}) {
+type OrderDetailsProps = {
+    id: string;
+};
+
+export default function OrderDetails({ id }: OrderDetailsProps) {
+    const form = useForm<z.infer<typeof NewOrderDetailsSchema>>({
+        resolver: zodResolver(NewOrderDetailsSchema),
+        defaultValues: {
+            downloadLink: '',
+            images: 0,
+            returnFileFormat: '',
+            backgroundOption: '',
+            imageResizing: 'No',
+            width: 0,
+            height: 0,
+            instructions: '',
+            supportingFileDownloadLink: '',
+        },
+    });
+
+    const router = useRouter();
+
+    const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+
+    const onSubmit = async (data: z.infer<typeof NewOrderDetailsSchema>) => {
+        try {
+            const response = await newDraftOrder({
+                data: {
+                    orderId: id,
+                    ...data,
+                },
+            });
+
+            if (response?.data?.success) {
+                toast.success('Details saved. Redirecting...');
+                router.push(`/orders/new-order/${id}/review`);
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
+
+    const resizingEnabled = form.watch('imageResizing') === 'Yes';
+
     return (
-        <Card className="min-h-dvh">
-            <CardHeader>
-                <CardTitle className="text-2xl">Upload your images</CardTitle>
-                <CardDescription>
-                    Upload the images you need edited. We&apos;ll use these to
-                    make sure your edits are priced accurately.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div>
-                    <Form {...form}>
-                        <form className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="downloadLink"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Download Link{' '}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter the download link"
-                                                type="url"
-                                                required
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="images"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Images{' '}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter the images count"
-                                                required
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="returnFileFormat"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Return File Format{' '}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Select
-                                                onValueChange={field.onChange}
-                                                value={field.value}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="Select a file format" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {[
-                                                        'JPEG',
-                                                        'PNG',
-                                                        'PSD',
-                                                        'EPS',
-                                                        'AI',
-                                                        'GIF',
-                                                        'PDF',
-                                                    ].map((format) => (
-                                                        <SelectItem
-                                                            key={format}
-                                                            value={format}
-                                                        >
-                                                            {format}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="backgroundOption"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Background Option{' '}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Select
-                                                onValueChange={field.onChange}
-                                                value={field.value}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="Select a background option" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {[
-                                                        'Transparent',
-                                                        'White',
-                                                        'Colored',
-                                                    ].map((format) => (
-                                                        <SelectItem
-                                                            key={format}
-                                                            value={format}
-                                                        >
-                                                            {format}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">
+                            Order Details
+                        </CardTitle>
+                        <CardDescription className="text-base text-muted-foreground">
+                            Please fill in all{' '}
+                            <span className="text-destructive">*</span> required
+                            fields to help us deliver your edits exactly as you
+                            envision.
+                        </CardDescription>
+                    </CardHeader>
 
-                            <div className="flex items-center gap-16">
+                    <CardContent className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="downloadLink"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Download Link{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="url"
+                                            placeholder="Enter the download link"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="images"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Images{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            placeholder="Enter image count"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="returnFileFormat"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Return File Format{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select a file format" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {[
+                                                    'JPEG',
+                                                    'PNG',
+                                                    'PSD',
+                                                    'EPS',
+                                                    'AI',
+                                                    'GIF',
+                                                    'PDF',
+                                                ].map((format) => (
+                                                    <SelectItem
+                                                        key={format}
+                                                        value={format}
+                                                    >
+                                                        {format}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="backgroundOption"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Background Option{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select a background option" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {[
+                                                    'Transparent',
+                                                    'White',
+                                                    'Colored',
+                                                ].map((option) => (
+                                                    <SelectItem
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="imageResizing"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Image Resizing</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                            className="flex gap-8"
+                                        >
+                                            <FormItem className="flex items-center space-x-2">
+                                                <FormControl>
+                                                    <RadioGroupItem value="Yes" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                    Yes
+                                                </FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-2">
+                                                <FormControl>
+                                                    <RadioGroupItem value="No" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                    No
+                                                </FormLabel>
+                                            </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {resizingEnabled && (
+                            <div className="flex gap-6">
                                 <FormField
                                     control={form.control}
-                                    name="imageResizing"
+                                    name="width"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>
-                                                Image Resizing
-                                            </FormLabel>
+                                            <FormLabel>Width</FormLabel>
                                             <FormControl>
-                                                <RadioGroup
-                                                    onValueChange={
-                                                        field.onChange
-                                                    }
-                                                    value={field.value}
-                                                    className="flex flex-col space-y-1"
-                                                >
-                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                        <FormControl>
-                                                            <RadioGroupItem value="Yes" />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">
-                                                            Yes
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                        <FormControl>
-                                                            <RadioGroupItem value="No" />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">
-                                                            No
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                </RadioGroup>
+                                                <Input
+                                                    type="number"
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
-                                {form.watch('imageResizing') === 'Yes' && (
-                                    <div className="space-y-2 mt-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="width"
-                                            render={({ field }) => (
-                                                <FormItem className="flex items-center gap-2">
-                                                    <FormLabel>
-                                                        Width:
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            required
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="height"
-                                            render={({ field }) => (
-                                                <FormItem className="flex items-center gap-2">
-                                                    <FormLabel>
-                                                        Height:
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            required
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                )}
+                                <FormField
+                                    control={form.control}
+                                    name="height"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Height</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
+                        )}
 
-                            <FormField
-                                control={form.control}
-                                name="instructions"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Instructions{' '}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Any specific edit instruction here (if applicable)"
-                                                className="min-h-24"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                        <FormField
+                            control={form.control}
+                            name="supportingFileDownloadLink"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Supporting File Download Link
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="url"
+                                            placeholder="Enter the supporting file link"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
-                            <Button className="w-full mt-6">
-                                View Prices
-                                <ArrowRight />
-                            </Button>
-                        </form>
-                    </Form>
-                </div>
-            </CardContent>
-        </Card>
+                        <FormField
+                            control={form.control}
+                            name="instructions"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Instructions{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            placeholder="Any specific edit instructions"
+                                            className="min-h-24"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </CardContent>
+
+                    <CardFooter>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Submitting...' : 'View Prices'}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
+        </Form>
     );
 }

@@ -14,6 +14,7 @@ const services = [
                 price: 5,
             },
         ],
+        options: true,
     },
     {
         _id: '2',

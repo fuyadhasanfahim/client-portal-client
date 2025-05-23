@@ -1,31 +1,25 @@
-import DraftOrderModel from '@/models/draft-order.model';
+import dbConfig from '@/lib/dbConfig';
+import OrderModel from '@/models/order.model';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
     try {
         const id = req.nextUrl.searchParams.get('id');
 
-        if (!id) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: 'Draft ID is required.',
-                },
-                { status: 400 }
-            );
-        }
+        await dbConfig();
 
-        const draftData = await DraftOrderModel.findById(id);
+        const draftOrder = await OrderModel.findOne({
+            _id: id,
+            status: 'awaiting-details',
+        });
 
         return NextResponse.json(
             {
                 success: true,
-                message: 'Draft order fetched successfully.',
-                data: draftData,
+                message: 'Draft order retrieved successfully.',
+                data: draftOrder,
             },
-            {
-                status: 200,
-            }
+            { status: 200 }
         );
     } catch (error) {
         return NextResponse.json(

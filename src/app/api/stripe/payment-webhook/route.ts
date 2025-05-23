@@ -3,7 +3,6 @@ import { stripe } from '@/lib/stripe';
 import dbConfig from '@/lib/dbConfig';
 import OrderModel from '@/models/order.model';
 import PaymentModel from '@/models/payment.model';
-import OrderSessionModel from '@/models/draft-order.model';
 import Stripe from 'stripe';
 import UserModel from '@/models/user.model';
 import { sendEmail } from '@/lib/nodemailer';
@@ -45,21 +44,9 @@ export async function POST(req: NextRequest) {
 
             await dbConfig();
 
-            const orderSession = await OrderSessionModel.findOne({
-                sessionId: orderSessionId,
-            });
-
-            if (!orderSession) {
-                console.error('Order session not found');
-                return new Response('Order session not found', { status: 404 });
-            }
-
-            const fullOrder = orderSession.fullOrder;
-
             const user = await UserModel.findOne({ userId: metadata.userId });
 
             await OrderModel.create({
-                ...fullOrder,
                 isPaid: true,
             });
 

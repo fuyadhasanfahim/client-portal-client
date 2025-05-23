@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConfig from '@/lib/dbConfig';
 import { stripe } from '@/lib/stripe';
-import OrderSessionModel from '@/models/draft-order.model';
 import { nanoid } from 'nanoid';
 
 export async function POST(req: NextRequest) {
@@ -22,11 +21,6 @@ export async function POST(req: NextRequest) {
         await dbConfig();
 
         const orderSessionId = nanoid(10);
-
-        await OrderSessionModel.create({
-            sessionId: orderSessionId,
-            fullOrder: body,
-        });
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',

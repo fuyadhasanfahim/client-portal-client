@@ -1,21 +1,109 @@
-import dbConfig from '@/lib/dbConfig';
 import { NextRequest, NextResponse } from 'next/server';
+import OrderModel from '@/models/order.model';
+import dbConfig from '@/lib/dbConfig';
+import { OrderServiceValidation } from '@/validations/order.schema';
+import { z } from 'zod';
+
+const OrderServicesValidation = z.object({
+    services: z.array(OrderServiceValidation).min(1),
+});
 
 export async function POST(req: NextRequest) {
     try {
+        await dbConfig();
+
         const body = await req.json();
 
-        if (!body) {
+        const {
+            userId,
+            services,
+            orderId,
+            downloadLink,
+            images,
+            returnFileFormat,
+            backgroundOption,
+            imageResizing,
+            width,
+            height,
+            instructions,
+            supportingFileDownloadLink,
+        } = body.data;
+
+        if (!orderId) {
+            const parsed = OrderServicesValidation.safeParse({ services });
+
+            if (!parsed.success) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: 'Validation failed',
+                        errors: parsed.error.flatten().fieldErrors,
+                    },
+                    { status: 400 }
+                );
+            }
+
+            const newOrder = await OrderModel.create({
+                userId,
+                services,
+                status: 'draft',
+            });
+
             return NextResponse.json(
                 {
-                    success: false,
-                    message: 'No data provided.',
+                    success: true,
+                    message: 'Draft order created successfully',
+                    draftOrderId: newOrder._id.toString(),
                 },
-                { status: 400 }
+                { status: 201 }
+            );
+        } else if (orderId) {
+            if (
+                !downloadLink ||
+                !images ||
+                !returnFileFormat ||
+                !backgroundOption ||
+                !instructions
+            ) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: 'All order details are required!',
+                    },
+                    { status: 404 }
+                );
+            }
+
+            const order = await OrderModel.findById(orderId);
+            if (!order) {
+                return NextResponse.json(
+                    { success: false, message: 'Order not found' },
+                    { status: 404 }
+                );
+            }
+
+            order.downloadLink = downloadLink;
+            order.images = images;
+            order.returnFileFormat = returnFileFormat;
+            order.backgroundOption = backgroundOption;
+            order.imageResizing = imageResizing;
+            order.width = width;
+            order.height = height;
+            order.instructions = instructions;
+            order.supportingFileDownloadLink = supportingFileDownloadLink;
+            order.status = 'awaiting-payment';
+
+            await order.save();
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    message: 'Draft order created successfully',
+                    orderId: order._id.toString(),
+                },
+                { status: 200 }
             );
         }
-
-        await dbConfig();
     } catch (error) {
         return NextResponse.json(
             {

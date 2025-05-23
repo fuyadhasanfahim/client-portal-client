@@ -15,16 +15,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ArrowRightIcon, Loader2, X } from 'lucide-react';
+import { ArrowRightIcon, CircleAlert, Loader2, Trash2 } from 'lucide-react';
 import services from '@/data/services';
 import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
-import { IDraftService, IDraftType } from '@/types/draft-order.interface';
 import toast from 'react-hot-toast';
+import { IOrderService, IOrderType } from '@/types/order.interface';
 
-export default function OrderServices({ userID }: { userID: string }) {
+export default function OrderServices({ userId }: { userId: string }) {
     const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
-    const [selectedServices, setSelectedServices] = useState<IDraftService[]>(
+    const [selectedServices, setSelectedServices] = useState<IOrderService[]>(
         []
     );
     const [errors, setErrors] = useState<string[]>([]);
@@ -35,6 +35,7 @@ export default function OrderServices({ userID }: { userID: string }) {
         name: string;
         price?: number;
         inputs?: boolean;
+        options?: boolean;
     }) => {
         const exists = selectedServices.find((s) => s._id === service._id);
         if (exists) {
@@ -52,12 +53,13 @@ export default function OrderServices({ userID }: { userID: string }) {
                     colorCodes: service.inputs ? [''] : [],
                     types: [],
                     complexity: undefined,
+                    options: service.options !== undefined ? [''] : undefined,
                 },
             ]);
         }
     };
 
-    const updateService = (index: number, updated: Partial<IDraftService>) => {
+    const updateService = (index: number, updated: Partial<IOrderService>) => {
         const copy = [...selectedServices];
         copy[index] = { ...copy[index], ...updated };
         setSelectedServices(copy);
@@ -84,7 +86,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                     );
                 }
 
-                service.types?.forEach((type: IDraftType) => {
+                service.types?.forEach((type: IOrderType) => {
                     const defType = definition.types?.find(
                         (t) => t._id === type._id
                     );
@@ -106,6 +108,11 @@ export default function OrderServices({ userID }: { userID: string }) {
                         (c: string) => c.trim() !== ''
                     ),
                 }),
+                ...(service.options?.length && {
+                    options: service.options.filter(
+                        (opt: string) => opt.trim() !== ''
+                    ),
+                }),
                 ...(service.complexity && { complexity: service.complexity }),
                 ...(service.types?.length && { types: service.types }),
             };
@@ -118,11 +125,10 @@ export default function OrderServices({ userID }: { userID: string }) {
 
         try {
             const response = await newDraftOrder({
-                data: { services: validServices },
-                userID,
+                data: { userId, services: validServices },
             });
 
-            if (response?.data?.success) {
+            if (response?.data?.success && response.data.draftOrderId) {
                 toast.success(
                     'Draft order created successfully. Redirecting to details page...'
                 );
@@ -210,6 +216,97 @@ export default function OrderServices({ userID }: { userID: string }) {
                                             ))}
                                         </RadioGroup>
                                     )}
+
+                                    {/* Multi path options */}
+                                    {selected &&
+                                        service.options &&
+                                        selected?.complexity?.name ===
+                                            'Multi-clipping Path' && (
+                                            <div className="space-y-4">
+                                                <p className="text-sm text-muted-foreground">
+                                                    {service.instruction}
+                                                </p>
+                                                {selected.options?.map(
+                                                    (
+                                                        code: string,
+                                                        i: number
+                                                    ) => (
+                                                        <div
+                                                            key={i}
+                                                            className="flex items-center gap-4"
+                                                        >
+                                                            <Input
+                                                                value={code}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    const updated =
+                                                                        [
+                                                                            ...selected.options!,
+                                                                        ];
+                                                                    updated[i] =
+                                                                        e.target.value;
+                                                                    updateService(
+                                                                        selectedIndex,
+                                                                        {
+                                                                            options:
+                                                                                updated,
+                                                                        }
+                                                                    );
+                                                                }}
+                                                                placeholder="e.g. Skin"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    const updated =
+                                                                        selected.options?.filter(
+                                                                            (
+                                                                                _: string,
+                                                                                j: number
+                                                                            ) =>
+                                                                                j !==
+                                                                                i
+                                                                        );
+                                                                    updateService(
+                                                                        selectedIndex,
+                                                                        {
+                                                                            options:
+                                                                                updated,
+                                                                        }
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Trash2 className="text-destructive" />
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                )}
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    className="w-full"
+                                                    onClick={() => {
+                                                        const updated = [
+                                                            ...(selected.options ||
+                                                                []),
+                                                            '',
+                                                        ];
+                                                        updateService(
+                                                            selectedIndex,
+                                                            {
+                                                                options:
+                                                                    updated,
+                                                            }
+                                                        );
+                                                    }}
+                                                >
+                                                    Add another option
+                                                </Button>
+                                            </div>
+                                        )}
 
                                     {/* Types + complexity */}
                                     {selected &&
@@ -307,7 +404,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                                     const updated =
                                                                         selected.types?.map(
                                                                             (
-                                                                                t: IDraftType
+                                                                                t: IOrderType
                                                                             ) =>
                                                                                 t._id ===
                                                                                 type._id
@@ -362,7 +459,7 @@ export default function OrderServices({ userID }: { userID: string }) {
 
                                     {/* Input Fields (color codes) */}
                                     {selected && service.inputs && (
-                                        <div className="space-y-2">
+                                        <div className="space-y-4">
                                             <p className="text-sm text-muted-foreground">
                                                 {service.instruction}
                                             </p>
@@ -370,7 +467,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                 (code: string, i: number) => (
                                                     <div
                                                         key={i}
-                                                        className="flex items-center gap-2"
+                                                        className="flex items-center gap-4"
                                                     >
                                                         <Input
                                                             value={code}
@@ -389,12 +486,11 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                                     }
                                                                 );
                                                             }}
-                                                            placeholder="Enter color code"
+                                                            placeholder="e.g. 00c951"
                                                         />
                                                         <Button
                                                             type="button"
                                                             variant="outline"
-                                                            size="icon"
                                                             onClick={() => {
                                                                 const updated =
                                                                     selected.colorCodes?.filter(
@@ -414,14 +510,16 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                                 );
                                                             }}
                                                         >
-                                                            <X className="text-destructive" />
+                                                            <Trash2 className="text-destructive" />
+                                                            Delete
                                                         </Button>
                                                     </div>
                                                 )
                                             )}
                                             <Button
                                                 type="button"
-                                                variant="outline"
+                                                variant="secondary"
+                                                className="w-full"
                                                 onClick={() => {
                                                     const updated = [
                                                         ...(selected.colorCodes ||
@@ -436,7 +534,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                     );
                                                 }}
                                             >
-                                                Add Color
+                                                Add another color
                                             </Button>
                                         </div>
                                     )}
@@ -449,7 +547,12 @@ export default function OrderServices({ userID }: { userID: string }) {
                     {errors.length > 0 && (
                         <div className="text-red-500 text-sm space-y-1">
                             {errors.map((err, i) => (
-                                <div key={i}>• {err}</div>
+                                <div
+                                    key={i}
+                                    className="flex items-center gap-2"
+                                >
+                                    <CircleAlert size={16} /> {err}
+                                </div>
                             ))}
                         </div>
                     )}
@@ -459,7 +562,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                     <Button
                         type="submit"
                         className="w-full"
-                        disabled={isLoading}
+                        disabled={isLoading || selectedServices.length === 0}
                     >
                         {isLoading ? 'Uploading...' : 'Upload Images'}
                         {isLoading ? (
