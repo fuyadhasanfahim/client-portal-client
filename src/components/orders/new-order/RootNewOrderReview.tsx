@@ -24,7 +24,7 @@ export default function RootNewOrderReview({
     const router = useRouter();
     const { data, isLoading, isError } = useGetDraftOrderQuery({
         id,
-        status: 'awaiting-payment',
+        status: 'waiting-for-approval',
     });
 
     console.log(data)

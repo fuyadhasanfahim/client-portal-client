@@ -11,7 +11,6 @@ export default interface IUser {
     oldPasswords?: string[];
     provider: 'credentials' | 'google';
     googleId?: string;
-
     emailVerificationToken?: string;
     emailVerificationTokenExpiry?: Date;
     forgetPasswordToken?: string;
@@ -19,12 +18,10 @@ export default interface IUser {
     isPasswordChanged?: boolean;
     lastPasswordChange?: Date;
     lastLogin?: Date;
-
     profileImage?: string;
     isActive: boolean;
     isDeleted: boolean;
     isBlocked: boolean;
-
     createdAt?: Date;
     updatedAt?: Date;
 }

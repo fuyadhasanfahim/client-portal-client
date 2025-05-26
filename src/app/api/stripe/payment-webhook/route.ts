@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
             await OrderModel.findByIdAndUpdate(orderId, {
                 isPaid: true,
-                status: 'paid',
+                paymentStatus: 'paid',
                 paymentOption: metadata.paymentOption,
                 paymentMethod: metadata.paymentMethod,
                 paymentId: session.payment_intent?.toString(),

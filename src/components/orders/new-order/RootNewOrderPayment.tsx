@@ -111,7 +111,7 @@ export default function RootNewOrderPayment({
     };
 
     return (
-        <section className="grid grid-cols-2 gap-6">
+        <section className="grid grid-cols-2 gap-6 items-start">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl">

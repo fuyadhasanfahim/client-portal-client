@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
             const newOrder = await OrderModel.create({
                 userId,
                 services,
-                status: 'awaiting-details',
+                status: 'draft',
+                paymentStatus: 'pay-later',
             });
 
             return NextResponse.json(
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
             backgroundOption ||
             instructions;
 
-        if (isDetailsStep && typeof total !== 'number') {
+        if (isDetailsStep) {
             if (
                 !downloadLink ||
                 typeof images !== 'number' ||
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
                 height,
                 instructions,
                 supportingFileDownloadLink,
-                status: 'awaiting-payment',
+                status: 'waiting-for-approval',
             });
 
             await order.save();
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
 
         if (typeof total === 'number') {
             order.total = total;
+            order.paymentStatus = 'awaiting-payment';
             await order.save();
 
             return NextResponse.json(
@@ -129,7 +131,7 @@ export async function POST(req: NextRequest) {
 
         if (paymentOption === 'pay-later') {
             order.paymentOption = paymentOption;
-            order.status = 'awaiting-payment';
+            order.paymentStatus = 'pay-later';
             await order.save();
 
             return NextResponse.json(
@@ -147,7 +149,6 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (error) {
-        console.log(error)
         return NextResponse.json(
             {
                 success: false,

@@ -22,15 +22,22 @@ export interface IOrderService {
     complexity?: IOrderComplexity;
 }
 
-export type OrderStatus =
-    | 'awaiting-details'
+export type OrderPaymentStatus =
+    | 'not-required'
+    | 'pay-later'
     | 'awaiting-payment'
+    | 'payment-failed'
     | 'paid'
-    | 'confirmed'
+    | 'refunded';
+
+export type OrderStatus =
+    | 'draft'
+    | 'waiting-for-approval'
     | 'in-progress'
-    | 'completed'
-    | 'cancelled'
-    | 'pending';
+    | 'client-review'
+    | 'revision-requested'
+    | 'done'
+    | 'cancelled';
 
 export interface IOrder {
     _id?: string;
@@ -51,6 +58,7 @@ export interface IOrder {
     paymentId?: string;
     isPaid?: boolean;
     status: OrderStatus;
+    paymentStatus: OrderPaymentStatus;
     createdAt?: string;
     updatedAt?: string;
 }

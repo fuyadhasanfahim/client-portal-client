@@ -25,7 +25,7 @@ export default function RootNewOrderDetails({
     const route = useRouter();
     const { data, isLoading, isError } = useGetDraftOrderQuery({
         id,
-        status: 'awaiting-details',
+        status: 'draft',
     });
 
     let content;

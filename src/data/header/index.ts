@@ -27,6 +27,10 @@ export const SiteHeaders = [
         match: /^\/orders\/new-order\/[^/]+\/payment$/,
     },
     {
+        title: 'Complete',
+        href: '/orders/order-payment/complete',
+    },
+    {
         title: 'Services',
         href: '/services',
     },

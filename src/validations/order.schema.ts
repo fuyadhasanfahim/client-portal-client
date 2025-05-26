@@ -40,14 +40,24 @@ export const OrderValidation = z.object({
     paymentOption: z.string().optional(),
     paymentMethod: z.string().optional(),
     isPaid: z.boolean().optional(),
+    paymentStatus: z
+        .enum([
+            'not-required',
+            'pay-later',
+            'awaiting-payment',
+            'payment-failed',
+            'paid',
+            'refunded',
+        ])
+        .optional(),
     status: z
         .enum([
-            'awaiting-details',
-            'awaiting-payment',
-            'paid',
-            'confirmed',
+            'draft',
+            'waiting-for-approval',
             'in-progress',
-            'completed',
+            'client-review',
+            'revision-requested',
+            'done',
             'cancelled',
         ])
         .optional(),

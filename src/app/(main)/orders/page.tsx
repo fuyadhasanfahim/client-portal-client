@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { IconPlus } from '@tabler/icons-react';
 import { Metadata } from 'next';
-import ServicesDataTable from '@/components/services/ServicesDataTable';
 import Link from 'next/link';
+import { getUserData } from '@/actions/user.action';
+import OrderDataTable from '@/components/orders/OrderDataTable';
 
 export const metadata: Metadata = {
     title: 'Orders | Client Portal',
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default async function OrdersPage() {
+    const user = await getUserData();
+
     return (
         <section className="space-y-4">
             <div className="flex flex-1/2 items-center justify-between gap-6 flex-wrap">
@@ -26,7 +29,7 @@ export default async function OrdersPage() {
                 </Link>
             </div>
 
-            <ServicesDataTable />
+            <OrderDataTable role={user.role} />
         </section>
     );
 }
