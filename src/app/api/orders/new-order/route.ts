@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             const newOrder = await OrderModel.create({
                 userId,
                 services,
-                status: 'draft',
+                status: 'awaiting-details',
             });
 
             return NextResponse.json(
@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (error) {
+        console.log(error)
         return NextResponse.json(
             {
                 success: false,

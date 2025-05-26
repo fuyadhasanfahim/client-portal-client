@@ -310,7 +310,6 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                     </FormLabel>
                                     <FormControl>
                                         <Input
-                                            type="url"
                                             placeholder="Enter the supporting file link"
                                             {...field}
                                         />

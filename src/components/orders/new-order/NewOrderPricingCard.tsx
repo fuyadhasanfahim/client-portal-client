@@ -100,7 +100,6 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
                 },
             });
 
-            console.log(response)
             if (response?.data?.success) {
                 router.push(`/orders/new-order/${order._id}/payment`);
             }

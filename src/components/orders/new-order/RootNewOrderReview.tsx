@@ -27,6 +27,8 @@ export default function RootNewOrderReview({
         status: 'awaiting-payment',
     });
 
+    console.log(data)
+
     let content;
 
     if (isLoading) {

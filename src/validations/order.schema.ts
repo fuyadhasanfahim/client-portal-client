@@ -35,7 +35,7 @@ export const OrderValidation = z.object({
     width: z.number().int().nonnegative().optional(),
     height: z.number().int().nonnegative().optional(),
     instructions: z.string().optional(),
-    supportingFileDownloadLink: z.string().url().optional(),
+    supportingFileDownloadLink: z.string().optional(),
     total: z.number().nonnegative().optional(),
     paymentOption: z.string().optional(),
     paymentMethod: z.string().optional(),

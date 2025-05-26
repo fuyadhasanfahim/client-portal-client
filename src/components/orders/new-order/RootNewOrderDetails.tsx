@@ -23,7 +23,10 @@ export default function RootNewOrderDetails({
 }) {
     const { id } = React.use(params);
     const route = useRouter();
-    const { data, isLoading, isError } = useGetDraftOrderQuery({id, status: 'awaiting-details'});
+    const { data, isLoading, isError } = useGetDraftOrderQuery({
+        id,
+        status: 'awaiting-details',
+    });
 
     let content;
 
@@ -68,7 +71,7 @@ export default function RootNewOrderDetails({
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <SelectedServicesCard services={data.data.services} />
+                    <SelectedServicesCard services={data.data?.services} />
                 </CardContent>
             </Card>
         );
