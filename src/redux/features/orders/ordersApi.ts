@@ -19,9 +19,9 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
-            getDraftOrder: build.query({
-                query: ({ id, status }) => ({
-                    url: `orders/get-order?id=${id}&status=${status}`,
+            getOrder: build.query({
+                query: ({ id, orderStatus }) => ({
+                    url: `orders/get-order?id=${id}&order-status=${orderStatus}`,
                     method: 'GET',
                 }),
                 providesTags: ['Orders'],
@@ -50,7 +50,7 @@ export const ordersApi = apiSlice.injectEndpoints({
 export const {
     useAddOrderMutation,
     useNewDraftOrderMutation,
-    useGetDraftOrderQuery,
+    useGetOrderQuery,
     useGetOrdersQuery,
     useUpdateOrderMutation,
 } = ordersApi;

@@ -24,13 +24,13 @@ import { useRouter } from 'next/navigation';
 
 const paymentOptions = [
     {
-        value: 'pay-later',
+        value: 'Pay Later',
         title: 'Pay Later (Monthly)',
         description:
             'Spread your payments across months. Ideal for businesses and long-term projects.',
     },
     {
-        value: 'pay-now',
+        value: 'Pay Now',
         title: 'Pay Now',
         description:
             'Pay upfront and get priority processing for faster delivery.',
@@ -39,7 +39,7 @@ const paymentOptions = [
 
 const paymentMethods = [
     {
-        value: 'card-payment',
+        value: 'Card Payment',
         title: 'Card Payment',
         description:
             'Pay upfront and get priority processing for faster delivery.',

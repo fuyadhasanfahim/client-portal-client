@@ -43,54 +43,10 @@ import { IOrder } from '@/types/order.interface';
 import { Badge } from '../ui/badge';
 import toast from 'react-hot-toast';
 import ApiError from '../shared/ApiError';
-import {
-    IconCancel,
-    IconGitPullRequest,
-    IconInfoCircle,
-    IconLoader,
-    IconProgress,
-    IconProgressCheck,
-} from '@tabler/icons-react';
 import SelectStatus from '../shared/SelectStatus';
-
-const statusData = [
-    {
-        id: 'pending',
-        title: 'Pending',
-        value: 'pending',
-        icon: IconLoader,
-    },
-    {
-        id: 'in-progress',
-        title: 'In Progress',
-        value: 'in-progress',
-        icon: IconProgress,
-    },
-    {
-        id: 'client-review',
-        title: 'Client Review',
-        value: 'client-review',
-        icon: IconInfoCircle,
-    },
-    {
-        id: 'revision-requested',
-        title: 'Revision Requested',
-        value: 'revision-requested',
-        icon: IconGitPullRequest,
-    },
-    {
-        id: 'completed',
-        title: 'Completed',
-        value: 'completed',
-        icon: IconProgressCheck,
-    },
-    {
-        id: 'cancelled',
-        title: 'Cancelled',
-        value: 'cancelled',
-        icon: IconCancel,
-    },
-];
+import { cn } from '@/lib/utils';
+import { IconLoader } from '@tabler/icons-react';
+import { OrderStatusData, statusData } from '@/data/orders';
 
 export default function OrderDataTable({ role }: { role: string }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -125,6 +81,23 @@ export default function OrderDataTable({ role }: { role: string }) {
                 data: { status: data.status },
             }).unwrap();
 
+            if (response.success) {
+                toast.success('Order status updated successfully');
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
+
+    const handleOrderStatusChange = async (
+        id: string,
+        data: { orderStatus: string }
+    ) => {
+        try {
+            const response = await updateOrder({
+                id,
+                data: { orderStatus: data.orderStatus },
+            }).unwrap();
             if (response.success) {
                 toast.success('Order status updated successfully');
             }
@@ -201,16 +174,14 @@ export default function OrderDataTable({ role }: { role: string }) {
                                 Total ($)
                             </TableHead>
                             <TableHead className="text-center border-r">
-                                Payment Status ($)
+                                Payment ($)
                             </TableHead>
                             <TableHead className="text-center border-r">
                                 Status
                             </TableHead>
-                            {role !== 'User' && (
-                                <TableHead className="text-center border-r">
-                                    Order Status
-                                </TableHead>
-                            )}
+                            <TableHead className="text-center border-r">
+                                Order Status
+                            </TableHead>
                             <TableHead className="text-center">
                                 Actions
                             </TableHead>
@@ -260,54 +231,9 @@ export default function OrderDataTable({ role }: { role: string }) {
                                             {order.userId}
                                         </TableCell>
                                         <TableCell className="text-start text-sm border-r">
-                                            <ul className="space-y-1">
-                                                {order.services.map((s, i) => (
-                                                    <li
-                                                        key={i}
-                                                        className="list-inside"
-                                                    >
-                                                        <div>
-                                                            <span className="font-medium">
-                                                                {s.name}
-                                                            </span>
-                                                            {s.complexity && (
-                                                                <span className="text-gray-500">
-                                                                    {' '}
-                                                                    →{' '}
-                                                                    {
-                                                                        s
-                                                                            .complexity
-                                                                            .name
-                                                                    }
-                                                                </span>
-                                                            )}
-                                                            {(s.types ?? [])
-                                                                .length > 0 && (
-                                                                <ul className="ml-4 list-[circle] text-gray-600 text-xs">
-                                                                    {s.types?.map(
-                                                                        (
-                                                                            t,
-                                                                            j
-                                                                        ) => (
-                                                                            <li
-                                                                                key={
-                                                                                    j
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    t.name
-                                                                                }
-                                                                                {t.complexity &&
-                                                                                    ` (${t.complexity.name}`}
-                                                                            </li>
-                                                                        )
-                                                                    )}
-                                                                </ul>
-                                                            )}
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                            {order.services
+                                                .map((service) => service.name)
+                                                .join(', ')}
                                         </TableCell>
                                         <TableCell className="text-center border-r">
                                             ${order.total?.toFixed(2) || 0}
@@ -317,10 +243,10 @@ export default function OrderDataTable({ role }: { role: string }) {
                                                 variant="outline"
                                                 className={`capitalize ${
                                                     order.paymentStatus ===
-                                                    'paid'
+                                                    'Paid'
                                                         ? 'text-green-700 border-green-300 bg-green-50'
                                                         : order.paymentStatus ===
-                                                          'refunded'
+                                                          'Refunded'
                                                         ? 'text-blue-500 border-blue-500 bg-blue-50'
                                                         : 'text-orange-500 border-orange-500 bg-orange-50'
                                                 }`}
@@ -329,30 +255,144 @@ export default function OrderDataTable({ role }: { role: string }) {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-center border-r">
-                                            <SelectStatus
-                                                data={statusData}
-                                                handleUpdateStatus={
-                                                    handleStatusChange
-                                                }
-                                                id={order._id!}
-                                                status={order.status}
-                                                isStatusUpdating={
-                                                    isStatusUpdating
-                                                }
-                                            />
+                                            <span className="w-full mx-auto flex items-center justify-center">
+                                                <SelectStatus
+                                                    disabled={
+                                                        order.orderStatus ===
+                                                        'Waiting For Approval'
+                                                    }
+                                                    data={statusData}
+                                                    handleUpdateStatus={
+                                                        handleStatusChange
+                                                    }
+                                                    id={order._id!}
+                                                    status={order.status}
+                                                    isStatusUpdating={
+                                                        isStatusUpdating
+                                                    }
+                                                    role={role}
+                                                />
+                                            </span>
                                         </TableCell>
-                                        <TableCell className="text-center border-r">
-                                            <SelectStatus
-                                                data={statusData}
-                                                handleUpdateStatus={
-                                                    handleStatusChange
-                                                }
-                                                id={order._id!}
-                                                status={order.status}
-                                                isStatusUpdating={
-                                                    isStatusUpdating
-                                                }
-                                            />
+                                        <TableCell className="text-center border-r flex items-center justify-center">
+                                            {role === 'User' ? (
+                                                <span className="flex items-center justify-center gap-1">
+                                                    {order.orderStatus ===
+                                                    'Waiting For Approval' ? (
+                                                        <IconLoader
+                                                            size={16}
+                                                            className="animate-spin"
+                                                        />
+                                                    ) : (
+                                                        (() => {
+                                                            const item =
+                                                                OrderStatusData.find(
+                                                                    (item) =>
+                                                                        item.value ===
+                                                                        order.orderStatus
+                                                                );
+                                                            return item ? (
+                                                                <item.icon
+                                                                    size={16}
+                                                                    className={cn(
+                                                                        item.text
+                                                                    )}
+                                                                />
+                                                            ) : null;
+                                                        })()
+                                                    )}
+                                                    {order.orderStatus}
+                                                </span>
+                                            ) : (
+                                                <Select
+                                                    value={order.orderStatus}
+                                                    onValueChange={(value) =>
+                                                        handleOrderStatusChange(
+                                                            order._id!,
+                                                            {
+                                                                orderStatus:
+                                                                    value,
+                                                            }
+                                                        )
+                                                    }
+                                                    disabled={isStatusUpdating}
+                                                >
+                                                    <SelectTrigger className="border-none shadow-none">
+                                                        <span className="flex items-center justify-center gap-1">
+                                                            {order.orderStatus ===
+                                                            'Waiting For Approval' ? (
+                                                                <IconLoader
+                                                                    size={16}
+                                                                    className="animate-spin"
+                                                                />
+                                                            ) : (
+                                                                (() => {
+                                                                    const item =
+                                                                        OrderStatusData.find(
+                                                                            (
+                                                                                item
+                                                                            ) =>
+                                                                                item.value ===
+                                                                                order.orderStatus
+                                                                        );
+                                                                    return item ? (
+                                                                        <item.icon
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                            className={cn(
+                                                                                item.text
+                                                                            )}
+                                                                        />
+                                                                    ) : null;
+                                                                })()
+                                                            )}
+                                                            {order.orderStatus}
+                                                        </span>
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {OrderStatusData.map(
+                                                            (status, index) => (
+                                                                <SelectItem
+                                                                    key={index}
+                                                                    value={
+                                                                        status.value
+                                                                    }
+                                                                    className={cn(
+                                                                        status.text
+                                                                    )}
+                                                                >
+                                                                    <span className="flex items-center gap-1">
+                                                                        {(() => {
+                                                                            const item =
+                                                                                OrderStatusData.find(
+                                                                                    (
+                                                                                        item
+                                                                                    ) =>
+                                                                                        item.value ===
+                                                                                        status.value
+                                                                                );
+                                                                            return item ? (
+                                                                                <item.icon
+                                                                                    size={
+                                                                                        16
+                                                                                    }
+                                                                                    className={cn(
+                                                                                        status.text
+                                                                                    )}
+                                                                                />
+                                                                            ) : null;
+                                                                        })()}
+                                                                        {
+                                                                            status.value
+                                                                        }
+                                                                    </span>
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <DropdownMenu>
@@ -366,7 +406,7 @@ export default function OrderDataTable({ role }: { role: string }) {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
                                                     {order.status ===
-                                                    'draft' ? (
+                                                    'Pending' ? (
                                                         <DropdownMenuItem>
                                                             <Edit2 />
                                                             Continue Editing

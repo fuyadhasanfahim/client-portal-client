@@ -9,7 +9,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useGetDraftOrderQuery } from '@/redux/features/orders/ordersApi';
+import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
 import { AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
@@ -22,12 +22,12 @@ export default function RootNewOrderReview({
 }) {
     const { id } = use(params);
     const router = useRouter();
-    const { data, isLoading, isError } = useGetDraftOrderQuery({
+    const { data, isLoading, isError } = useGetOrderQuery({
         id,
-        status: 'waiting-for-approval',
+        orderStatus: 'Waiting For Approval',
     });
 
-    console.log(data)
+    console.log(data);
 
     let content;
 

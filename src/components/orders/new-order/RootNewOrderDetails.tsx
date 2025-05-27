@@ -8,7 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useGetDraftOrderQuery } from '@/redux/features/orders/ordersApi';
+import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
 import OrderDetails from '@/components/orders/new-order/OrderDetails';
 import SelectedServicesCard from '@/components/orders/new-order/SelectedServicesCard';
 import SelectedServiceLoadingCard from './SelectedServiceLoadingCard';
@@ -23,9 +23,9 @@ export default function RootNewOrderDetails({
 }) {
     const { id } = React.use(params);
     const route = useRouter();
-    const { data, isLoading, isError } = useGetDraftOrderQuery({
+    const { data, isLoading, isError } = useGetOrderQuery({
         id,
-        status: 'draft',
+        orderStatus: 'Awaiting For Details',
     });
 
     let content;

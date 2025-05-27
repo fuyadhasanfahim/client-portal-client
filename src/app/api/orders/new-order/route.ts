@@ -46,8 +46,9 @@ export async function POST(req: NextRequest) {
             const newOrder = await OrderModel.create({
                 userId,
                 services,
-                status: 'draft',
-                paymentStatus: 'pay-later',
+                status: 'Pending',
+                orderStatus: 'Awaiting For Details',
+                paymentStatus: 'Pay Later',
             });
 
             return NextResponse.json(
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 
         const isDetailsStep =
             downloadLink ||
-            images ||
+            typeof images === 'number' ||
             returnFileFormat ||
             backgroundOption ||
             instructions;
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
                 height,
                 instructions,
                 supportingFileDownloadLink,
-                status: 'waiting-for-approval',
+                orderStatus: 'Waiting For Approval',
             });
 
             await order.save();
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: true,
+                    message: 'Order details saved',
                     orderId: order._id.toString(),
                 },
                 { status: 200 }
@@ -117,12 +119,13 @@ export async function POST(req: NextRequest) {
 
         if (typeof total === 'number') {
             order.total = total;
-            order.paymentStatus = 'awaiting-payment';
+            order.paymentStatus = 'Pay Later';
             await order.save();
 
             return NextResponse.json(
                 {
                     success: true,
+                    message: 'Order total saved',
                     orderId: order._id.toString(),
                 },
                 { status: 200 }
@@ -131,7 +134,7 @@ export async function POST(req: NextRequest) {
 
         if (paymentOption === 'pay-later') {
             order.paymentOption = paymentOption;
-            order.paymentStatus = 'pay-later';
+            order.paymentStatus = 'Pay Later';
             await order.save();
 
             return NextResponse.json(
@@ -145,7 +148,7 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json(
-            { success: false, message: 'Invalid data submitted' },
+            { success: false, message: 'Invalid or incomplete data submitted' },
             { status: 400 }
         );
     } catch (error) {

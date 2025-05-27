@@ -5,20 +5,20 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
     try {
         const id = req.nextUrl.searchParams.get('id');
-        const status = req.nextUrl.searchParams.get('status');
+        const orderStatus = req.nextUrl.searchParams.get('order-status');
 
         await dbConfig();
 
-        const draftOrder = await OrderModel.findOne({
+        const order = await OrderModel.findOne({
             _id: id,
-            status,
+            orderStatus,
         });
 
         return NextResponse.json(
             {
                 success: true,
                 message: 'Draft order retrieved successfully.',
-                data: draftOrder,
+                data: order,
             },
             { status: 200 }
         );
