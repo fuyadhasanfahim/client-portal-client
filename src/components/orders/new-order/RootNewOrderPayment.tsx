@@ -52,9 +52,6 @@ export default function RootNewOrderPayment({
     params: Promise<{ id: string }>;
 }) {
     const { id } = use(params);
-
-    console.log(id);
-
     const [paymentOption, setPaymentOption] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clientSecret, setClientSecret] = useState('');
@@ -62,8 +59,8 @@ export default function RootNewOrderPayment({
     useEffect(() => {
         const createSession = async () => {
             if (
-                paymentOption === 'pay-now' &&
-                paymentMethod === 'card-payment'
+                paymentOption === 'Pay Now' &&
+                paymentMethod === 'Card Payment'
             ) {
                 const res = await fetch('/api/stripe/new-order-checkout', {
                     method: 'POST',
@@ -76,7 +73,6 @@ export default function RootNewOrderPayment({
                 });
 
                 const data = await res.json();
-                console.log(data);
                 setClientSecret(data.client_secret);
             }
         };
@@ -101,7 +97,6 @@ export default function RootNewOrderPayment({
                 },
             });
 
-            console.log(response);
             if (response?.data?.success) {
                 router.push(`/orders`);
             }
@@ -132,7 +127,7 @@ export default function RootNewOrderPayment({
                             value={paymentOption}
                             onValueChange={(val) => {
                                 setPaymentOption(val);
-                                if (val === 'pay-later') setPaymentMethod('');
+                                if (val === 'Pay Later') setPaymentMethod('');
                             }}
                             className="grid gap-4"
                         >
@@ -175,14 +170,14 @@ export default function RootNewOrderPayment({
                             value={paymentMethod}
                             onValueChange={setPaymentMethod}
                             className="grid gap-4"
-                            disabled={paymentOption === 'pay-later'}
+                            disabled={paymentOption === 'Pay Later'}
                         >
                             {paymentMethods.map(
                                 ({ value, title, description }) => (
                                     <Card
                                         key={value}
                                         className={`border-2 transition-all ${
-                                            paymentOption === 'pay-later'
+                                            paymentOption === 'Pay Later'
                                                 ? 'opacity-50 cursor-not-allowed'
                                                 : 'hover:border-primary border-muted'
                                         }`}
@@ -199,7 +194,7 @@ export default function RootNewOrderPayment({
                                                     className={cn(
                                                         'text-base font-medium cursor-pointer',
                                                         paymentOption ===
-                                                            'pay-later' &&
+                                                            'Pay Later' &&
                                                             'cursor-not-allowed'
                                                     )}
                                                 >
@@ -216,7 +211,7 @@ export default function RootNewOrderPayment({
                         </RadioGroup>
                     </div>
                 </CardContent>
-                {paymentOption === 'pay-later' && (
+                {paymentOption === 'Pay Later' && (
                     <CardFooter>
                         <Button
                             className="w-full"
@@ -229,8 +224,8 @@ export default function RootNewOrderPayment({
                 )}
             </Card>
 
-            {paymentOption === 'pay-now' &&
-                paymentMethod === 'card-payment' && (
+            {paymentOption === 'Pay Now' &&
+                paymentMethod === 'Card Payment' && (
                     <Card className="min-h-[600px]">
                         <CardHeader>
                             <CardTitle className="text-2xl">

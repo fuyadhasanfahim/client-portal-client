@@ -2,6 +2,8 @@ import dbConfig from '@/lib/dbConfig';
 import OrderModel from '@/models/order.model';
 import { NextResponse, NextRequest } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.nextUrl);

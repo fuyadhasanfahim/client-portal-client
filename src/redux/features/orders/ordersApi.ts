@@ -20,10 +20,18 @@ export const ordersApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Orders'],
             }),
             getOrder: build.query({
-                query: ({ id, orderStatus }) => ({
-                    url: `orders/get-order?id=${id}&order-status=${orderStatus}`,
-                    method: 'GET',
-                }),
+                query: ({ id, orderStatus, status }) => {
+                    const params = new URLSearchParams();
+
+                    if (id) params.append('id', id);
+                    if (orderStatus) params.append('order-status', orderStatus);
+                    if (status) params.append('status', status);
+
+                    return {
+                        url: `orders/get-order?${params.toString()}`,
+                        method: 'GET',
+                    };
+                },
                 providesTags: ['Orders'],
             }),
             getOrders: build.query({

@@ -26,7 +26,7 @@ export const statusData = [
         id: 3,
         value: 'Delivered',
         icon: IconCircleCheck,
-        text: '!text-greed-500',
+        text: '!text-teal-500',
         accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
     },
     {

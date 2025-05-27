@@ -47,6 +47,7 @@ import SelectStatus from '../shared/SelectStatus';
 import { cn } from '@/lib/utils';
 import { IconLoader } from '@tabler/icons-react';
 import { OrderStatusData, statusData } from '@/data/orders';
+import Link from 'next/link';
 
 export default function OrderDataTable({ role }: { role: string }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -225,15 +226,29 @@ export default function OrderDataTable({ role }: { role: string }) {
                                 return (
                                     <TableRow key={index}>
                                         <TableCell className="text-center font-medium border-r">
-                                            #{order._id}
+                                            <Link
+                                                href={`/orders/details?id=${order._id}&status=${order.status}`}
+                                                className="text-primary underline"
+                                            >
+                                                #{order._id}
+                                            </Link>
                                         </TableCell>
                                         <TableCell className="text-center text-sm border-r">
                                             {order.userId}
                                         </TableCell>
                                         <TableCell className="text-start text-sm border-r">
-                                            {order.services
-                                                .map((service) => service.name)
-                                                .join(', ')}
+                                            <ul>
+                                                {order.services.map(
+                                                    (service) => (
+                                                        <li
+                                                            key={service.name}
+                                                            className="list-inside list-decimal"
+                                                        >
+                                                            service.name
+                                                        </li>
+                                                    )
+                                                )}
+                                            </ul>
                                         </TableCell>
                                         <TableCell className="text-center border-r">
                                             ${order.total?.toFixed(2) || 0}
@@ -405,8 +420,8 @@ export default function OrderDataTable({ role }: { role: string }) {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    {order.status ===
-                                                    'Pending' ? (
+                                                    {order.orderStatus ===
+                                                    'Awaiting For Details' ? (
                                                         <DropdownMenuItem>
                                                             <Edit2 />
                                                             Continue Editing
