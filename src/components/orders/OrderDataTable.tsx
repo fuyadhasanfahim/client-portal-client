@@ -9,8 +9,6 @@ import {
     Trash2,
     EyeIcon,
     Edit2,
-    ChevronDown,
-    Loader,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,44 +40,69 @@ import {
     useUpdateOrderMutation,
 } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
-import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import toast from 'react-hot-toast';
 import ApiError from '../shared/ApiError';
+import {
+    IconCancel,
+    IconGitPullRequest,
+    IconInfoCircle,
+    IconLoader,
+    IconProgress,
+    IconProgressCheck,
+} from '@tabler/icons-react';
+import SelectStatus from '../shared/SelectStatus';
 
-function getStatusColorClasses(status: string) {
-    switch (status) {
-        case 'pending':
-            return 'hover:!bg-yellow-50 text-yellow-500 hover:!text-yellow-500';
-        case 'in-progress':
-            return 'hover:!bg-blue-50 text-blue-500 hover:!text-blue-500';
-        case 'client-review':
-            return 'hover:!bg-purple-50 text-purple-500 hover:!text-purple-500';
-        case 'revision-requested':
-            return 'hover:!bg-pink-50 text-pink-500 hover:!text-pink-500';
-        case 'completed':
-        case 'done':
-            return 'hover:!bg-green-50 text-green-500 hover:!text-green-500';
-        case 'cancelled':
-            return 'hover:!bg-red-50 text-red-500 hover:!text-red-500';
-        default:
-            return 'hover:!bg-gray-50 text-gray-500 hover:!text-gray-500';
-    }
-}
+const statusData = [
+    {
+        id: 'pending',
+        title: 'Pending',
+        value: 'pending',
+        icon: IconLoader,
+    },
+    {
+        id: 'in-progress',
+        title: 'In Progress',
+        value: 'in-progress',
+        icon: IconProgress,
+    },
+    {
+        id: 'client-review',
+        title: 'Client Review',
+        value: 'client-review',
+        icon: IconInfoCircle,
+    },
+    {
+        id: 'revision-requested',
+        title: 'Revision Requested',
+        value: 'revision-requested',
+        icon: IconGitPullRequest,
+    },
+    {
+        id: 'completed',
+        title: 'Completed',
+        value: 'completed',
+        icon: IconProgressCheck,
+    },
+    {
+        id: 'cancelled',
+        title: 'Cancelled',
+        value: 'cancelled',
+        icon: IconCancel,
+    },
+];
 
 export default function OrderDataTable({ role }: { role: string }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
-    const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(
-        null
-    );
     const router = useRouter();
 
     const { data, isLoading } = useGetOrdersQuery({
         params: { page: currentPage, quantity, searchQuery },
     });
-    const [updateOrder] = useUpdateOrderMutation();
+    const [updateOrder, { isLoading: isStatusUpdating }] =
+        useUpdateOrderMutation();
 
     const orders = !isLoading && data.data;
     const pagination = !isLoading && data.pagination;
@@ -97,17 +120,16 @@ export default function OrderDataTable({ role }: { role: string }) {
         data: { status: string };
     }) => {
         try {
-            setUpdatingStatusId(id);
-
-            const response = await updateOrder({ id, data }).unwrap();
+            const response = await updateOrder({
+                id,
+                data: { status: data.status },
+            }).unwrap();
 
             if (response.success) {
                 toast.success('Order status updated successfully');
             }
         } catch (error) {
             ApiError(error);
-        } finally {
-            setUpdatingStatusId(null);
         }
     };
 
@@ -118,7 +140,7 @@ export default function OrderDataTable({ role }: { role: string }) {
                     <div className="relative w-full max-w-xs">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                         <Input
-                            placeholder="Search services..."
+                            placeholder="Search orders..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
@@ -126,6 +148,23 @@ export default function OrderDataTable({ role }: { role: string }) {
                     </div>
                 </form>
 
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Sort:</span>
+                    <Select
+                        value={quantity.toString()}
+                        onValueChange={(value) => setQuantity(Number(value))}
+                    >
+                        <SelectTrigger className="w-20 h-9">
+                            <SelectValue placeholder={quantity} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="10">Completed</SelectItem>
+                            <SelectItem value="25">Pending</SelectItem>
+                            <SelectItem value="50">In-Progress</SelectItem>
+                            <SelectItem value="100">Canceled</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Show:</span>
                     <Select
@@ -146,7 +185,7 @@ export default function OrderDataTable({ role }: { role: string }) {
             </div>
 
             <div className="rounded-md border overflow-hidden">
-                <Table>
+                <Table className="overflow-x-auto">
                     <TableHeader className="bg-accent">
                         <TableRow>
                             <TableHead className="text-center border-r">
@@ -159,17 +198,19 @@ export default function OrderDataTable({ role }: { role: string }) {
                                 Services
                             </TableHead>
                             <TableHead className="text-center border-r">
-                                Color Codes
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Options
-                            </TableHead>
-                            <TableHead className="text-center border-r">
                                 Total ($)
+                            </TableHead>
+                            <TableHead className="text-center border-r">
+                                Payment Status ($)
                             </TableHead>
                             <TableHead className="text-center border-r">
                                 Status
                             </TableHead>
+                            {role !== 'User' && (
+                                <TableHead className="text-center border-r">
+                                    Order Status
+                                </TableHead>
+                            )}
                             <TableHead className="text-center">
                                 Actions
                             </TableHead>
@@ -210,9 +251,6 @@ export default function OrderDataTable({ role }: { role: string }) {
                             </TableRow>
                         ) : (
                             orders.map((order: IOrder, index: number) => {
-                                const isRowUpdating =
-                                    updatingStatusId === order._id;
-
                                 return (
                                     <TableRow key={index}>
                                         <TableCell className="text-center font-medium border-r">
@@ -272,37 +310,6 @@ export default function OrderDataTable({ role }: { role: string }) {
                                             </ul>
                                         </TableCell>
                                         <TableCell className="text-center border-r">
-                                            {order.services.some(
-                                                (s) => s.colorCodes?.length
-                                            ) ? (
-                                                <div className="flex flex-wrap justify-center gap-1">
-                                                    {order.services
-                                                        .flatMap(
-                                                            (s) =>
-                                                                s.colorCodes ||
-                                                                []
-                                                        )
-                                                        .map((color, idx) => (
-                                                            <Badge
-                                                                key={idx}
-                                                                variant={
-                                                                    'outline'
-                                                                }
-                                                                className={cn(
-                                                                    `border-[#${color}] text-[#${color}]`
-                                                                )}
-                                                            >
-                                                                #{color}
-                                                            </Badge>
-                                                        ))}
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-400">
-                                                    N/A
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center border-r">
                                             ${order.total?.toFixed(2) || 0}
                                         </TableCell>
                                         <TableCell className="text-center border-r">
@@ -314,85 +321,38 @@ export default function OrderDataTable({ role }: { role: string }) {
                                                         ? 'text-green-700 border-green-300 bg-green-50'
                                                         : order.paymentStatus ===
                                                           'refunded'
-                                                        ? 'text-blue-700 border-blue-300 bg-blue-50'
-                                                        : 'text-orange-700 border-orange-300 bg-orange-50'
+                                                        ? 'text-blue-500 border-blue-500 bg-blue-50'
+                                                        : 'text-orange-500 border-orange-500 bg-orange-50'
                                                 }`}
                                             >
                                                 {order.paymentStatus}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-center border-r">
-                                            <Select
-                                                disabled={
-                                                    isRowUpdating ||
-                                                    (role === 'User' &&
-                                                        ![
-                                                            'client-review',
-                                                            'revision-requested',
-                                                            'done',
-                                                        ].includes(
-                                                            order.status
-                                                        ))
+                                            <SelectStatus
+                                                data={statusData}
+                                                handleUpdateStatus={
+                                                    handleStatusChange
                                                 }
-                                                value={order.status}
-                                                onValueChange={(value) =>
-                                                    handleStatusChange({
-                                                        id: order._id!,
-                                                        data: { status: value },
-                                                    })
+                                                id={order._id!}
+                                                status={order.status}
+                                                isStatusUpdating={
+                                                    isStatusUpdating
                                                 }
-                                            >
-                                                <SelectTrigger
-                                                    className={cn(
-                                                        'capitalize',
-                                                        getStatusColorClasses(
-                                                            order.status
-                                                        ),
-                                                        role === 'User' &&
-                                                            ![
-                                                                'client-review',
-                                                                'revision-requested',
-                                                                'done',
-                                                            ].includes(
-                                                                order.status
-                                                            )
-                                                            ? 'opacity-50 cursor-not-allowed'
-                                                            : 'cursor-pointer',
-                                                        isRowUpdating &&
-                                                            'opacity-70 cursor-wait'
-                                                    )}
-                                                >
-                                                    {isRowUpdating ? (
-                                                        <Loader className="animate-spin w-4 h-4" />
-                                                    ) : (
-                                                        order.status
-                                                    )}
-                                                </SelectTrigger>
-
-                                                <SelectContent>
-                                                    {[
-                                                        'pending',
-                                                        'in-progress',
-                                                        'client-review',
-                                                        'revision-requested',
-                                                        'cancelled',
-                                                        'done',
-                                                    ].map((status) => (
-                                                        <SelectItem
-                                                            key={status}
-                                                            value={status}
-                                                            className={cn(
-                                                                'capitalize cursor-pointer',
-                                                                getStatusColorClasses(
-                                                                    status
-                                                                )
-                                                            )}
-                                                        >
-                                                            {status}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-center border-r">
+                                            <SelectStatus
+                                                data={statusData}
+                                                handleUpdateStatus={
+                                                    handleStatusChange
+                                                }
+                                                id={order._id!}
+                                                status={order.status}
+                                                isStatusUpdating={
+                                                    isStatusUpdating
+                                                }
+                                            />
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <DropdownMenu>
@@ -412,7 +372,13 @@ export default function OrderDataTable({ role }: { role: string }) {
                                                             Continue Editing
                                                         </DropdownMenuItem>
                                                     ) : (
-                                                        <DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                router.push(
+                                                                    `/orders/details?id=${order._id!}`
+                                                                )
+                                                            }
+                                                        >
                                                             <EyeIcon />
                                                             Details
                                                         </DropdownMenuItem>
