@@ -9,6 +9,9 @@ import {
     Trash2,
     EyeIcon,
     Edit2,
+    Download,
+    Funnel,
+    NotebookText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,23 +43,39 @@ import {
     useUpdateOrderMutation,
 } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
-import { Badge } from '../ui/badge';
 import toast from 'react-hot-toast';
 import ApiError from '../shared/ApiError';
-import SelectStatus from '../shared/SelectStatus';
+import SelectStatus from './SelectStatus';
 import { cn } from '@/lib/utils';
 import { IconLoader } from '@tabler/icons-react';
 import { OrderStatusData, statusData } from '@/data/orders';
 import Link from 'next/link';
+import OrderStats from './OrderStats';
+import SelectOrderStatus from './SelectOrderStatus';
+import OrderPaymentStatus from './OrderPaymentStatus';
 
-export default function OrderDataTable({ role }: { role: string }) {
+export default function OrderDataTable({
+    role,
+    id,
+}: {
+    role: string;
+    id: string;
+}) {
     const [searchQuery, setSearchQuery] = useState('');
+    const [filter, setFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
     const router = useRouter();
 
     const { data, isLoading } = useGetOrdersQuery({
-        params: { page: currentPage, quantity, searchQuery },
+        params: {
+            page: currentPage,
+            quantity,
+            searchQuery,
+            user_id: id,
+            user_role: role,
+            filter,
+        },
     });
     const [updateOrder, { isLoading: isStatusUpdating }] =
         useUpdateOrderMutation();
@@ -64,7 +83,7 @@ export default function OrderDataTable({ role }: { role: string }) {
     const orders = !isLoading && data.data;
     const pagination = !isLoading && data.pagination;
 
-    const handleSearch = (e: React.FormEvent<HTMLFormElement>): void => {
+    const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setCurrentPage(1);
     };
@@ -77,42 +96,68 @@ export default function OrderDataTable({ role }: { role: string }) {
         data: { status: string };
     }) => {
         try {
-            const response = await updateOrder({
+            let response;
+            if (data.status === 'Canceled') {
+                response = await updateOrder({
+                    id,
+                    data: { status: data.status, orderStatus: 'Canceled' },
+                }).unwrap();
+            }
+
+            response = await updateOrder({
                 id,
                 data: { status: data.status },
             }).unwrap();
-
-            if (response.success) {
+            if (response.success)
                 toast.success('Order status updated successfully');
-            }
         } catch (error) {
             ApiError(error);
         }
     };
 
-    const handleOrderStatusChange = async (
-        id: string,
-        data: { orderStatus: string }
-    ) => {
+    const handleOrderStatusChange = async ({
+        id,
+        data,
+    }: {
+        id: string;
+        data: { orderStatus: string };
+    }) => {
         try {
-            const response = await updateOrder({
+            let response;
+
+            if (data.orderStatus === 'Canceled') {
+                response = await updateOrder({
+                    id,
+                    data: { orderStatus: data.orderStatus, status: 'Canceled' },
+                }).unwrap();
+            }
+
+            if (data.orderStatus === 'Accepted') {
+                response = await updateOrder({
+                    id,
+                    data: { orderStatus: data.orderStatus, status: 'Pending' },
+                }).unwrap();
+            }
+
+            response = await updateOrder({
                 id,
                 data: { orderStatus: data.orderStatus },
             }).unwrap();
-            if (response.success) {
+            if (response.success)
                 toast.success('Order status updated successfully');
-            }
         } catch (error) {
             ApiError(error);
         }
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <form onSubmit={handleSearch} className="w-full">
-                    <div className="relative w-full max-w-xs">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+        <div className="space-y-6 animate-fadeIn">
+            <OrderStats data={data} isLoading={isLoading} />
+
+            <div className="flex flex-row items-center justify-between">
+                <form onSubmit={handleSearch} className="w-full max-w-sm">
+                    <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search orders..."
                             value={searchQuery}
@@ -122,367 +167,328 @@ export default function OrderDataTable({ role }: { role: string }) {
                     </div>
                 </form>
 
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Sort:</span>
-                    <Select
-                        value={quantity.toString()}
-                        onValueChange={(value) => setQuantity(Number(value))}
-                    >
-                        <SelectTrigger className="w-20 h-9">
-                            <SelectValue placeholder={quantity} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="10">Completed</SelectItem>
-                            <SelectItem value="25">Pending</SelectItem>
-                            <SelectItem value="50">In-Progress</SelectItem>
-                            <SelectItem value="100">Canceled</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Show:</span>
-                    <Select
-                        value={quantity.toString()}
-                        onValueChange={(value) => setQuantity(Number(value))}
-                    >
-                        <SelectTrigger className="w-20 h-9">
-                            <SelectValue placeholder={quantity} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="25">25</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                            <SelectItem value="100">100</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-center gap-4">
+                    <Button variant={'secondary'}>
+                        <Download />
+                        Export
+                    </Button>
+
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Funnel size={16} />
+                                Filter:
+                            </span>
+                            <Select
+                                value={filter}
+                                onValueChange={(value) => setFilter(value)}
+                            >
+                                <SelectTrigger className="w-32 h-9">
+                                    <SelectValue placeholder={filter} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[
+                                        'All',
+                                        'Active',
+                                        'Completed',
+                                        'Canceled',
+                                    ].map((val) => (
+                                        <SelectItem key={val} value={val}>
+                                            {val}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <NotebookText size={16} /> Show:
+                            </span>
+                            <Select
+                                value={quantity.toString()}
+                                onValueChange={(value) =>
+                                    setQuantity(Number(value))
+                                }
+                            >
+                                <SelectTrigger className="w-24 h-9">
+                                    <SelectValue placeholder={quantity} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[10, 25, 50, 100].map((val) => (
+                                        <SelectItem
+                                            key={val}
+                                            value={val.toString()}
+                                        >
+                                            {val}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="rounded-md border overflow-hidden">
-                <Table className="overflow-x-auto">
-                    <TableHeader className="bg-accent">
+            <div className="overflow-x-auto rounded-lg border bg-background">
+                <Table>
+                    <TableHeader className="bg-accent text-primary-foreground">
                         <TableRow>
-                            <TableHead className="text-center border-r">
-                                Order ID
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Client
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Services
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Total ($)
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Payment ($)
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Status
-                            </TableHead>
-                            <TableHead className="text-center border-r">
-                                Order Status
-                            </TableHead>
-                            <TableHead className="text-center">
-                                Actions
-                            </TableHead>
+                            {[
+                                'Order ID',
+                                'Client',
+                                'Services',
+                                'Total ($)',
+                                'Payment ($)',
+                                'Status',
+                                'Order Status',
+                                'Actions',
+                            ].map((title, idx) => (
+                                <TableHead
+                                    key={idx}
+                                    className="text-center font-semibold border-r last:border-r-0"
+                                >
+                                    {title}
+                                </TableHead>
+                            ))}
                         </TableRow>
                     </TableHeader>
-
                     <TableBody>
                         {isLoading ? (
-                            Array(8)
-                                .fill(0)
-                                .map((_, index) => (
-                                    <TableRow key={`skeleton-${index}`}>
-                                        {Array(8)
-                                            .fill(0)
-                                            .map((_, i) => (
-                                                <TableCell
-                                                    key={i}
-                                                    className="text-center"
-                                                >
-                                                    <Skeleton className="h-6 w-full mx-auto" />
-                                                </TableCell>
-                                            ))}
-                                    </TableRow>
-                                ))
+                            Array.from({ length: 8 }).map((_, i) => (
+                                <TableRow key={`loading-${i}`}>
+                                    {Array.from({ length: 8 }).map((_, j) => (
+                                        <TableCell
+                                            key={j}
+                                            className="text-center"
+                                        >
+                                            <Skeleton className="h-6 w-full mx-auto" />
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
                         ) : orders.length === 0 ? (
                             <TableRow>
                                 <TableCell
                                     colSpan={8}
-                                    className="h-24 text-center"
+                                    className="text-center py-8"
                                 >
-                                    <div className="flex flex-col items-center justify-center space-y-2">
-                                        <Search className="h-8 w-8 text-gray-400" />
-                                        <p className="text-gray-500">
-                                            No services found
-                                        </p>
-                                    </div>
+                                    <p className="text-gray-500">
+                                        No orders found
+                                    </p>
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            orders.map((order: IOrder, index: number) => {
-                                return (
-                                    <TableRow key={index}>
-                                        <TableCell className="text-center font-medium border-r">
-                                            <Link
-                                                href={`/orders/details?id=${order._id}&status=${order.status}`}
-                                                className="text-primary underline"
-                                            >
-                                                #{order._id}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell className="text-center text-sm border-r">
-                                            {order.userId}
-                                        </TableCell>
-                                        <TableCell className="text-start text-sm border-r">
-                                            <ul>
-                                                {order.services.map(
-                                                    (service) => (
-                                                        <li
-                                                            key={service.name}
-                                                            className="list-inside list-decimal"
-                                                        >
-                                                            service.name
-                                                        </li>
-                                                    )
+                            orders.map((order: IOrder, index: number) => (
+                                <TableRow
+                                    key={index}
+                                    className="hover:bg-muted/50"
+                                >
+                                    <TableCell className="text-center font-medium border-r">
+                                        <Link
+                                            href={`/orders/details?id=${order._id}&status=${order.status}`}
+                                            className="text-primary underline"
+                                        >
+                                            #{order._id}
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn(
+                                            'text-center text-sm border-r',
+                                            order.orderStatus === 'Canceled' &&
+                                                'cursor-not-allowed text-destructive'
+                                        )}
+                                    >
+                                        {order.userId}
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn(
+                                            'text-start text-sm border-r',
+                                            order.orderStatus === 'Canceled' &&
+                                                'cursor-not-allowed text-destructive'
+                                        )}
+                                    >
+                                        <ul className="list-decimal list-inside space-y-1">
+                                            {order.services.map((service) => (
+                                                <li key={service.name}>
+                                                    {service.name}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn(
+                                            'text-center text-sm border-r',
+                                            order.orderStatus === 'Canceled' &&
+                                                'cursor-not-allowed text-destructive'
+                                        )}
+                                    >
+                                        ${order.total?.toFixed(2) || 0}
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn(
+                                            'text-center text-sm border-r',
+                                            order.orderStatus === 'Canceled' &&
+                                                'cursor-not-allowed text-destructive'
+                                        )}
+                                    >
+                                        <OrderPaymentStatus
+                                            paymentStatus={order.paymentStatus}
+                                        />
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn(
+                                            'text-center text-sm border-r',
+                                            order.orderStatus === 'Canceled' &&
+                                                'cursor-not-allowed text-destructive'
+                                        )}
+                                    >
+                                        <span className="flex items-center justify-center">
+                                            <SelectStatus
+                                                disabled={
+                                                    order.orderStatus ===
+                                                    'Waiting For Approval'
+                                                }
+                                                data={statusData}
+                                                handleUpdateStatus={
+                                                    handleStatusChange
+                                                }
+                                                id={order._id!}
+                                                status={order.status}
+                                                isStatusUpdating={
+                                                    isStatusUpdating
+                                                }
+                                                role={role}
+                                            />
+                                        </span>
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn(
+                                            'text-center text-sm border-r',
+                                            role === 'User' &&
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                'cursor-not-allowed text-destructive'
+                                        )}
+                                    >
+                                        {role && role === 'User' ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                {order.orderStatus ===
+                                                'Waiting For Approval' ? (
+                                                    <IconLoader
+                                                        size={16}
+                                                        className="animate-spin"
+                                                    />
+                                                ) : (
+                                                    (() => {
+                                                        const item =
+                                                            OrderStatusData.find(
+                                                                (item) =>
+                                                                    item.value ===
+                                                                    order.orderStatus
+                                                            );
+                                                        return item ? (
+                                                            <item.icon
+                                                                size={16}
+                                                                className={cn(
+                                                                    item.text
+                                                                )}
+                                                            />
+                                                        ) : null;
+                                                    })()
                                                 )}
-                                            </ul>
-                                        </TableCell>
-                                        <TableCell className="text-center border-r">
-                                            ${order.total?.toFixed(2) || 0}
-                                        </TableCell>
-                                        <TableCell className="text-center border-r">
-                                            <Badge
-                                                variant="outline"
-                                                className={`capitalize ${
-                                                    order.paymentStatus ===
-                                                    'Paid'
-                                                        ? 'text-green-700 border-green-300 bg-green-50'
-                                                        : order.paymentStatus ===
-                                                          'Refunded'
-                                                        ? 'text-blue-500 border-blue-500 bg-blue-50'
-                                                        : 'text-orange-500 border-orange-500 bg-orange-50'
-                                                }`}
-                                            >
-                                                {order.paymentStatus}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center border-r">
-                                            <span className="w-full mx-auto flex items-center justify-center">
-                                                <SelectStatus
-                                                    disabled={
-                                                        order.orderStatus ===
-                                                        'Waiting For Approval'
-                                                    }
-                                                    data={statusData}
-                                                    handleUpdateStatus={
-                                                        handleStatusChange
+                                                {order.orderStatus}
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center justify-center">
+                                                <SelectOrderStatus
+                                                    data={OrderStatusData}
+                                                    handleOrderStatusChange={
+                                                        handleOrderStatusChange
                                                     }
                                                     id={order._id!}
-                                                    status={order.status}
+                                                    status={order.orderStatus}
                                                     isStatusUpdating={
                                                         isStatusUpdating
                                                     }
-                                                    role={role}
                                                 />
                                             </span>
-                                        </TableCell>
-                                        <TableCell className="text-center border-r flex items-center justify-center">
-                                            {role === 'User' ? (
-                                                <span className="flex items-center justify-center gap-1">
-                                                    {order.orderStatus ===
-                                                    'Waiting For Approval' ? (
-                                                        <IconLoader
-                                                            size={16}
-                                                            className="animate-spin"
-                                                        />
-                                                    ) : (
-                                                        (() => {
-                                                            const item =
-                                                                OrderStatusData.find(
-                                                                    (item) =>
-                                                                        item.value ===
-                                                                        order.orderStatus
-                                                                );
-                                                            return item ? (
-                                                                <item.icon
-                                                                    size={16}
-                                                                    className={cn(
-                                                                        item.text
-                                                                    )}
-                                                                />
-                                                            ) : null;
-                                                        })()
-                                                    )}
-                                                    {order.orderStatus}
-                                                </span>
-                                            ) : (
-                                                <Select
-                                                    value={order.orderStatus}
-                                                    onValueChange={(value) =>
-                                                        handleOrderStatusChange(
-                                                            order._id!,
-                                                            {
-                                                                orderStatus:
-                                                                    value,
-                                                            }
-                                                        )
-                                                    }
-                                                    disabled={isStatusUpdating}
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
                                                 >
-                                                    <SelectTrigger className="border-none shadow-none">
-                                                        <span className="flex items-center justify-center gap-1">
-                                                            {order.orderStatus ===
-                                                            'Waiting For Approval' ? (
-                                                                <IconLoader
-                                                                    size={16}
-                                                                    className="animate-spin"
-                                                                />
-                                                            ) : (
-                                                                (() => {
-                                                                    const item =
-                                                                        OrderStatusData.find(
-                                                                            (
-                                                                                item
-                                                                            ) =>
-                                                                                item.value ===
-                                                                                order.orderStatus
-                                                                        );
-                                                                    return item ? (
-                                                                        <item.icon
-                                                                            size={
-                                                                                16
-                                                                            }
-                                                                            className={cn(
-                                                                                item.text
-                                                                            )}
-                                                                        />
-                                                                    ) : null;
-                                                                })()
-                                                            )}
-                                                            {order.orderStatus}
-                                                        </span>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {OrderStatusData.map(
-                                                            (status, index) => (
-                                                                <SelectItem
-                                                                    key={index}
-                                                                    value={
-                                                                        status.value
-                                                                    }
-                                                                    className={cn(
-                                                                        status.text
-                                                                    )}
-                                                                >
-                                                                    <span className="flex items-center gap-1">
-                                                                        {(() => {
-                                                                            const item =
-                                                                                OrderStatusData.find(
-                                                                                    (
-                                                                                        item
-                                                                                    ) =>
-                                                                                        item.value ===
-                                                                                        status.value
-                                                                                );
-                                                                            return item ? (
-                                                                                <item.icon
-                                                                                    size={
-                                                                                        16
-                                                                                    }
-                                                                                    className={cn(
-                                                                                        status.text
-                                                                                    )}
-                                                                                />
-                                                                            ) : null;
-                                                                        })()}
-                                                                        {
-                                                                            status.value
-                                                                        }
-                                                                    </span>
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant={'ghost'}
-                                                        size={'icon'}
-                                                    >
-                                                        <Ellipsis />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    {order.orderStatus ===
-                                                    'Awaiting For Details' ? (
-                                                        <DropdownMenuItem>
-                                                            <Edit2 />
-                                                            Continue Editing
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                router.push(
-                                                                    `/orders/details?id=${order._id!}`
-                                                                )
-                                                            }
-                                                        >
-                                                            <EyeIcon />
-                                                            Details
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuItem variant="destructive">
-                                                        <Trash2 />
-                                                        Delete
+                                                    <Ellipsis />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                {order.orderStatus ===
+                                                'Awaiting For Details' ? (
+                                                    <DropdownMenuItem>
+                                                        <Edit2 className="mr-2" />{' '}
+                                                        Continue Editing
                                                     </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
+                                                ) : (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            router.push(
+                                                                `/orders/details?id=${order._id!}`
+                                                            )
+                                                        }
+                                                    >
+                                                        <EyeIcon className="mr-2" />{' '}
+                                                        Details
+                                                    </DropdownMenuItem>
+                                                )}
+                                                <DropdownMenuItem variant="destructive">
+                                                    <Trash2 className="mr-2" />{' '}
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))
                         )}
                     </TableBody>
                 </Table>
             </div>
 
-            <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
+            <div className="flex items-center justify-between px-2 text-sm text-muted-foreground">
+                <div>
                     Showing{' '}
                     {pagination.total > 0
-                        ? `${currentPage - 1 + 1} to ${Math.min(
+                        ? `${(currentPage - 1) * quantity + 1} to ${Math.min(
                               currentPage * quantity,
                               pagination.total
                           )}`
                         : '0'}{' '}
                     of {pagination.total} entries
                 </div>
-
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentPage(currentPage - 1)}
+                        onClick={() => setCurrentPage((prev) => prev - 1)}
                         disabled={currentPage === 1 || isLoading}
                     >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="w-4 h-4" />
                     </Button>
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentPage(currentPage + 1)}
+                        onClick={() => setCurrentPage((prev) => prev + 1)}
                         disabled={
                             currentPage === pagination.totalPages || isLoading
                         }
                     >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="w-4 h-4" />
                     </Button>
                 </div>
             </div>

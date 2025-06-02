@@ -50,7 +50,7 @@ export const OrderValidation = z.object({
             'Delivered',
             'In Revision',
             'Completed',
-            'Cancelled',
+            'Canceled',
         ])
         .optional(),
     orderStatus: z

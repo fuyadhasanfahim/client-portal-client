@@ -16,6 +16,8 @@ export default function SelectStatus({
         value: string;
         icon: Icon;
         text: string;
+        border: string;
+        bg: string;
         accessibleTo?: string[];
     }[];
     status: string;
@@ -39,6 +41,18 @@ export default function SelectStatus({
         (isUser && !isDelivered && ![''].includes(status)) ||
         (isUser && (isCompleted || isInRevision));
 
+    const item = data.find((item) => item.value === status);
+
+    const isSelectable = (item: (typeof data)[number]) => {
+        const isAdminAccessible = item.accessibleTo?.includes(role ?? '');
+        const isUserAllowedOption =
+            isUser &&
+            isDelivered &&
+            ['In Revision', 'Completed'].includes(item.value);
+
+        return isAdminAccessible || isUserAllowedOption;
+    };
+
     return (
         <Select
             value={status}
@@ -50,9 +64,15 @@ export default function SelectStatus({
             }
             disabled={isSelectDisabled}
         >
-            <SelectTrigger className="border-none shadow-none">
+            <SelectTrigger
+                className={cn(
+                    item && isSelectable(item)
+                        ? [item?.border, item?.bg]
+                        : 'border-none shadow-none'
+                )}
+                size="sm"
+            >
                 {(() => {
-                    const item = data.find((item) => item.value === status);
                     return item ? (
                         <item.icon size={16} className={cn(item.text)} />
                     ) : null;
@@ -61,23 +81,13 @@ export default function SelectStatus({
             </SelectTrigger>
             <SelectContent>
                 {data.map((item) => {
-                    const isAdminAccessible = item.accessibleTo?.includes(
-                        role ?? ''
-                    );
-                    const isUserAllowedOption =
-                        isUser &&
-                        isDelivered &&
-                        ['In Revision', 'Completed'].includes(item.value);
-
-                    const isSelectable =
-                        isAdminAccessible || isUserAllowedOption;
-
+                    const canSelect = isSelectable(item);
                     return (
                         <SelectItem
                             key={item.id}
                             value={item.value}
-                            disabled={!isSelectable}
-                            className={cn(!isSelectable && 'opacity-50')}
+                            disabled={!canSelect}
+                            className={cn(!canSelect && 'opacity-50')}
                         >
                             <item.icon
                                 size={16}

@@ -52,7 +52,7 @@ export default function RootNewOrderPayment({
     params: Promise<{ id: string }>;
 }) {
     const { id } = use(params);
-    const [paymentOption, setPaymentOption] = useState('');
+    const [paymentOption, setPaymentOption] = useState('Pay Later');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clientSecret, setClientSecret] = useState('');
 

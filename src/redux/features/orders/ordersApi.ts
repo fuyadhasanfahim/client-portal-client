@@ -36,10 +36,24 @@ export const ordersApi = apiSlice.injectEndpoints({
             }),
             getOrders: build.query({
                 query: ({
-                    params: { page, quantity, searchQuery: query },
+                    params: {
+                        page,
+                        quantity,
+                        searchQuery: query,
+                        user_id,
+                        user_role,
+                        filter,
+                    },
                 }) => ({
                     url: 'orders/get-orders',
-                    params: { page, quantity, searchQuery: query },
+                    params: {
+                        page,
+                        quantity,
+                        searchQuery: query,
+                        user_id,
+                        user_role,
+                        filter,
+                    },
                 }),
                 providesTags: ['Orders'],
             }),

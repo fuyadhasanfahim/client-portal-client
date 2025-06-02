@@ -13,6 +13,8 @@ export const statusData = [
         value: 'Pending',
         icon: IconLoader,
         text: '!text-yellow-500',
+        border: '!border-yellow-500',
+        bg: '!bg-yellow-50',
         accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
     },
     {
@@ -20,6 +22,8 @@ export const statusData = [
         value: 'In Progress',
         icon: IconProgress,
         text: '!text-blue-500',
+        border: '!border-blue-500',
+        bg: '!bg-blue-50',
         accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
     },
     {
@@ -27,6 +31,8 @@ export const statusData = [
         value: 'Delivered',
         icon: IconCircleCheck,
         text: '!text-teal-500',
+        border: '!border-teal-500',
+        bg: '!bg-teal-50',
         accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
     },
     {
@@ -34,6 +40,8 @@ export const statusData = [
         value: 'In Revision',
         icon: IconUserQuestion,
         text: '!text-amber-500',
+        border: '!border-amber-500',
+        bg: '!bg-amber-50',
         accessibleTo: ['User'],
     },
     {
@@ -41,13 +49,17 @@ export const statusData = [
         value: 'Completed',
         icon: IconProgressCheck,
         text: '!text-green-500',
+        border: '!border-green-500',
+        bg: '!bg-green-50',
         accessibleTo: ['User'],
     },
     {
         id: 6,
-        value: 'Cancelled',
+        value: 'Canceled',
         icon: IconCancel,
         text: '!text-destructive',
+        border: '!border-destructive',
+        bg: '!bg-red-50',
         accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
     },
 ];
@@ -58,11 +70,15 @@ export const OrderStatusData = [
         value: 'Accepted',
         icon: IconProgressCheck,
         text: '!text-green-500',
+        border: '!border-green-500',
+        bg: '!bg-green-50',
     },
     {
-        id: 'cancelled',
-        value: 'Cancelled',
+        id: 'Canceled',
+        value: 'Canceled',
         icon: IconCancel,
         text: '!text-destructive',
+        border: '!border-destructive',
+        bg: '!bg-red-50',
     },
 ];

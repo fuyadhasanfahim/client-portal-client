@@ -23,6 +23,7 @@ export interface IOrderService {
 }
 
 export type OrderPaymentStatus =
+    | 'Pending'
     | 'Pay Later'
     | 'Paid'
     | 'Payment Failed'
@@ -34,12 +35,13 @@ export type OrderStatus =
     | 'Delivered'
     | 'In Revision'
     | 'Completed'
-    | 'Cancelled';
+    | 'Canceled';
 
 export type OrderOrderStatus =
     | 'Awaiting For Details'
     | 'Waiting For Approval'
-    | 'Accepted';
+    | 'Accepted'
+    | 'Canceled';
 
 export interface IOrder {
     _id?: string;

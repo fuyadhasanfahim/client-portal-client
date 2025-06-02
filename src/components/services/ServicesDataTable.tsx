@@ -9,7 +9,7 @@ import {
     Pencil,
     Trash2,
     CircleDashed,
-    CircleCheck,
+    CircleCheckBig,
     TriangleAlert,
 } from 'lucide-react';
 
@@ -294,7 +294,7 @@ export default function ServicesDataTable() {
                                                 >
                                                     {service.status ===
                                                     'Active' ? (
-                                                        <CircleCheck
+                                                        <CircleCheckBig
                                                             size={16}
                                                             className="fill-primary text-white"
                                                         />
@@ -329,7 +329,7 @@ export default function ServicesDataTable() {
                                                         >
                                                             {status ===
                                                             'Active' ? (
-                                                                <CircleCheck
+                                                                <CircleCheckBig
                                                                     size={16}
                                                                     className="fill-primary text-white"
                                                                 />

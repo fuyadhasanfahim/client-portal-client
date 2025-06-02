@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (paymentOption === 'pay-later') {
+        if (paymentOption === 'Pay Later') {
             order.paymentOption = paymentOption;
             order.paymentStatus = 'Pay Later';
             await order.save();
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: true,
-                    message: 'Payment option saved as pay-later',
+                    message: 'Payment option saved as Pay Later',
                     orderId: order._id.toString(),
                 },
                 { status: 200 }
@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (error) {
+        console.log(error);
         return NextResponse.json(
             {
                 success: false,
