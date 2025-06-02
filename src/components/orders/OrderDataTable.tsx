@@ -5,21 +5,12 @@ import {
     Search,
     ChevronLeft,
     ChevronRight,
-    Ellipsis,
-    Trash2,
     EyeIcon,
-    Edit2,
     Download,
     Funnel,
     NotebookText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -37,7 +28,6 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { useRouter } from 'next/navigation';
 import {
     useGetOrdersQuery,
     useUpdateOrderMutation,
@@ -65,7 +55,6 @@ export default function OrderDataTable({
     const [filter, setFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
-    const router = useRouter();
 
     const { data, isLoading } = useGetOrdersQuery({
         params: {
@@ -418,40 +407,15 @@ export default function OrderDataTable({
                                         )}
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                >
-                                                    <Ellipsis />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                {order.orderStatus ===
-                                                'Awaiting For Details' ? (
-                                                    <DropdownMenuItem>
-                                                        <Edit2 className="mr-2" />{' '}
-                                                        Continue Editing
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            router.push(
-                                                                `/orders/details?id=${order._id!}`
-                                                            )
-                                                        }
-                                                    >
-                                                        <EyeIcon className="mr-2" />{' '}
-                                                        Details
-                                                    </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuItem variant="destructive">
-                                                    <Trash2 className="mr-2" />{' '}
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <Link
+                                            href={`/orders/details?order_id=${order._id!}`}
+                                            className="flex items-center justify-center gap-2 group"
+                                        >
+                                            <EyeIcon size={20} />{' '}
+                                            <span className="group-hover:underline cursor-pointer">
+                                                Details
+                                            </span>
+                                        </Link>
                                     </TableCell>
                                 </TableRow>
                             ))
