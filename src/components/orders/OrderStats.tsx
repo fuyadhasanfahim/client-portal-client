@@ -1,50 +1,71 @@
-import { CheckCircle, Clock, DollarSign, Package } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
 import { IOrder } from '@/types/order.interface';
 import { Skeleton } from '../ui/skeleton';
+import {
+    IconPackageOff,
+    IconCheckbox,
+    IconClock,
+    IconPackage,
+} from '@tabler/icons-react';
 
 export default function OrderStats({
     data,
     isLoading,
 }: {
     data: {
-        orders: IOrder[];
+        data: IOrder[];
         pagination: {
             total: number;
         };
     };
     isLoading: boolean;
 }) {
-    console.log(data);
+    console.log(data?.data);
 
     const stats = [
         {
-            title: 'Total Orders',
-            value: !isLoading && data.pagination.total,
-            icon: Package,
-            color: 'from-blue-500 to-blue-600',
+            title: 'Active Orders',
+            value:
+                !isLoading &&
+                data.data.filter((order) =>
+                    ['In Progress', 'In Revision', 'Delivered'].includes(
+                        order.status
+                    )
+                ).length,
+            icon: IconPackage,
+            color: 'from-sky-500 to-blue-600',
             change: '+12%',
         },
         {
-            title: 'Active Orders',
-            value: '23',
-            icon: Clock,
-            color: 'from-amber-500 to-orange-500',
+            title: 'Completed Orders',
+            value:
+                !isLoading &&
+                data.data.filter((order) =>
+                    ['Completed'].includes(order.status)
+                ).length,
+            icon: IconClock,
+            color: 'from-green-500 to-teal-600',
             change: '+8%',
         },
         {
-            title: 'Completed',
-            value: '18',
-            icon: CheckCircle,
-            color: 'from-emerald-500 to-green-600',
+            title: 'Pending Orders',
+            value:
+                !isLoading &&
+                data.data.filter((order) => ['Pending'].includes(order.status))
+                    .length,
+            icon: IconCheckbox,
+            color: 'from-yellow-500 to-orange-500',
             change: '+15%',
         },
         {
-            title: 'Revenue',
-            value: '$12.4k',
-            icon: DollarSign,
-            color: 'from-purple-500 to-pink-500',
+            title: 'Canceled Orders',
+            value:
+                !isLoading &&
+                data.data.filter((order) => ['Canceled'].includes(order.status))
+                    .length,
+            icon: IconPackageOff,
+            color: 'from-orange-500 to-red-600',
             change: '+23%',
         },
     ];

@@ -2,6 +2,7 @@ import {
     IconCancel,
     IconCircleCheck,
     IconLoader,
+    IconPointFilled,
     IconProgress,
     IconProgressCheck,
     IconUserQuestion,
@@ -68,7 +69,7 @@ export const OrderStatusData = [
     {
         id: 'accepted',
         value: 'Accepted',
-        icon: IconProgressCheck,
+        icon: IconPointFilled,
         text: '!text-green-500',
         border: '!border-green-500',
         bg: '!bg-green-50',
@@ -76,7 +77,7 @@ export const OrderStatusData = [
     {
         id: 'Canceled',
         value: 'Canceled',
-        icon: IconCancel,
+        icon: IconPointFilled,
         text: '!text-destructive',
         border: '!border-destructive',
         bg: '!bg-red-50',

@@ -21,8 +21,9 @@ import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
 import toast from 'react-hot-toast';
 import { IOrderService, IOrderType } from '@/types/order.interface';
+import { nanoid } from 'nanoid';
 
-export default function OrderServices({ userId }: { userId: string }) {
+export default function OrderServices({ userID }: { userID: string }) {
     const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
     const [selectedServices, setSelectedServices] = useState<IOrderService[]>(
         []
@@ -125,7 +126,11 @@ export default function OrderServices({ userId }: { userId: string }) {
 
         try {
             const response = await newDraftOrder({
-                data: { userId, services: validServices },
+                data: {
+                    orderID: `USER-${nanoid(10)}`,
+                    userID,
+                    services: validServices,
+                },
             });
 
             if (response?.data?.success && response.data.draftOrderId) {

@@ -28,9 +28,9 @@ export const servicesApi = apiSlice.injectEndpoints({
                 providesTags: ['Services'],
             }),
             getServicesForUser: build.query({
-                query: (userId) => ({
+                query: (userID) => ({
                     url: 'services/get-services-for-user',
-                    params: { userId },
+                    params: { userID },
                 }),
                 providesTags: ['Services'],
             }),

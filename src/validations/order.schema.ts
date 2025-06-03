@@ -25,7 +25,8 @@ export const OrderServiceValidation = z.object({
 });
 
 export const OrderValidation = z.object({
-    userId: z.string().nonempty(),
+    orderID: z.string().nonempty(),
+    userID: z.string().nonempty(),
     services: z.array(OrderServiceValidation).min(1),
     downloadLink: z.string().url().optional(),
     images: z.number().int().min(1).optional(),

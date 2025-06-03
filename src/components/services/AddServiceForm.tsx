@@ -63,11 +63,11 @@ export default function AddServiceForm() {
     const [addService, { isLoading }] = useAddServiceMutation();
     const { data, isLoading: isUserLoading } = useGetUsersWithRoleQuery('User');
 
-    const toggleUser = (userId: string) => {
+    const toggleUser = (userID: string) => {
         setSelectedUsers((prev) =>
-            prev.includes(userId)
-                ? prev.filter((id) => id !== userId)
-                : [...prev, userId]
+            prev.includes(userID)
+                ? prev.filter((id) => id !== userID)
+                : [...prev, userID]
         );
     };
 

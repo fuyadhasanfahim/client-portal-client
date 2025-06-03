@@ -29,7 +29,7 @@ export default async function OrdersPage() {
                 </Link>
             </div>
 
-            <OrderDataTable role={user.role} id={user.userId} />
+            <OrderDataTable role={user.role} id={user.userID} />
         </section>
     );
 }

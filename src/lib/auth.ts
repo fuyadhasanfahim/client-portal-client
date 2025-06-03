@@ -4,7 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConfig from './dbConfig';
 import bcrypt from 'bcryptjs';
 import UserModel from '@/models/user.model';
-import UserIdModel from '@/models/userid.model';
+import { nanoid } from 'nanoid';
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
                     }
 
                     return {
-                        id: user.userId,
+                        id: user.userID,
                         role: user.role!,
                     };
                 } catch (error) {
@@ -85,7 +85,7 @@ export const authOptions: NextAuthOptions = {
 
                 await dbConfig();
                 await UserModel.findOneAndUpdate(
-                    { userId: user.id },
+                    { userID: user.id },
                     {
                         lastLogin: new Date(),
                     }
@@ -97,7 +97,7 @@ export const authOptions: NextAuthOptions = {
             }
 
             if (user) {
-                const db = await UserModel.findOne({ userId: user.id });
+                const db = await UserModel.findOne({ userID: user.id });
                 console.log('database', db);
 
                 token.id = user.id;
@@ -127,14 +127,9 @@ export const authOptions: NextAuthOptions = {
                         'Invalid credentials! Please use credentials to sign in.'
                     );
                 } else if (!existingUser) {
-                    const userId = await UserIdModel.findOneAndUpdate(
-                        { id: 'userId' },
-                        { $inc: { seq: 1 } },
-                        { new: true, upsert: true }
-                    );
 
                     const newUser = await UserModel.create({
-                        userId: userId.seq,
+                        userID: `USER-${nanoid(10)}`,
                         name: user?.name,
                         email: user?.email,
                         username: user?.email?.split('@')[0],
@@ -145,11 +140,11 @@ export const authOptions: NextAuthOptions = {
                         profileImage: user?.image,
                     });
 
-                    user.id = newUser.userId;
+                    user.id = newUser.userID;
                     return true;
                 }
 
-                user.id = existingUser.userId;
+                user.id = existingUser.userID;
             }
 
             return true;

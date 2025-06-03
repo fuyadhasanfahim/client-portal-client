@@ -1,69 +1,134 @@
+'use client';
+
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
-import { Icon } from '@tabler/icons-react';
+import { IconCheck, IconLoader, IconX } from '@tabler/icons-react';
+import { OrderStatusData } from '@/data/orders';
+import { IOrder } from '@/types/order.interface';
+import { Button } from '../ui/button';
+import { useUpdateOrderMutation } from '@/redux/features/orders/ordersApi';
+import ApiError from '../shared/ApiError';
+import toast from 'react-hot-toast';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+interface SelectOrderStatusProps {
+    order: IOrder;
+    role: string;
+    id: string;
+}
 
 export default function SelectOrderStatus({
-    data,
-    status,
-    handleOrderStatusChange,
-    isStatusUpdating,
+    order,
+    role,
     id,
-    disabled,
-}: {
-    data: {
-        id: string;
-        value: string;
-        icon: Icon;
-        text: string;
-        border: string;
-        bg: string;
-    }[];
-    status: string;
-    handleOrderStatusChange: (params: {
-        id: string;
-        data: { orderStatus: string };
-    }) => void;
-    isStatusUpdating?: boolean;
-    id: string;
-    disabled?: boolean;
-}) {
-    const item = data.find((item) => item.value === status);
+}: SelectOrderStatusProps) {
+    const item = OrderStatusData.find(
+        (item) => item.value === order.orderStatus
+    );
+    const [updateOrder, { isLoading }] = useUpdateOrderMutation();
 
+    const handleOrderStatusChange = async ({
+        id,
+        data,
+    }: {
+        id: string;
+        data: { status: string; orderStatus: string };
+    }) => {
+        try {
+            const response = await updateOrder({
+                id,
+                data,
+            }).unwrap();
+
+            if (response.success)
+                toast.success('Order status updated successfully');
+        } catch (error) {
+            ApiError(error);
+        }
+    };
     return (
-        <Select
-            value={status}
-            onValueChange={(newStatus) =>
-                handleOrderStatusChange({
-                    id,
-                    data: { orderStatus: newStatus },
-                })
-            }
-            disabled={isStatusUpdating || disabled}
-        >
-            <SelectTrigger
-                className={cn(item && item.border, item && item.bg)}
-                size="sm"
-            >
-                {(() => {
-                    return item ? (
+        <div className="flex items-center justify-center">
+            {role && role === 'User' ? (
+                <span className="flex items-center justify-center gap-2">
+                    {order.orderStatus === 'Waiting For Approval' ? (
+                        <IconLoader size={16} className="animate-spin" />
+                    ) : (
+                        (() => {
+                            const item = OrderStatusData.find(
+                                (item) => item.value === order.orderStatus
+                            );
+                            return item ? (
+                                <item.icon
+                                    size={16}
+                                    className={cn(item.text)}
+                                />
+                            ) : null;
+                        })()
+                    )}
+                    {order.orderStatus}
+                </span>
+            ) : order.orderStatus === 'Waiting For Approval' ? (
+                <div className="flex items-center gap-2">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={'ghost'}
+                                size={'icon'}
+                                disabled={isLoading}
+                                onClick={() =>
+                                    handleOrderStatusChange({
+                                        id,
+                                        data: {
+                                            status: 'Canceled',
+                                            orderStatus: 'Canceled',
+                                        },
+                                    })
+                                }
+                            >
+                                <IconX className="text-destructive" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Cancel the order</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={'ghost'}
+                                size={'icon'}
+                                disabled={isLoading}
+                                onClick={() =>
+                                    handleOrderStatusChange({
+                                        id,
+                                        data: {
+                                            status: 'In Progress',
+                                            orderStatus: 'Accepted',
+                                        },
+                                    })
+                                }
+                            >
+                                <IconCheck className="text-primary" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Accept the order</TooltipContent>
+                    </Tooltip>
+                </div>
+            ) : (
+                <span
+                    className={cn(
+                        'flex items-center justify-center gap-1',
+                        item && item.text
+                    )}
+                >
+                    {item ? (
                         <item.icon size={16} className={cn(item.text)} />
-                    ) : null;
-                })()}
-                {status}
-            </SelectTrigger>
-            <SelectContent>
-                {data.map((item) => {
-                    return (
-                        <SelectItem key={item.id} value={item.value}>
-                            <item.icon
-                                size={16}
-                                className={cn('w-full', item.text)}
-                            />
-                            {item.value}
-                        </SelectItem>
-                    );
-                })}
-            </SelectContent>
-        </Select>
+                    ) : null}
+                    {order.orderStatus}
+                </span>
+            )}
+        </div>
     );
 }

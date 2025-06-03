@@ -65,7 +65,7 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
         try {
             const response = await newDraftOrder({
                 data: {
-                    orderId: id,
+                    orderID: id,
                     ...data,
                 },
             });

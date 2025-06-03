@@ -37,7 +37,8 @@ const serviceSchema = new Schema(
 
 const orderSchema = new Schema(
     {
-        userId: { type: String, required: true },
+        orderID: { type: String, required: true },
+        userID: { type: String, required: true },
         services: { type: [serviceSchema], required: true },
         downloadLink: { type: String, default: '', trim: true },
         images: { type: Number, default: 0 },

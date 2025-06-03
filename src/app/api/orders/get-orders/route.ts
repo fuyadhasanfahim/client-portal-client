@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.nextUrl);
-        const userId = searchParams.get('user_id') || '';
+        const userID = searchParams.get('user_id') || '';
         const user_role = searchParams.get('user_role') || '';
         const page = parseInt(searchParams.get('page') || '1', 10);
         const quantity = parseInt(searchParams.get('quantity') || '10', 10);
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
         // Role-based access control
         if (user_role === 'User') {
-            query.userId = userId;
+            query.userID = userID;
         } else if (!['Admin', 'SuperAdmin', 'Developer'].includes(user_role)) {
             return NextResponse.json(
                 {
@@ -35,8 +35,9 @@ export async function GET(req: NextRequest) {
         // Search filtering
         if (searchQuery) {
             query.$or = [
-                { name: { $regex: searchQuery, $options: 'i' } },
+                { 'services.name': { $regex: searchQuery, $options: 'i' } },
                 { status: { $regex: searchQuery, $options: 'i' } },
+                { orderStatus: { $regex: searchQuery, $options: 'i' } },
                 { paymentStatus: { $regex: searchQuery, $options: 'i' } },
             ];
         }
@@ -44,7 +45,9 @@ export async function GET(req: NextRequest) {
         // Status filter mapping
         const filterMap: Record<string, string[]> = {
             All: [],
-            Active: ['Pending', 'In Progress', 'Delivered'],
+            Pending: ['Pending'],
+            Active: ['In Progress', 'Delivered'],
+            'In Revision': ['In Revision'],
             Completed: ['Completed'],
             Canceled: ['Canceled'],
         };

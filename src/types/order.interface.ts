@@ -45,7 +45,8 @@ export type OrderOrderStatus =
 
 export interface IOrder {
     _id?: string;
-    userId: string;
+    orderID: string;
+    userID: string;
     services: IOrderService[];
     downloadLink?: string;
     images?: number;

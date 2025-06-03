@@ -65,7 +65,7 @@ export default function RootNewOrderPayment({
                 const res = await fetch('/api/stripe/new-order-checkout', {
                     method: 'POST',
                     body: JSON.stringify({
-                        orderId: id,
+                        orderID: id,
                         paymentOption,
                         paymentMethod,
                     }),
@@ -92,7 +92,7 @@ export default function RootNewOrderPayment({
         try {
             const response = await newDraftOrder({
                 data: {
-                    orderId: id,
+                    orderID: id,
                     paymentOption,
                 },
             });

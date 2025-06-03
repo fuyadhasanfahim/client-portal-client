@@ -22,7 +22,7 @@ import { z } from 'zod';
 type AddServiceFormType = z.infer<typeof addServiceSchema>;
 
 type AccessControlProps = {
-    toggleUser: (userId: string) => void;
+    toggleUser: (userID: string) => void;
     form: UseFormReturn<AddServiceFormType>;
     setSelectedUsers: React.Dispatch<React.SetStateAction<string[]>>;
     accessibleTo: 'All' | 'Custom';
@@ -121,13 +121,13 @@ export default function AccessControl({
 
                         {selectedUsers.length > 0 && (
                             <div className="flex flex-wrap gap-2 p-3 border rounded-lg">
-                                {selectedUsers.map((userId) => {
+                                {selectedUsers.map((userID) => {
                                     const user = data?.data.find(
-                                        (u: IUser) => u.userId === userId
+                                        (u: IUser) => u.userID === userID
                                     );
                                     return (
                                         <Badge
-                                            key={userId}
+                                            key={userID}
                                             variant="outline"
                                             className="border-primary text-primary bg-green-50"
                                         >
@@ -137,7 +137,7 @@ export default function AccessControl({
                                             <button
                                                 type="button"
                                                 onClick={() =>
-                                                    toggleUser(userId)
+                                                    toggleUser(userID)
                                                 }
                                                 className="rounded-full p-0.5 group cursor-pointer"
                                             >
@@ -168,10 +168,10 @@ export default function AccessControl({
                                     ) : (
                                         filteredUsers.map((user: IUser) => (
                                             <div
-                                                key={user.userId}
+                                                key={user.userID}
                                                 className={`p-3 hover:bg-green-50 transition-colors ${
                                                     selectedUsers.includes(
-                                                        user.userId
+                                                        user.userID
                                                     )
                                                         ? 'bg-green-50'
                                                         : ''
@@ -179,18 +179,18 @@ export default function AccessControl({
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <Checkbox
-                                                        id={user.userId}
+                                                        id={user.userID}
                                                         checked={selectedUsers.includes(
-                                                            user.userId!
+                                                            user.userID!
                                                         )}
                                                         onCheckedChange={() =>
                                                             toggleUser(
-                                                                user.userId
+                                                                user.userID
                                                             )
                                                         }
                                                     />
                                                     <Label
-                                                        htmlFor={user.userId}
+                                                        htmlFor={user.userID}
                                                         className="flex flex-col items-start cursor-pointer w-full"
                                                     >
                                                         <span className="text-sm font-medium text-slate-800">

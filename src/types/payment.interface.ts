@@ -1,6 +1,6 @@
 export default interface IPayment {
-    userId: string;
-    orderId: string;
+    userID: string;
+    orderID: string;
     paymentOption: string;
     paymentIntentId?: string;
     customerId?: string;

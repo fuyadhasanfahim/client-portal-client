@@ -39,7 +39,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                     params: {
                         page,
                         quantity,
-                        searchQuery: query,
+                        searchQuery,
                         user_id,
                         user_role,
                         filter,
@@ -49,7 +49,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                     params: {
                         page,
                         quantity,
-                        searchQuery: query,
+                        searchQuery,
                         user_id,
                         user_role,
                         filter,

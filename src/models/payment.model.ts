@@ -3,12 +3,12 @@ import { model, models, Schema } from 'mongoose';
 
 const paymentSchema = new Schema<IPayment>(
     {
-        userId: {
+        userID: {
             type: String,
             ref: 'User',
             required: true,
         },
-        orderId: { type: String, ref: 'Order', required: true, unique: true },
+        orderID: { type: String, ref: 'Order', required: true, unique: true },
         paymentOption: { type: String, required: true },
         paymentIntentId: { type: String },
         customerId: { type: String },

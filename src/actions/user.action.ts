@@ -10,7 +10,7 @@ export async function getUserData() {
     await dbConfig();
 
     const userData = await UserModel.findOne({
-        userId: session?.user?.id,
+        userID: session?.user?.id,
     }).select('-password');
 
     return userData;

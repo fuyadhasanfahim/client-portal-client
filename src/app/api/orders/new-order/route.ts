@@ -10,12 +10,12 @@ const OrderServicesValidation = z.object({
 
 export async function POST(req: NextRequest) {
     try {
-        await dbConfig();
         const body = await req.json();
+
         const {
             userId,
             services,
-            orderId,
+            orderID,
             downloadLink,
             images,
             returnFileFormat,
@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
             paymentOption,
         } = body.data;
 
-        if (!orderId) {
+        await dbConfig();
+
+        if (!orderID) {
             const parsed = OrderServicesValidation.safeParse({ services });
 
             if (!parsed.success) {
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const order = await OrderModel.findById(orderId);
+        const order = await OrderModel.findById(orderID);
         if (!order) {
             return NextResponse.json(
                 { success: false, message: 'Order not found' },
@@ -111,7 +113,7 @@ export async function POST(req: NextRequest) {
                 {
                     success: true,
                     message: 'Order details saved',
-                    orderId: order._id.toString(),
+                    orderID: order._id.toString(),
                 },
                 { status: 200 }
             );
@@ -126,7 +128,7 @@ export async function POST(req: NextRequest) {
                 {
                     success: true,
                     message: 'Order total saved',
-                    orderId: order._id.toString(),
+                    orderID: order._id.toString(),
                 },
                 { status: 200 }
             );
@@ -141,7 +143,7 @@ export async function POST(req: NextRequest) {
                 {
                     success: true,
                     message: 'Payment option saved as Pay Later',
-                    orderId: order._id.toString(),
+                    orderID: order._id.toString(),
                 },
                 { status: 200 }
             );

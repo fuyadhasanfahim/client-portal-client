@@ -6,7 +6,6 @@ import {
     ChevronLeft,
     ChevronRight,
     EyeIcon,
-    Download,
     Funnel,
     NotebookText,
 } from 'lucide-react';
@@ -28,17 +27,10 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import {
-    useGetOrdersQuery,
-    useUpdateOrderMutation,
-} from '@/redux/features/orders/ordersApi';
+import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
-import toast from 'react-hot-toast';
-import ApiError from '../shared/ApiError';
-import SelectStatus from './SelectStatus';
 import { cn } from '@/lib/utils';
-import { IconLoader } from '@tabler/icons-react';
-import { OrderStatusData, statusData } from '@/data/orders';
+import { statusData } from '@/data/orders';
 import Link from 'next/link';
 import OrderStats from './OrderStats';
 import SelectOrderStatus from './SelectOrderStatus';
@@ -66,8 +58,6 @@ export default function OrderDataTable({
             filter,
         },
     });
-    const [updateOrder, { isLoading: isStatusUpdating }] =
-        useUpdateOrderMutation();
 
     const orders = !isLoading && data.data;
     const pagination = !isLoading && data.pagination;
@@ -75,68 +65,6 @@ export default function OrderDataTable({
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setCurrentPage(1);
-    };
-
-    const handleStatusChange = async ({
-        id,
-        data,
-    }: {
-        id: string;
-        data: { status: string };
-    }) => {
-        try {
-            let response;
-            if (data.status === 'Canceled') {
-                response = await updateOrder({
-                    id,
-                    data: { status: data.status, orderStatus: 'Canceled' },
-                }).unwrap();
-            }
-
-            response = await updateOrder({
-                id,
-                data: { status: data.status },
-            }).unwrap();
-            if (response.success)
-                toast.success('Order status updated successfully');
-        } catch (error) {
-            ApiError(error);
-        }
-    };
-
-    const handleOrderStatusChange = async ({
-        id,
-        data,
-    }: {
-        id: string;
-        data: { orderStatus: string };
-    }) => {
-        try {
-            let response;
-
-            if (data.orderStatus === 'Canceled') {
-                response = await updateOrder({
-                    id,
-                    data: { orderStatus: data.orderStatus, status: 'Canceled' },
-                }).unwrap();
-            }
-
-            if (data.orderStatus === 'Accepted') {
-                response = await updateOrder({
-                    id,
-                    data: { orderStatus: data.orderStatus, status: 'Pending' },
-                }).unwrap();
-            }
-
-            response = await updateOrder({
-                id,
-                data: { orderStatus: data.orderStatus },
-            }).unwrap();
-            if (response.success)
-                toast.success('Order status updated successfully');
-        } catch (error) {
-            ApiError(error);
-        }
     };
 
     return (
@@ -157,11 +85,6 @@ export default function OrderDataTable({
                 </form>
 
                 <div className="flex items-center gap-4">
-                    <Button variant={'secondary'}>
-                        <Download />
-                        Export
-                    </Button>
-
                     <div className="flex flex-wrap gap-4">
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -178,7 +101,9 @@ export default function OrderDataTable({
                                 <SelectContent>
                                     {[
                                         'All',
+                                        'Pending',
                                         'Active',
+                                        'In Revision',
                                         'Completed',
                                         'Canceled',
                                     ].map((val) => (
@@ -231,7 +156,7 @@ export default function OrderDataTable({
                                 'Services',
                                 'Total ($)',
                                 'Payment ($)',
-                                'Status',
+                                'Working Status',
                                 'Order Status',
                                 'Actions',
                             ].map((title, idx) => (
@@ -270,155 +195,128 @@ export default function OrderDataTable({
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            orders.map((order: IOrder, index: number) => (
-                                <TableRow
-                                    key={index}
-                                    className="hover:bg-muted/50"
-                                >
-                                    <TableCell className="text-center font-medium border-r">
-                                        <Link
-                                            href={`/orders/details?id=${order._id}&status=${order.status}`}
-                                            className="text-primary underline"
-                                        >
-                                            #{order._id}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell
-                                        className={cn(
-                                            'text-center text-sm border-r',
-                                            order.orderStatus === 'Canceled' &&
-                                                'cursor-not-allowed text-destructive'
-                                        )}
+                            orders.map((order: IOrder, index: number) => {
+                                const item = statusData.find(
+                                    (item) => item.value === order.status
+                                );
+
+                                return (
+                                    <TableRow
+                                        key={index}
+                                        className="hover:bg-muted/50"
                                     >
-                                        {order.userId}
-                                    </TableCell>
-                                    <TableCell
-                                        className={cn(
-                                            'text-start text-sm border-r',
-                                            order.orderStatus === 'Canceled' &&
-                                                'cursor-not-allowed text-destructive'
-                                        )}
-                                    >
-                                        <ul className="list-decimal list-inside space-y-1">
-                                            {order.services.map((service) => (
-                                                <li key={service.name}>
-                                                    {service.name}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </TableCell>
-                                    <TableCell
-                                        className={cn(
-                                            'text-center text-sm border-r',
-                                            order.orderStatus === 'Canceled' &&
-                                                'cursor-not-allowed text-destructive'
-                                        )}
-                                    >
-                                        ${order.total?.toFixed(2) || 0}
-                                    </TableCell>
-                                    <TableCell
-                                        className={cn(
-                                            'text-center text-sm border-r',
-                                            order.orderStatus === 'Canceled' &&
-                                                'cursor-not-allowed text-destructive'
-                                        )}
-                                    >
-                                        <OrderPaymentStatus
-                                            paymentStatus={order.paymentStatus}
-                                        />
-                                    </TableCell>
-                                    <TableCell
-                                        className={cn(
-                                            'text-center text-sm border-r',
-                                            order.orderStatus === 'Canceled' &&
-                                                'cursor-not-allowed text-destructive'
-                                        )}
-                                    >
-                                        <span className="flex items-center justify-center">
-                                            <SelectStatus
-                                                disabled={
+                                        <TableCell className="text-center font-medium border-r">
+                                            <Link
+                                                href={`/orders/details?id=${order._id}&status=${order.status}`}
+                                                className={cn(
+                                                    'text-primary underline',
                                                     order.orderStatus ===
-                                                    'Waiting For Approval'
-                                                }
-                                                data={statusData}
-                                                handleUpdateStatus={
-                                                    handleStatusChange
-                                                }
-                                                id={order._id!}
-                                                status={order.status}
-                                                isStatusUpdating={
-                                                    isStatusUpdating
-                                                }
-                                                role={role}
-                                            />
-                                        </span>
-                                    </TableCell>
-                                    <TableCell
-                                        className={cn(
-                                            'text-center text-sm border-r',
-                                            role === 'User' &&
+                                                        'Canceled' &&
+                                                        'text-destructive'
+                                                )}
+                                            >
+                                                #{order._id}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
                                                 order.orderStatus ===
                                                     'Canceled' &&
-                                                'cursor-not-allowed text-destructive'
-                                        )}
-                                    >
-                                        {role && role === 'User' ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                {order.orderStatus ===
-                                                'Waiting For Approval' ? (
-                                                    <IconLoader
-                                                        size={16}
-                                                        className="animate-spin"
-                                                    />
-                                                ) : (
-                                                    (() => {
-                                                        const item =
-                                                            OrderStatusData.find(
-                                                                (item) =>
-                                                                    item.value ===
-                                                                    order.orderStatus
-                                                            );
-                                                        return item ? (
-                                                            <item.icon
-                                                                size={16}
-                                                                className={cn(
-                                                                    item.text
-                                                                )}
-                                                            />
-                                                        ) : null;
-                                                    })()
-                                                )}
-                                                {order.orderStatus}
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center justify-center">
-                                                <SelectOrderStatus
-                                                    data={OrderStatusData}
-                                                    handleOrderStatusChange={
-                                                        handleOrderStatusChange
-                                                    }
-                                                    id={order._id!}
-                                                    status={order.orderStatus}
-                                                    isStatusUpdating={
-                                                        isStatusUpdating
-                                                    }
-                                                />
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Link
-                                            href={`/orders/details?order_id=${order._id!}`}
-                                            className="flex items-center justify-center gap-2 group"
+                                                    'text-destructive'
+                                            )}
                                         >
-                                            <EyeIcon size={20} />{' '}
-                                            <span className="group-hover:underline cursor-pointer">
-                                                Details
+                                            {order.userID}
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-start text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            <ul className="list-decimal list-inside space-y-1">
+                                                {order.services.map(
+                                                    (service) => (
+                                                        <li key={service.name}>
+                                                            {service.name}
+                                                        </li>
+                                                    )
+                                                )}
+                                            </ul>
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            ${order.total?.toFixed(2) || 0}
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            <OrderPaymentStatus
+                                                paymentStatus={
+                                                    order.paymentStatus
+                                                }
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-center text-sm border-r">
+                                            <span
+                                                className={cn(
+                                                    'flex items-center justify-center gap-1',
+                                                    item && item.text
+                                                )}
+                                            >
+                                                {item ? (
+                                                    <item.icon
+                                                        size={16}
+                                                        className={cn(
+                                                            item.text
+                                                        )}
+                                                    />
+                                                ) : null}
+                                                {order.status}
                                             </span>
-                                        </Link>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
+                                                role === 'User' &&
+                                                    order.orderStatus ===
+                                                        'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            <SelectOrderStatus
+                                                order={order}
+                                                role={role}
+                                                id={order._id!}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Link
+                                                href={`/orders/details?order_id=${order._id!}`}
+                                                className="flex items-center justify-center gap-1 group"
+                                            >
+                                                <EyeIcon size={20} />
+                                                <span className="group-hover:underline cursor-pointer">
+                                                    Details
+                                                </span>
+                                            </Link>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
                         )}
                     </TableBody>
                 </Table>

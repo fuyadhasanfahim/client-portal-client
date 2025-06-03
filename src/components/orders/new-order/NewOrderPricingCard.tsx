@@ -95,7 +95,7 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
         try {
             const response = await newDraftOrder({
                 data: {
-                    orderId: order._id,
+                    orderID: order._id,
                     total,
                 },
             });

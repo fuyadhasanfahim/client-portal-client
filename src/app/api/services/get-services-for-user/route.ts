@@ -9,9 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const userId = searchParams.get('userId');
+        const userID = searchParams.get('userID');
 
-        if (!userId) {
+        if (!userID) {
             return NextResponse.json(
                 {
                     success: false,
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
         await dbConfig();
 
-        const user = await UserModel.findOne({ userId });
+        const user = await UserModel.findOne({ userID });
 
         if (!user) {
             return NextResponse.json(
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
             if (service.accessibleTo === 'All') {
                 return true;
             }
-            return service.accessList?.some((list: string) => list === userId);
+            return service.accessList?.some((list: string) => list === userID);
         });
 
         return NextResponse.json(

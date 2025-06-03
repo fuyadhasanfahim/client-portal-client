@@ -112,11 +112,11 @@ export default function EditServicePage() {
         }
     }, [fields.length, selectedUsers, accessibleTo, form]);
 
-    const toggleUser = (userId: string) => {
+    const toggleUser = (userID: string) => {
         setSelectedUsers((prev) =>
-            prev.includes(userId)
-                ? prev.filter((id) => id !== userId)
-                : [...prev, userId]
+            prev.includes(userID)
+                ? prev.filter((id) => id !== userID)
+                : [...prev, userID]
         );
     };
 
@@ -489,16 +489,16 @@ export default function EditServicePage() {
 
                                         {selectedUsers.length > 0 && (
                                             <div className="flex flex-wrap gap-2 p-3 border rounded-lg">
-                                                {selectedUsers.map((userId) => {
+                                                {selectedUsers.map((userID) => {
                                                     const user =
                                                         userData?.data.find(
                                                             (u: IUser) =>
-                                                                u.userId ===
-                                                                userId
+                                                                u.userID ===
+                                                                userID
                                                         );
                                                     return (
                                                         <Badge
-                                                            key={userId}
+                                                            key={userID}
                                                             variant="outline"
                                                             className="border-primary text-primary bg-green-50"
                                                         >
@@ -509,7 +509,7 @@ export default function EditServicePage() {
                                                                 type="button"
                                                                 onClick={() =>
                                                                     toggleUser(
-                                                                        userId
+                                                                        userID
                                                                     )
                                                                 }
                                                                 className="rounded-full p-0.5 group cursor-pointer"
@@ -545,11 +545,11 @@ export default function EditServicePage() {
                                                             (user: IUser) => (
                                                                 <div
                                                                     key={
-                                                                        user.userId
+                                                                        user.userID
                                                                     }
                                                                     className={`p-3 hover:bg-green-50 transition-colors ${
                                                                         selectedUsers.includes(
-                                                                            user.userId
+                                                                            user.userID
                                                                         )
                                                                             ? 'bg-green-50'
                                                                             : ''
@@ -558,20 +558,20 @@ export default function EditServicePage() {
                                                                     <div className="flex items-center gap-3">
                                                                         <Checkbox
                                                                             id={
-                                                                                user.userId
+                                                                                user.userID
                                                                             }
                                                                             checked={selectedUsers.includes(
-                                                                                user.userId!
+                                                                                user.userID!
                                                                             )}
                                                                             onCheckedChange={() =>
                                                                                 toggleUser(
-                                                                                    user.userId
+                                                                                    user.userID
                                                                                 )
                                                                             }
                                                                         />
                                                                         <Label
                                                                             htmlFor={
-                                                                                user.userId
+                                                                                user.userID
                                                                             }
                                                                             className="flex flex-col items-start cursor-pointer w-full"
                                                                         >

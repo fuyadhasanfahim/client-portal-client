@@ -37,13 +37,13 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const metadata = session.metadata;
 
-        if (!metadata?.orderId || !metadata?.userId) {
+        if (!metadata?.orderID || !metadata?.userID) {
             return new Response('Missing metadata in session', { status: 400 });
         }
 
         const {
-            orderId,
-            userId,
+            orderID,
+            userID,
             paymentOption = 'stripe',
             paymentMethod = 'card',
         } = metadata;
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         try {
             await dbConfig();
 
-            await OrderModel.findByIdAndUpdate(orderId, {
+            await OrderModel.findByIdAndUpdate(orderID, {
                 isPaid: true,
                 paymentStatus: 'Paid',
                 paymentOption,
@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
             });
 
             await PaymentModel.create({
-                userId,
-                orderId,
+                userID,
+                orderID,
                 paymentOption,
                 paymentMethod,
                 paymentIntentId: session.payment_intent?.toString(),
@@ -73,17 +73,17 @@ export async function POST(req: NextRequest) {
                 status: session.payment_status,
             });
 
-            const user = await UserModel.findOne({ userId });
+            const user = await UserModel.findOne({ userID });
             if (user?.email) {
                 await sendEmail({
                     from: process.env.EMAIL_USER!,
                     to: process.env.EMAIL_USER!,
-                    subject: `✅ Payment Completed - Order #${orderId}`,
+                    subject: `✅ Payment Completed - Order #${orderID}`,
                     html: `
                         <div style="font-family: Arial, sans-serif; font-size: 15px;">
                             <h2>New Order Fulfilled</h2>
-                            <p><strong>User ID:</strong> ${userId}</p>
-                            <p><strong>Order ID:</strong> ${orderId}</p>
+                            <p><strong>User ID:</strong> ${userID}</p>
+                            <p><strong>Order ID:</strong> ${orderID}</p>
                             <p>Order has been marked as <strong>Paid</strong> and processed via Stripe.</p>
                         </div>
                     `,

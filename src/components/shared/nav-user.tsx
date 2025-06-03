@@ -37,8 +37,12 @@ export function NavUser({
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer rounded-full p-1"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer rounded-full p-1 pl-3"
                         >
+                            <div className='-space-y-1'>
+                                <h3 className="text-lg">{user?.name}</h3>
+                                <p className='text-xs'>{user?.email}</p>
+                            </div>
                             <Avatar className="size-10 rounded-full">
                                 <AvatarImage
                                     src={user?.profileImage}
