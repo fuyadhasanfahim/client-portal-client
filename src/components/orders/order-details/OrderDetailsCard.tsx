@@ -15,7 +15,7 @@ export default function OrderDetailsCard({ order }: { order: IOrder }) {
                         <h4>
                             <strong>Order ID:</strong>
                         </h4>
-                        <p>{order._id!}</p>
+                        <p>{order.orderID!}</p>
                     </div>
 
                     <div className="flex items-center gap-6">
