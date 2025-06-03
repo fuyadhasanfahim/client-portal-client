@@ -134,9 +134,16 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                     </FormLabel>
                                     <FormControl>
                                         <Input
+                                            placeholder="Enter Image count"
                                             type="number"
-                                            placeholder="Enter image count"
-                                            {...field}
+                                            value={field.value || ''}
+                                            step="1"
+                                            min="0"
+                                            onChange={(e) =>
+                                                field.onChange(
+                                                    Number(e.target.value)
+                                                )
+                                            }
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -270,11 +277,26 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                     name="width"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Width</FormLabel>
+                                            <FormLabel>
+                                                Width{' '}
+                                                <span className="text-xs text-destructive">
+                                                    (px)
+                                                </span>
+                                            </FormLabel>
                                             <FormControl>
                                                 <Input
+                                                    placeholder="Enter Width"
                                                     type="number"
-                                                    {...field}
+                                                    value={field.value || ''}
+                                                    step="1"
+                                                    min="0"
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            Number(
+                                                                e.target.value
+                                                            )
+                                                        )
+                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -286,11 +308,26 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                     name="height"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Height</FormLabel>
+                                            <FormLabel>
+                                                Height{' '}
+                                                <span className="text-xs text-destructive">
+                                                    (px)
+                                                </span>
+                                            </FormLabel>
                                             <FormControl>
                                                 <Input
+                                                    placeholder="Enter Height"
                                                     type="number"
-                                                    {...field}
+                                                    value={field.value || ''}
+                                                    step="1"
+                                                    min="0"
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            Number(
+                                                                e.target.value
+                                                            )
+                                                        )
+                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -311,6 +348,7 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                     <FormControl>
                                         <Input
                                             placeholder="Enter the supporting file link"
+                                            required={false}
                                             {...field}
                                         />
                                     </FormControl>
