@@ -11,7 +11,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
-            newDraftOrder: build.mutation({
+            newOrder: build.mutation({
                 query: (data) => ({
                     url: `orders/new-order`,
                     method: 'POST',
@@ -20,18 +20,11 @@ export const ordersApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Orders'],
             }),
             getOrder: build.query({
-                query: ({ id, orderStatus, status }) => {
-                    const params = new URLSearchParams();
-
-                    if (id) params.append('id', id);
-                    if (orderStatus) params.append('order-status', orderStatus);
-                    if (status) params.append('status', status);
-
-                    return {
-                        url: `orders/get-order?${params.toString()}`,
-                        method: 'GET',
-                    };
-                },
+                query: (params) => ({
+                    url: 'orders/get-order',
+                    method: 'GET',
+                    params,
+                }),
                 providesTags: ['Orders'],
             }),
             getOrders: build.query({
@@ -71,7 +64,7 @@ export const ordersApi = apiSlice.injectEndpoints({
 
 export const {
     useAddOrderMutation,
-    useNewDraftOrderMutation,
+    useNewOrderMutation,
     useGetOrderQuery,
     useGetOrdersQuery,
     useUpdateOrderMutation,

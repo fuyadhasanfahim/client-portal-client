@@ -23,11 +23,9 @@ export default function RootNewOrderReview({
     const { id } = use(params);
     const router = useRouter();
     const { data, isLoading, isError } = useGetOrderQuery({
-        id,
-        orderStatus: 'Waiting For Approval',
+        order_id: id,
+        order_status: 'Waiting For Approval',
     });
-
-    console.log(data);
 
     let content;
 
@@ -72,7 +70,9 @@ export default function RootNewOrderReview({
                 </CardContent>
             </Card>
         );
-    } else if (!isLoading && !isError && !data) {
+    }
+
+    if (!isLoading && !isError && !data) {
         content = (
             <Card className="max-w-2xl mx-auto">
                 <CardContent className="flex items-center justify-center h-full">
@@ -80,7 +80,9 @@ export default function RootNewOrderReview({
                 </CardContent>
             </Card>
         );
-    } else {
+    }
+
+    if (!isLoading && !isError && data) {
         content = <NewOrderPricingCard order={data.data} />;
     }
 

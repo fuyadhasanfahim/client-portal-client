@@ -18,7 +18,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
-import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
+import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
 import { useRouter } from 'next/navigation';
 
@@ -84,13 +84,13 @@ export default function RootNewOrderPayment({
         process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
     );
 
-    const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+    const [newOrder, { isLoading }] = useNewOrderMutation();
 
     const router = useRouter();
 
     const handlePayment = async () => {
         try {
-            const response = await newDraftOrder({
+            const response = await newOrder({
                 data: {
                     orderID: id,
                     paymentOption,

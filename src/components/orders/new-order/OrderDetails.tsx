@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
-import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
+import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
 import { useRouter } from 'next/navigation';
@@ -59,11 +59,11 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
 
     const router = useRouter();
 
-    const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+    const [newOrder, { isLoading }] = useNewOrderMutation();
 
     const onSubmit = async (data: z.infer<typeof NewOrderDetailsSchema>) => {
         try {
-            const response = await newDraftOrder({
+            const response = await newOrder({
                 data: {
                     orderID: id,
                     ...data,

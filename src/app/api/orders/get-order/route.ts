@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
-        const id = req.nextUrl.searchParams.get('id');
-        const orderStatus = req.nextUrl.searchParams.get('order-status');
-        const status = req.nextUrl.searchParams.get('status');
+        const { searchParams } = new URL(req.nextUrl);
+        const orderID = searchParams.get('order_id');
+        const orderStatus = searchParams.get('order_status');
+        const status = searchParams.get('status');
 
         await dbConfig();
 
@@ -16,14 +17,14 @@ export async function GET(req: NextRequest) {
 
         if (orderStatus) {
             order = await OrderModel.findOne({
-                _id: id,
+                orderID: orderID,
                 orderStatus,
             });
         }
 
         if (status) {
             order = await OrderModel.findOne({
-                _id: id,
+                orderID: orderID,
                 status,
             });
         }

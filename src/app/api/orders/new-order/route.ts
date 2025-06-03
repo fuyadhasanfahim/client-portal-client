@@ -3,6 +3,7 @@ import dbConfig from '@/lib/dbConfig';
 import OrderModel from '@/models/order.model';
 import { z } from 'zod';
 import { OrderServiceValidation } from '@/validations/order.schema';
+import { nanoid } from 'nanoid';
 
 const OrderServicesValidation = z.object({
     services: z.array(OrderServiceValidation).min(1),
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         const {
-            userId,
+            userID,
             services,
             orderID,
             downloadLink,
@@ -33,7 +34,6 @@ export async function POST(req: NextRequest) {
 
         if (!orderID) {
             const parsed = OrderServicesValidation.safeParse({ services });
-
             if (!parsed.success) {
                 return NextResponse.json(
                     {
@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
             }
 
             const newOrder = await OrderModel.create({
-                userId,
+                orderID: `ORDER-${nanoid(10)}`,
+                userID,
                 services,
                 status: 'Pending',
                 orderStatus: 'Awaiting For Details',
@@ -56,13 +57,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: true,
-                    draftOrderId: newOrder._id.toString(),
+                    draftOrderId: newOrder.orderID,
                 },
                 { status: 201 }
             );
         }
+        console.log(orderID)
 
-        const order = await OrderModel.findById(orderID);
+        const order = await OrderModel.findOne({ orderID });
+        console.log(order)
+
         if (!order) {
             return NextResponse.json(
                 { success: false, message: 'Order not found' },
@@ -113,7 +117,7 @@ export async function POST(req: NextRequest) {
                 {
                     success: true,
                     message: 'Order details saved',
-                    orderID: order._id.toString(),
+                    orderID: order.orderID,
                 },
                 { status: 200 }
             );
@@ -128,7 +132,7 @@ export async function POST(req: NextRequest) {
                 {
                     success: true,
                     message: 'Order total saved',
-                    orderID: order._id.toString(),
+                    orderID: order.orderID,
                 },
                 { status: 200 }
             );
@@ -143,7 +147,7 @@ export async function POST(req: NextRequest) {
                 {
                     success: true,
                     message: 'Payment option saved as Pay Later',
-                    orderID: order._id.toString(),
+                    orderID: order.orderID,
                 },
                 { status: 200 }
             );
@@ -154,7 +158,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (error) {
-        console.log(error);
+        console.log(error)
         return NextResponse.json(
             {
                 success: false,

@@ -17,14 +17,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ArrowRightIcon, CircleAlert, Loader2, Trash2 } from 'lucide-react';
 import services from '@/data/services';
-import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
+import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
 import toast from 'react-hot-toast';
 import { IOrderService, IOrderType } from '@/types/order.interface';
-import { nanoid } from 'nanoid';
 
 export default function OrderServices({ userID }: { userID: string }) {
-    const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+    const [newOrder, { isLoading }] = useNewOrderMutation();
     const [selectedServices, setSelectedServices] = useState<IOrderService[]>(
         []
     );
@@ -125,9 +124,8 @@ export default function OrderServices({ userID }: { userID: string }) {
         }
 
         try {
-            const response = await newDraftOrder({
+            const response = await newOrder({
                 data: {
-                    orderID: `USER-${nanoid(10)}`,
                     userID,
                     services: validServices,
                 },

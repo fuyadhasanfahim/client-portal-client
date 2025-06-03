@@ -10,7 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useNewDraftOrderMutation } from '@/redux/features/orders/ordersApi';
+import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
 import { useRouter } from 'next/navigation';
 
@@ -89,19 +89,19 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
         total += resizingFee;
     }
 
-    const [newDraftOrder, { isLoading }] = useNewDraftOrderMutation();
+    const [newOrder, { isLoading }] = useNewOrderMutation();
 
     const handleTotal = async () => {
         try {
-            const response = await newDraftOrder({
+            const response = await newOrder({
                 data: {
-                    orderID: order._id,
+                    orderID: order.orderID,
                     total,
                 },
             });
 
             if (response?.data?.success) {
-                router.push(`/orders/new-order/${order._id}/payment`);
+                router.push(`/orders/new-order/${order.orderID}/payment`);
             }
         } catch (error) {
             ApiError(error);

@@ -5,8 +5,9 @@ const UserSchema: Schema = new Schema<IUser>(
     {
         userID: {
             type: String,
-            unique: true,
             required: true,
+            unique: true,
+            index: true,
         },
         name: { type: String, required: true },
         username: { type: String, required: true, unique: true },
