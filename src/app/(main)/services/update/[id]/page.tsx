@@ -70,8 +70,6 @@ export default function EditServicePage() {
 
     useEffect(() => {
         if (data && !isLoading) {
-            console.log(data.data);
-
             form.reset({
                 name: data.data.name,
                 status: data.data.status,

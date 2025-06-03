@@ -37,7 +37,6 @@ export default function SigninForm() {
 
     const onSubmit = async (data: z.infer<typeof SigninSchema>) => {
         try {
-            console.log(data);
             const response = await signIn('credentials', {
                 ...data,
                 redirect: false,

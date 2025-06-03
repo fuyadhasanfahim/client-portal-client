@@ -51,10 +51,10 @@ export const ordersApi = apiSlice.injectEndpoints({
                 providesTags: ['Orders'],
             }),
             updateOrder: build.mutation({
-                query: ({ id, data }) => ({
+                query: ({ orderID, data }) => ({
                     url: `orders/update-order`,
                     method: 'PUT',
-                    body: { id, data },
+                    body: { orderID, data },
                 }),
                 invalidatesTags: ['Orders'],
             }),

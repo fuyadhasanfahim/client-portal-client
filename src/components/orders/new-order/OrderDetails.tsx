@@ -36,6 +36,17 @@ import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
 import { useRouter } from 'next/navigation';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { IconCalendar } from '@tabler/icons-react';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 type OrderDetailsProps = {
     id: string;
@@ -54,6 +65,7 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
             height: 0,
             instructions: '',
             supportingFileDownloadLink: '',
+            deliveryDate: new Date(),
         },
     });
 
@@ -146,6 +158,117 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                             }
                                         />
                                     </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="deliveryDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col gap-2">
+                                    <FormLabel>Delivery Date & Time</FormLabel>
+
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'pl-3 text-left font-normal',
+                                                        !field.value &&
+                                                            'text-muted-foreground'
+                                                    )}
+                                                >
+                                                    {field.value ? (
+                                                        format(
+                                                            field.value,
+                                                            'PPPp'
+                                                        )
+                                                    ) : (
+                                                        <span>
+                                                            Pick a date & time
+                                                        </span>
+                                                    )}
+                                                    <IconCalendar className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+
+                                        <PopoverContent
+                                            className="space-y-2"
+                                        >
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={(date) => {
+                                                    const current =
+                                                        field.value ||
+                                                        new Date();
+                                                    const newDate = new Date(
+                                                        date!
+                                                    );
+                                                    newDate.setHours(
+                                                        current.getHours()
+                                                    );
+                                                    newDate.setMinutes(
+                                                        current.getMinutes()
+                                                    );
+                                                    field.onChange(newDate);
+                                                }}
+                                                disabled={(date) =>
+                                                    date <
+                                                    new Date(
+                                                        new Date().setHours(
+                                                            0,
+                                                            0,
+                                                            0,
+                                                            0
+                                                        )
+                                                    )
+                                                }
+                                                initialFocus
+                                            />
+                                            <Separator />
+                                            <div className="flex items-center gap-2">
+                                                <Label className="text-sm">
+                                                    Time:
+                                                </Label>
+                                                <Input
+                                                    type="time"
+                                                    className="text-sm"
+                                                    value={
+                                                        field.value
+                                                            ? format(
+                                                                  field.value,
+                                                                  'HH:mm'
+                                                              )
+                                                            : ''
+                                                    }
+                                                    onChange={(e) => {
+                                                        const [hours, minutes] =
+                                                            e.target.value.split(
+                                                                ':'
+                                                            );
+                                                        const updated =
+                                                            new Date(
+                                                                field.value ||
+                                                                    new Date()
+                                                            );
+                                                        updated.setHours(
+                                                            +hours
+                                                        );
+                                                        updated.setMinutes(
+                                                            +minutes
+                                                        );
+                                                        field.onChange(updated);
+                                                    }}
+                                                />
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+
                                     <FormMessage />
                                 </FormItem>
                             )}

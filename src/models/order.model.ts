@@ -88,6 +88,10 @@ const orderSchema = new Schema(
             required: true,
             default: 'Pending',
         },
+        deliveryDate: {
+            type: Date,
+            required: true,
+        },
         orderStatus: {
             type: String,
             enum: [

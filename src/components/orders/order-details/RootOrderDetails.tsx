@@ -4,15 +4,19 @@ import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
 import OrderDetailsCard from './OrderDetailsCard';
 
 export default function RootOrderDetails({
-    id,
-    status,
+    orderID,
+    user,
 }: {
-    id: string;
-    status: string;
+    orderID: string;
+    user: {
+        userID: string;
+        name: string;
+        role: string;
+        profileImage: string;
+    };
 }) {
     const { data, isLoading, isError } = useGetOrderQuery({
-        id,
-        status,
+        order_id: orderID,
     });
 
     let content;
@@ -24,7 +28,7 @@ export default function RootOrderDetails({
         content = <p>Order not found.</p>;
     }
     if (!isLoading && !isError && data) {
-        content = <OrderDetailsCard order={data.data} />;
+        content = <OrderDetailsCard order={data.data} user={user} />;
     }
 
     return content;

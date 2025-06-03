@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
             userID,
             services,
             orderID,
+            deliveryDate,
             downloadLink,
             images,
             returnFileFormat,
@@ -62,10 +63,8 @@ export async function POST(req: NextRequest) {
                 { status: 201 }
             );
         }
-        console.log(orderID)
 
         const order = await OrderModel.findOne({ orderID });
-        console.log(order)
 
         if (!order) {
             return NextResponse.json(
@@ -79,7 +78,8 @@ export async function POST(req: NextRequest) {
             typeof images === 'number' ||
             returnFileFormat ||
             backgroundOption ||
-            instructions;
+            instructions ||
+            deliveryDate;
 
         if (isDetailsStep) {
             if (
@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
                 typeof images !== 'number' ||
                 !returnFileFormat ||
                 !backgroundOption ||
-                !instructions
+                !instructions ||
+                !deliveryDate
             ) {
                 return NextResponse.json(
                     {
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
             }
 
             Object.assign(order, {
+                deliveryDate,
                 downloadLink,
                 images,
                 returnFileFormat,
@@ -158,7 +160,6 @@ export async function POST(req: NextRequest) {
             { status: 400 }
         );
     } catch (error) {
-        console.log(error)
         return NextResponse.json(
             {
                 success: false,

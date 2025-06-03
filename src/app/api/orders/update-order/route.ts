@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json();
-        const { id, data } = body;
+        const { orderID, data } = body;
 
-        if (!id || !data) {
+        if (!orderID || !data) {
             return NextResponse.json(
                 {
                     success: false,
@@ -21,7 +21,7 @@ export async function PUT(req: NextRequest) {
 
         await dbConfig();
 
-        await OrderModel.findByIdAndUpdate(id, data);
+        await OrderModel.findOneAndUpdate({ orderID }, data);
 
         return NextResponse.json(
             {

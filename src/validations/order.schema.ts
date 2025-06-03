@@ -41,6 +41,7 @@ export const OrderValidation = z.object({
     paymentOption: z.string().optional(),
     paymentMethod: z.string().optional(),
     isPaid: z.boolean().optional(),
+    deliveryDate: z.date(),
     paymentStatus: z
         .enum(['Pay Later', 'Paid', 'Payment Failed', 'Refunded'])
         .optional(),

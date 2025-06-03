@@ -55,8 +55,6 @@ export default function ResetPassword() {
                 newPassword: data.password,
             });
 
-            console.log(response);
-
             if (response.status === 200) {
                 toast.success('Password reset successfully.');
                 form.reset();

@@ -21,7 +21,6 @@ export default function OrderStats({
     };
     isLoading: boolean;
 }) {
-    console.log(data?.data);
 
     const stats = [
         {

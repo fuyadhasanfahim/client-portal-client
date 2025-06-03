@@ -17,13 +17,13 @@ import {
 interface SelectOrderStatusProps {
     order: IOrder;
     role: string;
-    id: string;
+    orderID: string;
 }
 
 export default function SelectOrderStatus({
     order,
     role,
-    id,
+    orderID,
 }: SelectOrderStatusProps) {
     const item = OrderStatusData.find(
         (item) => item.value === order.orderStatus
@@ -31,15 +31,15 @@ export default function SelectOrderStatus({
     const [updateOrder, { isLoading }] = useUpdateOrderMutation();
 
     const handleOrderStatusChange = async ({
-        id,
+        orderID,
         data,
     }: {
-        id: string;
+        orderID: string;
         data: { status: string; orderStatus: string };
     }) => {
         try {
             const response = await updateOrder({
-                id,
+                orderID,
                 data,
             }).unwrap();
 
@@ -80,7 +80,7 @@ export default function SelectOrderStatus({
                                 disabled={isLoading}
                                 onClick={() =>
                                     handleOrderStatusChange({
-                                        id,
+                                        orderID,
                                         data: {
                                             status: 'Canceled',
                                             orderStatus: 'Canceled',
@@ -102,7 +102,7 @@ export default function SelectOrderStatus({
                                 disabled={isLoading}
                                 onClick={() =>
                                     handleOrderStatusChange({
-                                        id,
+                                        orderID,
                                         data: {
                                             status: 'In Progress',
                                             orderStatus: 'Accepted',

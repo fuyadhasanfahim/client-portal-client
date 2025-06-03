@@ -31,6 +31,7 @@ export const NewOrderDetailsSchema = z
             })
             .min(1, 'Instructions are required'),
         supportingFileDownloadLink: z.string().optional(),
+        deliveryDate: z.date(),
     })
     .superRefine((data, ctx) => {
         if (data.imageResizing === 'Yes') {

@@ -17,17 +17,21 @@ export async function GET(req: NextRequest) {
 
         if (orderStatus) {
             order = await OrderModel.findOne({
-                orderID: orderID,
+                orderID,
                 orderStatus,
             });
         }
 
         if (status) {
             order = await OrderModel.findOne({
-                orderID: orderID,
+                orderID,
                 status,
             });
         }
+
+        order = await OrderModel.findOne({
+            orderID,
+        });
 
         return NextResponse.json(
             {

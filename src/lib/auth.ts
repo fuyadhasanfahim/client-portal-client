@@ -98,7 +98,6 @@ export const authOptions: NextAuthOptions = {
 
             if (user) {
                 const db = await UserModel.findOne({ userID: user.id });
-                console.log('database', db);
 
                 token.id = user.id;
                 token.role = db.role;

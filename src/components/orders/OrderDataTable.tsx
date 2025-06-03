@@ -207,7 +207,7 @@ export default function OrderDataTable({
                                     >
                                         <TableCell className="text-center font-medium border-r">
                                             <Link
-                                                href={`/orders/details?id=${order.orderID}&status=${order.status}`}
+                                                href={`/orders/details/${order.orderID!}`}
                                                 className={cn(
                                                     'text-primary underline',
                                                     order.orderStatus ===
@@ -300,12 +300,12 @@ export default function OrderDataTable({
                                             <SelectOrderStatus
                                                 order={order}
                                                 role={role}
-                                                id={order.orderID!}
+                                                orderID={order.orderID!}
                                             />
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Link
-                                                href={`/orders/details?order_id=${order.orderID!}`}
+                                                href={`/orders/details/${order.orderID!}`}
                                                 className="flex items-center justify-center gap-1 group"
                                             >
                                                 <EyeIcon size={20} />
