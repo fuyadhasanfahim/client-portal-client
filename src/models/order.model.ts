@@ -90,7 +90,6 @@ const orderSchema = new Schema(
         },
         deliveryDate: {
             type: Date,
-            required: true,
         },
         orderStatus: {
             type: String,

@@ -24,9 +24,11 @@ export default function RootNewOrderDetails({
     const { id } = React.use(params);
     const route = useRouter();
     const { data, isLoading, isError } = useGetOrderQuery({
-        id,
+        order_id: id,
         orderStatus: 'Awaiting For Details',
     });
+
+    console.log(data);
 
     let content;
 

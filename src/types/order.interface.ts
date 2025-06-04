@@ -65,7 +65,7 @@ export interface IOrder {
     status: OrderStatus;
     paymentStatus: OrderPaymentStatus;
     orderStatus: OrderOrderStatus;
-    deliveryDate: Date;
+    deliveryDate?: Date;
     createdAt?: string;
     updatedAt?: string;
 }

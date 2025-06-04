@@ -13,25 +13,33 @@ export async function GET(req: NextRequest) {
 
         await dbConfig();
 
-        let order;
-
-        if (orderStatus) {
-            order = await OrderModel.findOne({
-                orderID,
-                orderStatus,
-            });
+        if (!orderID) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Missing order_id in query params.',
+                },
+                { status: 400 }
+            );
         }
 
-        if (status) {
-            order = await OrderModel.findOne({
-                orderID,
-                status,
-            });
-        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const query: any = { orderID };
 
-        order = await OrderModel.findOne({
-            orderID,
-        });
+        if (orderStatus) query.orderStatus = orderStatus;
+        if (status) query.status = status;
+
+        const order = await OrderModel.findOne(query);
+
+        if (!order) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Order not found.',
+                },
+                { status: 404 }
+            );
+        }
 
         return NextResponse.json(
             {
