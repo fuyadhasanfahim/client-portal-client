@@ -3,16 +3,12 @@ import { IconTool } from '@tabler/icons-react';
 
 export default function OrderDetailsStatus({
     status,
-    user,
+    role,
 }: {
     status: string;
-    user: {
-        userID: string;
-        name: string;
-        role: string;
-    };
+    role: string;
 }) {
-    const isCustomer = user.role === 'User';
+    const isCustomer = role === 'User';
 
     const getStatusCard = () => {
         switch (status) {

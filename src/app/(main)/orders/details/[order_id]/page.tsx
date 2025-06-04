@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
-import { getUserData } from '@/actions/user.action';
 import RootOrderDetails from '@/components/orders/order-details/RootOrderDetails';
+import { getUserData } from '@/actions/user.action';
 
 type OrderDetailsPageProps = {
     params: Promise<{ order_id: string }>;
@@ -10,20 +10,12 @@ export const metadata: Metadata = {
     title: 'Order Details | Client Portal',
 };
 
-export default async function OrderDetailsPage({ params }: OrderDetailsPageProps) {
+export default async function OrderDetailsPage({
+    params,
+}: OrderDetailsPageProps) {
     const { order_id } = await params;
 
-    const userData = await getUserData();
+    const user = await getUserData();
 
-    return (
-        <RootOrderDetails
-            orderID={order_id}
-            user={{
-                name: userData.name,
-                userID: userData.userID,
-                role: userData.role,
-                profileImage: userData.profileImage,
-            }}
-        />
-    );
+    return <RootOrderDetails orderID={order_id} role={user.role} />;
 }

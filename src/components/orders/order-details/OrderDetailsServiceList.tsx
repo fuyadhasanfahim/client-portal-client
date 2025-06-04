@@ -39,54 +39,35 @@ export default function OrderDetailsServiceList({
         <Card>
             <CardHeader>
                 <CardTitle className="text-2xl flex items-center gap-2">
-                    <IconBriefcaseFilled /> Services Ordered
+                    <IconBriefcaseFilled
+                        size={24}
+                        className="text-destructive"
+                    />
+                    Services Ordered
                 </CardTitle>
+                <CardDescription>All service and file details</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+
+            <CardContent className="space-y-6">
                 {services.map((service, index) => (
-                    <Card key={index}>
+                    <div key={index}>
                         <CardHeader>
                             <CardTitle className="text-lg">
-                                {service.name}
+                                {index + 1}. {service.name}
                             </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                            <ul className="list-disc list-inside">
-                                <li>
-                                    <strong>Images:</strong> {images} images
-                                </li>
-                                <li>
-                                    <strong>Resize:</strong>{' '}
-                                    {imageResizing === 'Yes'
-                                        ? `${width}x${height}`
-                                        : 'Not requested'}
-                                </li>
-                                <li>
-                                    <strong>Background Option:</strong>{' '}
-                                    {backgroundOption || 'N/A'}
-                                </li>
-                                <li>
-                                    <strong>Return Format:</strong>{' '}
-                                    {returnFileFormat || 'N/A'}
-                                </li>
-                                <li>Includes source file</li>
-                                <li>Printable resolution file</li>
-                                <li>Commercial use</li>
-                            </ul>
-
-                            {service.types && service.types.length > 0 && (
+                            {(service.types ?? []).length > 0 && (
                                 <div>
-                                    <h4 className="font-medium text-muted-foreground">
+                                    <p className="font-semibold text-muted-foreground mb-1">
                                         Types:
-                                    </h4>
-                                    <ul className="list-disc list-inside ml-4">
-                                        {service.types.map((type) => (
+                                    </p>
+                                    <ul className="ml-4 list-disc text-sm space-y-1">
+                                        {service.types?.map((type) => (
                                             <li key={type._id}>
                                                 {type.name}
                                                 {type.price &&
                                                     ` - $${type.price}`}
                                                 {type.complexity && (
-                                                    <span className="ml-2 text-xs text-gray-500">
+                                                    <span className="ml-1 text-xs text-gray-500">
                                                         (Complexity:{' '}
                                                         {type.complexity.name} -
                                                         ${type.complexity.price}
@@ -99,69 +80,90 @@ export default function OrderDetailsServiceList({
                                 </div>
                             )}
 
-                            {service.colorCodes &&
-                                service.colorCodes.length > 0 && (
-                                    <div>
-                                        <h4 className="font-medium text-muted-foreground mb-1">
-                                            Color Codes:
-                                        </h4>
-                                        <p className="text-sm text-gray-700">
-                                            {service.colorCodes.join(', ')}
-                                        </p>
-                                    </div>
-                                )}
-
                             {service.complexity && (
                                 <div>
-                                    <h4 className="font-medium text-muted-foreground mb-1">
+                                    <p className="font-semibold text-muted-foreground">
                                         Selected Complexity:
-                                    </h4>
-                                    <p>
+                                    </p>
+                                    <p className="ml-4">
                                         {service.complexity.name} - $
                                         {service.complexity.price}
                                     </p>
                                 </div>
                             )}
+                        </CardHeader>
 
-                            <div>
-                                <h4 className="font-medium text-muted-foreground mb-1">
-                                    Download Link:
-                                </h4>
-                                <Link
-                                    href={downloadLink || ''}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 underline"
-                                >
-                                    View Download Link
-                                </Link>
-                            </div>
-
-                            {supportingFileDownloadLink && (
-                                <div>
-                                    <h4 className="font-medium text-muted-foreground mb-1">
-                                        Supporting Files:
-                                    </h4>
-                                    <a
-                                        href={supportingFileDownloadLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 underline"
-                                    >
-                                        View Supporting File
-                                    </a>
-                                </div>
-                            )}
+                        <CardContent className="text-sm space-y-2">
+                            <ul className="list-inside list-disc">
+                                <li>
+                                    <strong>Download Link:</strong>{' '}
+                                    {downloadLink ? (
+                                        <Link
+                                            href={downloadLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            Download Images
+                                        </Link>
+                                    ) : (
+                                        'N/A'
+                                    )}
+                                </li>
+                                <li>
+                                    <strong>Images:</strong> {images || 0}{' '}
+                                    images
+                                </li>
+                                <li>
+                                    <strong>Return Format:</strong>{' '}
+                                    {returnFileFormat || 'N/A'}
+                                </li>
+                                <li>
+                                    <strong>Background Option:</strong>{' '}
+                                    {backgroundOption || 'N/A'}
+                                </li>
+                                <li>
+                                    <strong>Resize:</strong>{' '}
+                                    {imageResizing === 'Yes'
+                                        ? `${width}x${height}px`
+                                        : 'Not requested'}
+                                </li>
+                                {(service.colorCodes ?? []).length > 0 && (
+                                    <li>
+                                        <strong>Color Codes:</strong>{' '}
+                                        {service.colorCodes?.join(', ')}
+                                    </li>
+                                )}
+                                <li>
+                                    <strong>Supporting File:</strong>{' '}
+                                    {supportingFileDownloadLink ? (
+                                        <Link
+                                            href={supportingFileDownloadLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            Download Supporting File
+                                        </Link>
+                                    ) : (
+                                        'N/A'
+                                    )}
+                                </li>
+                            </ul>
                         </CardContent>
+
                         <CardFooter>
                             <div>
-                                <CardTitle>Instruction:</CardTitle>
+                                <p className="font-semibold mb-1">
+                                    Instructions:
+                                </p>
                                 <CardDescription>
-                                    {instructions}
+                                    {instructions ||
+                                        'No instructions provided.'}
                                 </CardDescription>
                             </div>
                         </CardFooter>
-                    </Card>
+                    </div>
                 ))}
             </CardContent>
         </Card>

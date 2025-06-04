@@ -29,7 +29,7 @@ interface OrderDetailsSummaryProps {
     orderID: string;
     status: string;
     isPaid?: boolean;
-    deliveryDate: Date;
+    deliveryDate?: Date;
 }
 
 export default function OrderDetailsSummary({
@@ -42,13 +42,12 @@ export default function OrderDetailsSummary({
     deliveryDate,
 }: OrderDetailsSummaryProps) {
     const item = statusData.find((item) => item.value === status);
-    console.log(deliveryDate);
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="text-2xl flex items-center gap-2">
-                    <FileText size={24} />
+                    <FileText size={24} className='text-primary' />
                     Order Summary
                 </CardTitle>
                 <CardDescription>
