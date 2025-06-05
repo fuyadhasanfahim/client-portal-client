@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
         await dbConfig();
 
-        const order = await OrderModel.findById(orderID);
+        const order = await OrderModel.findOne({ orderID });
         if (!order || !order.total) {
             return NextResponse.json(
                 { success: false, message: 'Order not found or missing total' },

@@ -28,8 +28,6 @@ export default function RootNewOrderDetails({
         orderStatus: 'Awaiting For Details',
     });
 
-    console.log(data);
-
     let content;
 
     if (isLoading) {

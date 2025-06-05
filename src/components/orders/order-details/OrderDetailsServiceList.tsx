@@ -96,21 +96,6 @@ export default function OrderDetailsServiceList({
                         <CardContent className="text-sm space-y-2">
                             <ul className="list-inside list-disc">
                                 <li>
-                                    <strong>Download Link:</strong>{' '}
-                                    {downloadLink ? (
-                                        <Link
-                                            href={downloadLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            Download Images
-                                        </Link>
-                                    ) : (
-                                        'N/A'
-                                    )}
-                                </li>
-                                <li>
                                     <strong>Images:</strong> {images || 0}{' '}
                                     images
                                 </li>
@@ -134,38 +119,52 @@ export default function OrderDetailsServiceList({
                                         {service.colorCodes?.join(', ')}
                                     </li>
                                 )}
-                                <li>
-                                    <strong>Supporting File:</strong>{' '}
-                                    {supportingFileDownloadLink ? (
-                                        <Link
-                                            href={supportingFileDownloadLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            Download Supporting File
-                                        </Link>
-                                    ) : (
-                                        'N/A'
-                                    )}
-                                </li>
                             </ul>
                         </CardContent>
-
-                        <CardFooter>
-                            <div>
-                                <p className="font-semibold mb-1">
-                                    Instructions:
-                                </p>
-                                <CardDescription>
-                                    {instructions ||
-                                        'No instructions provided.'}
-                                </CardDescription>
-                            </div>
-                        </CardFooter>
                     </div>
                 ))}
+
+                <div>
+                    <div>
+                        <strong>Download Link:</strong>{' '}
+                        {downloadLink ? (
+                            <Link
+                                href={downloadLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                            >
+                                Download Images
+                            </Link>
+                        ) : (
+                            'N/A'
+                        )}
+                    </div>
+                    <div>
+                        <strong>Supporting File:</strong>{' '}
+                        {supportingFileDownloadLink ? (
+                            <Link
+                                href={supportingFileDownloadLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                            >
+                                Download Supporting File
+                            </Link>
+                        ) : (
+                            'N/A'
+                        )}
+                    </div>
+                </div>
             </CardContent>
+            <CardFooter>
+                <div>
+                    <p className="font-semibold mb-1">Instructions:</p>
+                    <CardDescription>
+                        {instructions || 'No instructions provided.'}
+                    </CardDescription>
+                </div>
+            </CardFooter>
         </Card>
     );
 }

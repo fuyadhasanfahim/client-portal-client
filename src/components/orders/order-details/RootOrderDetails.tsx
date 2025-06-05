@@ -25,8 +25,7 @@ export default function RootOrderDetails({
     if (!isLoading && !isError && data) {
         content = (
             <OrderDetailsCard
-                order={data.data.order}
-                user={data.data.user}
+                order={data.data}
                 role={role}
             />
         );

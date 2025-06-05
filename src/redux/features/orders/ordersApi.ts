@@ -58,6 +58,35 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
+            deliverOrder: build.mutation({
+                query: ({
+                    order_id,
+                    order_status,
+                    user_id,
+                    download_link,
+                }) => ({
+                    url: `orders/deliver-order`,
+                    method: 'PUT',
+                    params: { order_id, order_status, user_id, download_link },
+                }),
+                invalidatesTags: ['Orders'],
+            }),
+            reviewOrder: build.mutation({
+                query: ({ order_id, order_status, user_id, instruction }) => ({
+                    url: `orders/review-order`,
+                    method: 'PUT',
+                    params: { order_id, order_status, user_id, instruction },
+                }),
+                invalidatesTags: ['Orders'],
+            }),
+            completeOrder: build.mutation({
+                query: ({ order_id, user_id }) => ({
+                    url: `orders/complete-order`,
+                    method: 'PUT',
+                    params: { order_id, user_id },
+                }),
+                invalidatesTags: ['Orders'],
+            }),
         };
     },
 });
@@ -68,4 +97,7 @@ export const {
     useGetOrderQuery,
     useGetOrdersQuery,
     useUpdateOrderMutation,
+    useDeliverOrderMutation,
+    useReviewOrderMutation,
+    useCompleteOrderMutation,
 } = ordersApi;

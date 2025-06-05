@@ -51,13 +51,16 @@ export async function POST(req: NextRequest) {
         try {
             await dbConfig();
 
-            await OrderModel.findByIdAndUpdate(orderID, {
-                isPaid: true,
-                paymentStatus: 'Paid',
-                paymentOption,
-                paymentMethod,
-                paymentId: session.payment_intent?.toString(),
-            });
+            await OrderModel.findOneAndUpdate(
+                { orderID },
+                {
+                    isPaid: true,
+                    paymentStatus: 'Paid',
+                    paymentOption,
+                    paymentMethod,
+                    paymentId: session.payment_intent?.toString(),
+                }
+            );
 
             await PaymentModel.create({
                 userID,
@@ -77,15 +80,29 @@ export async function POST(req: NextRequest) {
             if (user?.email) {
                 await sendEmail({
                     from: process.env.EMAIL_USER!,
-                    to: process.env.EMAIL_USER!,
+                    to: user.email!,
                     subject: `✅ Payment Completed - Order #${orderID}`,
                     html: `
-                        <div style="font-family: Arial, sans-serif; font-size: 15px;">
-                            <h2>New Order Fulfilled</h2>
-                            <p><strong>User ID:</strong> ${userID}</p>
-                            <p><strong>Order ID:</strong> ${orderID}</p>
-                            <p>Order has been marked as <strong>Paid</strong> and processed via Stripe.</p>
-                        </div>
+                        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 24px;">
+                                <h2 style="color: #0f9d58; margin-bottom: 12px;">🎉 Payment Confirmed!</h2>
+
+                                <p>Hi ${user.name || 'there'},</p>
+
+                                <p>Thank you for your payment! We're excited to let you know that your order has been successfully marked as <strong style="color: #0f9d58;">Paid</strong> and is now being processed via <strong>Stripe</strong>.</p>
+
+                                <div style="margin: 20px 0; padding: 16px; background-color: #f9f9f9; border-left: 4px solid #0f9d58;">
+                                <p><strong>User ID:</strong> ${userID}</p>
+                                <p><strong>Order ID:</strong> ${orderID}</p>
+                                </div>
+
+                                <p>You can expect an update once your order is completed and ready for delivery.</p>
+
+                                <p>If you have any questions, feel free to reach out to us anytime.</p>
+
+                                <p style="margin-top: 30px;">Best regards,<br /><strong>The Project Pixel Forge Team</strong></p>
+                            </div>
+                            </div>
                     `,
                 });
             }

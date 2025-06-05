@@ -21,10 +21,11 @@ import {
 } from '@tabler/icons-react';
 import { statusData } from '@/data/orders';
 import { cn } from '@/lib/utils';
+import { useGetUserQuery } from '@/redux/features/users/userApi';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface OrderDetailsSummaryProps {
-    userName: string;
-    profileImage: string;
+    userID: string;
     createdAt?: string;
     orderID: string;
     status: string;
@@ -33,21 +34,77 @@ interface OrderDetailsSummaryProps {
 }
 
 export default function OrderDetailsSummary({
-    userName,
-    profileImage,
+    userID,
     createdAt,
     orderID,
     status,
     isPaid,
     deliveryDate,
 }: OrderDetailsSummaryProps) {
+    const { data, isLoading, isError } = useGetUserQuery(userID);
+
+    let content;
+
+    if (isLoading && !isError && !data) {
+        content = (
+            <CardContent className="flex items-center gap-4">
+                <Avatar className="w-12 h-12">
+                    <Skeleton className="w-full h-full" />
+                </Avatar>
+                <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="w-28 h-6" />
+                    </div>
+                    <Skeleton className="w-32 h-6" />
+                </div>
+            </CardContent>
+        );
+    }
+
+    if (!isLoading && isError && !data) {
+        content = (
+            <CardContent className="flex items-center justify-center">
+                <div className="text-destructive">
+                    Something went wrong! Try again later.
+                </div>
+            </CardContent>
+        );
+    }
+
+    if (!isLoading && !isError && data) {
+        const { profileImage, name } = data.data;
+
+        content = (
+            <CardContent className="flex items-center gap-4">
+                <Avatar className="w-12 h-12">
+                    <AvatarImage
+                        src={profileImage}
+                        alt={`${name}'s profile image`}
+                    />
+                    <AvatarFallback>
+                        {name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                        <User size={18} />
+                        <span className="text-sm font-medium">Ordered by</span>
+                    </div>
+                    <p className="font-semibold text-gray-900 text-lg">
+                        {name}
+                    </p>
+                </div>
+            </CardContent>
+        );
+    }
+
     const item = statusData.find((item) => item.value === status);
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="text-2xl flex items-center gap-2">
-                    <FileText size={24} className='text-primary' />
+                    <FileText size={24} className="text-primary" />
                     Order Summary
                 </CardTitle>
                 <CardDescription>
@@ -57,30 +114,7 @@ export default function OrderDetailsSummary({
 
             <CardContent>
                 <div className="space-y-6">
-                    <Card>
-                        <CardContent className="flex items-center gap-4">
-                            <Avatar className="w-12 h-12">
-                                <AvatarImage
-                                    src={profileImage}
-                                    alt={`${userName}'s profile image`}
-                                />
-                                <AvatarFallback>
-                                    {userName?.charAt(0)?.toUpperCase() || 'U'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <User size={18} />
-                                    <span className="text-sm font-medium">
-                                        Ordered by
-                                    </span>
-                                </div>
-                                <p className="font-semibold text-gray-900 text-lg">
-                                    {userName}
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <Card>{content}</Card>
 
                     <div className="grid grid-cols-2 gap-6">
                         <Card className="group">
