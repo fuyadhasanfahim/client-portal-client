@@ -72,10 +72,10 @@ export const ordersApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Orders'],
             }),
             reviewOrder: build.mutation({
-                query: ({ order_id, order_status, user_id, instruction }) => ({
+                query: ({ order_id, sender_id, sender_role, message }) => ({
                     url: `orders/review-order`,
                     method: 'PUT',
-                    params: { order_id, order_status, user_id, instruction },
+                    params: { order_id, sender_id, sender_role, message },
                 }),
                 invalidatesTags: ['Orders'],
             }),

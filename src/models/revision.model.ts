@@ -1,6 +1,33 @@
 import { IRevision } from '@/types/revision.interface';
 import { Schema, model, models } from 'mongoose';
 
+const RevisionMessageSchema = new Schema(
+    {
+        senderID: {
+            type: String,
+            required: true,
+        },
+        senderRole: {
+            type: String,
+            required: true,
+        },
+        senderName: {
+            type: String,
+            required: true,
+        },
+        senderProfileImage: {
+            type: String,
+        },
+        message: {
+            type: String,
+            required: true,
+        },
+    },
+    {
+        timestamps: true,
+    }
+);
+
 const RevisionSchema: Schema = new Schema<IRevision>(
     {
         orderID: {
@@ -8,15 +35,12 @@ const RevisionSchema: Schema = new Schema<IRevision>(
             ref: 'order',
             required: true,
         },
-        userID: {
+        messages: [RevisionMessageSchema],
+        status: {
             type: String,
-            ref: 'user',
-            required: true,
         },
-        message: {
-            type: String,
-            required: true,
-        },
+        isSeenByAdmin: Boolean,
+        isSeenByUser: Boolean,
     },
     {
         timestamps: true,

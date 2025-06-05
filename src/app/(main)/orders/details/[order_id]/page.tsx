@@ -17,5 +17,16 @@ export default async function OrderDetailsPage({
 
     const user = await getUserData();
 
-    return <RootOrderDetails orderID={order_id} role={user.role} />;
+    return (
+        <RootOrderDetails
+            orderID={order_id}
+            user={{
+                userID: user.userID,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                profileImage: user.profileImage,
+            }}
+        />
+    );
 }

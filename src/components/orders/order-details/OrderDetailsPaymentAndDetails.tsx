@@ -100,18 +100,21 @@ export default function OrderDetailsPaymentAndDetails({
 
     const handleReviewOrder = async ({
         order_id,
-        user_id,
-        instruction,
+        sender_id,
+        sender_role,
+        message,
     }: {
         order_id: string;
-        user_id: string;
-        instruction: string;
+        sender_id: string;
+        sender_role: string;
+        message: string;
     }) => {
         try {
             const response = await reviewOrder({
                 order_id,
-                user_id,
-                instruction,
+                sender_id,
+                sender_role,
+                message,
             });
 
             if (response.data.success) {
@@ -313,8 +316,9 @@ export default function OrderDetailsPaymentAndDetails({
                                             onClick={() => {
                                                 handleReviewOrder({
                                                     order_id: orderID,
-                                                    user_id: userID,
-                                                    instruction,
+                                                    sender_id: userID,
+                                                    message: instruction,
+                                                    sender_role: role,
                                                 });
                                             }}
                                         >

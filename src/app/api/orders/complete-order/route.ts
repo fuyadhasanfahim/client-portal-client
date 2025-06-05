@@ -1,6 +1,7 @@
 import dbConfig from '@/lib/dbConfig';
 import { sendEmail } from '@/lib/nodemailer';
 import OrderModel from '@/models/order.model';
+import RevisionModel from '@/models/revision.model';
 import UserModel from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -38,6 +39,14 @@ export async function PUT(req: NextRequest) {
                 { success: false, message: 'User not found or email missing.' },
                 { status: 404 }
             );
+        }
+
+        const closeRevisionSession = await RevisionModel.findOne({ orderID });
+
+        if (closeRevisionSession) {
+            await RevisionModel.findOneAndUpdate({
+                status: 'closed',
+            });
         }
 
         const subject = '✅ Order Completed – Thank You!';

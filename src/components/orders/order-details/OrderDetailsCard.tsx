@@ -5,13 +5,20 @@ import OrderDetailsStatus from './OrderDetailsStatus';
 import OrderDetailsSummary from './OrderDetailsSummary';
 import OrderDetailsServiceList from './OrderDetailsServiceList';
 import OrderDetailsPaymentAndDetails from './OrderDetailsPaymentAndDetails';
+import OrderDetailsRevisionsCard from './OrderDetailsRevisionsCard';
 
 export default function OrderDetailsCard({
     order,
-    role,
+    user,
 }: {
     order: IOrder;
-    role: string;
+    user: {
+        userID: string;
+        name: string;
+        email: string;
+        role: string;
+        profileImage: string;
+    };
 }) {
     const {
         orderID,
@@ -39,7 +46,7 @@ export default function OrderDetailsCard({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto p-6">
             <div className="col-span-2 space-y-6">
-                <OrderDetailsStatus status={status} role={role} />
+                <OrderDetailsStatus status={status} role={user.role} />
                 <OrderDetailsSummary
                     createdAt={createdAt}
                     deliveryDate={deliveryDate}
@@ -60,6 +67,9 @@ export default function OrderDetailsCard({
                     supportingFileDownloadLink={supportingFileDownloadLink}
                     downloadLink={downloadLink}
                 />
+                {status === 'In Revision' && (
+                    <OrderDetailsRevisionsCard orderID={orderID} user={user} />
+                )}
             </div>
 
             <div className="space-y-6">
@@ -69,7 +79,7 @@ export default function OrderDetailsCard({
                     paymentOption={paymentOption}
                     status={status}
                     total={total}
-                    role={role}
+                    role={user.role}
                     orderID={orderID}
                     userID={userID}
                 />

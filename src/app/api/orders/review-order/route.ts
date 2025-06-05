@@ -9,15 +9,16 @@ export async function PUT(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.nextUrl);
         const orderID = searchParams.get('order_id');
-        const userID = searchParams.get('user_id');
-        const instruction = searchParams.get('instruction');
+        const senderID = searchParams.get('sender_id');
+        const senderRole = searchParams.get('sender_role');
+        const message = searchParams.get('message');
 
-        if (!orderID || !userID || !instruction) {
+        if (!orderID || !senderID || !senderRole || !message) {
             return NextResponse.json(
                 {
                     success: false,
                     message:
-                        'Missing required query parameters (order_id, user_id, instruction).',
+                        'Missing required query parameters (order_id, sender_id, sender_role, message).',
                 },
                 { status: 400 }
             );
@@ -25,14 +26,23 @@ export async function PUT(req: NextRequest) {
 
         await dbConfig();
 
-        await RevisionModel.create({
-            orderID,
-            userID,
-            message: instruction,
-        });
+        const revision = await RevisionModel.findOneAndUpdate(
+            { orderID },
+            {
+                $push: {
+                    messages: { senderID, senderRole, message },
+                },
+                $setOnInsert: {
+                    status: 'open',
+                    isSeenByAdmin: senderRole === 'User' ? false : true,
+                    isSeenByUser: senderRole === 'Admin' ? false : true,
+                },
+            },
+            { upsert: true, new: true }
+        );
 
         const updatedOrder = await OrderModel.findOneAndUpdate(
-            { orderID, userID },
+            { orderID },
             { status: 'In Revision' },
             { new: true }
         );
@@ -44,7 +54,7 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const user = await UserModel.findOne({ userID });
+        const user = await UserModel.findOne({ userID: updatedOrder.userID });
         if (!user || !user.email) {
             return NextResponse.json(
                 { success: false, message: 'User not found or email missing.' },
@@ -52,7 +62,11 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const subject = '🔁 Revision Requested for Your Order';
+        const subject =
+            senderRole === 'User'
+                ? '🔁 Revision Requested for Your Order'
+                : '✉️ Admin Replied to Your Revision Request';
+
         const html = `
             <!DOCTYPE html>
             <html>
@@ -99,20 +113,20 @@ export async function PUT(req: NextRequest) {
             </head>
             <body>
                 <div class="container">
-                    <h2>Hi ${user.name || 'there'},</h2>
-                    <p>Your order <strong>#${orderID}</strong> has been marked as <strong>In Revision</strong>.</p>
+                    <h2>Hello ${user.name || 'there'},</h2>
+                    <p>Your order <strong>#${orderID}</strong> has a new revision message from <strong>${senderRole}</strong>.</p>
 
                     <div class="highlight">
-                        <strong>Revision Instructions:</strong><br/>
-                        ${instruction}
+                        <strong>Message:</strong><br/>
+                        ${message}
                     </div>
 
-                    <p>We'll begin working on your requested changes shortly.</p>
+                    <p>You can view the full revision thread and respond if needed.</p>
 
                     <a class="button" href="${
                         process.env.NEXT_PUBLIC_BASE_URL
                     }/orders/details/${orderID}">
-                        View Your Order
+                        View Order & Reply
                     </a>
 
                     <div class="footer">
@@ -133,7 +147,8 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json(
             {
                 success: true,
-                message: 'Revision recorded and email sent to user.',
+                message: 'Revision message added and email sent.',
+                data: revision,
             },
             { status: 200 }
         );

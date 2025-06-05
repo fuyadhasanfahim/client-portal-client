@@ -5,10 +5,16 @@ import OrderDetailsCard from './OrderDetailsCard';
 
 export default function RootOrderDetails({
     orderID,
-    role,
+    user,
 }: {
     orderID: string;
-    role: string;
+    user: {
+        userID: string;
+        name: string;
+        email: string;
+        role: string;
+        profileImage: string;
+    };
 }) {
     const { data, isLoading, isError } = useGetOrderQuery({
         order_id: orderID,
@@ -23,12 +29,7 @@ export default function RootOrderDetails({
         content = <p>Order not found.</p>;
     }
     if (!isLoading && !isError && data) {
-        content = (
-            <OrderDetailsCard
-                order={data.data}
-                role={role}
-            />
-        );
+        content = <OrderDetailsCard order={data.data} user={user} />;
     }
 
     return content;
