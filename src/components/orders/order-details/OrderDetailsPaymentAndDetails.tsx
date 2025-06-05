@@ -34,7 +34,6 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { IconLoader, IconPackage } from '@tabler/icons-react';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -409,13 +408,6 @@ export default function OrderDetailsPaymentAndDetails({
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Link href={`/orders/new-order/${orderID}/payment`}>
-                            <Button
-                                onClick={() => setShowPaymentReminder(false)}
-                            >
-                                Pay Now
-                            </Button>
-                        </Link>
                         <Button
                             variant={'secondary'}
                             onClick={() => setShowPaymentReminder(false)}
