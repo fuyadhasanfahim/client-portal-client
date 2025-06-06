@@ -67,9 +67,11 @@ export default function OrderDetailsCard({
                     supportingFileDownloadLink={supportingFileDownloadLink}
                     downloadLink={downloadLink}
                 />
-                {status === 'In Revision' && (
-                    <OrderDetailsRevisionsCard orderID={orderID} user={user} />
-                )}
+                <OrderDetailsRevisionsCard
+                    orderID={orderID}
+                    user={user}
+                    orderStatus={status}
+                />
             </div>
 
             <div className="space-y-6">

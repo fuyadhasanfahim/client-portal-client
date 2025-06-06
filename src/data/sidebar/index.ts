@@ -1,4 +1,9 @@
-import { IconDashboard, IconPackage, IconServer } from '@tabler/icons-react';
+import {
+    IconDashboard,
+    IconMessage,
+    IconPackage,
+    IconServer,
+} from '@tabler/icons-react';
 
 export const sidebarItems = [
     {
@@ -17,6 +22,12 @@ export const sidebarItems = [
         title: 'Services',
         url: '/services',
         icon: IconServer,
+        access: ['Admin', 'SuperAdmin', 'Developer'],
+    },
+    {
+        title: 'Messages',
+        url: '/messages',
+        icon: IconMessage,
         access: ['Admin', 'SuperAdmin', 'Developer'],
     },
 ];
