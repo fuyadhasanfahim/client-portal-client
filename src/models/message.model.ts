@@ -1,5 +1,8 @@
-import { IMessage } from '@/types/message.interface';
-import { Schema, Document, Types, model, models } from 'mongoose';
+import {
+    IConversationWithLastMessage,
+    IMessage,
+} from '@/types/message.interface';
+import { Schema, Document, model, models } from 'mongoose';
 
 const AttachmentSchema = new Schema(
     {
@@ -12,8 +15,8 @@ const AttachmentSchema = new Schema(
 
 const MessageSchema = new Schema<IMessage>(
     {
-        conversationID: { type: String, ref: 'Conversation', required: true },
-        senderID: { type: String, ref: 'User', required: true },
+        conversationID: { type: String, required: true },
+        senderID: { type: String, required: true },
         content: { type: String, required: true },
         status: {
             type: String,
@@ -21,6 +24,7 @@ const MessageSchema = new Schema<IMessage>(
             default: 'sent',
         },
         attachments: [AttachmentSchema],
+        orderID: { type: String, required: true },
     },
     { timestamps: true }
 );
@@ -28,40 +32,29 @@ const MessageSchema = new Schema<IMessage>(
 export const MessageModel =
     models?.Message || model<IMessage>('Message', MessageSchema);
 
-export interface IConversation extends Document {
-    participants: (Types.ObjectId | string)[];
-    unreadCounts: { [userID: string]: number };
-    readBy: (Types.ObjectId | string)[];
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-const ConversationSchema = new Schema<IConversation>(
+const ConversationSchema = new Schema<IConversationWithLastMessage>(
     {
-        participants: [
-            { type: Schema.Types.ObjectId, ref: 'User', required: true },
-        ],
+        participants: [{ type: String, required: true }],
         unreadCounts: { type: Map, of: Number, default: {} },
-        readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+        readBy: [{ type: String }],
     },
-     { timestamps: true }
+    { timestamps: true }
 );
 
 export const ConversationModel =
     models?.Conversation ||
-    model<IConversation>('Conversation', ConversationSchema);
+    model<IConversationWithLastMessage>('Conversation', ConversationSchema);
 
 export interface IUserTypingStatus extends Document {
-    userID: Types.ObjectId | string;
-    conversationID: Types.ObjectId | string;
+    userID: string;
+    conversationID: string;
     isTyping: boolean;
 }
 
 const UserTypingStatusSchema = new Schema<IUserTypingStatus>({
-    userID: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userID: { type: String, required: true },
     conversationID: {
-        type: Schema.Types.ObjectId,
-        ref: 'Conversation',
+        type: String,
         required: true,
     },
     isTyping: { type: Boolean, required: true },

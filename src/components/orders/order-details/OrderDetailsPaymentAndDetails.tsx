@@ -116,6 +116,8 @@ export default function OrderDetailsPaymentAndDetails({
                 message,
             });
 
+            console.log(response);
+
             if (response.data.success) {
                 setInstruction('');
                 toast.success(response.data.message);

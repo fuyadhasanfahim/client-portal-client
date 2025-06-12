@@ -9,9 +9,9 @@ export async function GET(req: NextRequest) {
         await dbConfig();
 
         const { searchParams } = new URL(req.nextUrl);
-        const userId = searchParams.get('userId');
+        const userID = searchParams.get('userID');
 
-        if (!userId) {
+        if (!userID) {
             return NextResponse.json(
                 {
                     success: false,
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         }
 
         const conversations = await ConversationModel.find({
-            participants: userId,
+            participants: userID,
         })
             .populate('participants', 'username image')
             .populate({

@@ -13,6 +13,7 @@ export interface IMessage {
     content: string;
     status?: 'sent' | 'delivered' | 'seen';
     createdAt: Date;
+    orderID?: string;
     updatedAt?: Date;
     attachments?: {
         type: 'image' | 'file';

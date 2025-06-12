@@ -1,8 +1,8 @@
 import dbConfig from '@/lib/dbConfig';
 import { sendEmail } from '@/lib/nodemailer';
+import { ConversationModel, MessageModel } from '@/models/message.model';
 import OrderModel from '@/models/order.model';
 import UserModel from '@/models/user.model';
-import RevisionModel from '@/models/revision.model';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(req: NextRequest) {
@@ -26,21 +26,7 @@ export async function PUT(req: NextRequest) {
 
         await dbConfig();
 
-        const revision = await RevisionModel.findOneAndUpdate(
-            { orderID },
-            {
-                $push: {
-                    messages: { senderID, senderRole, message },
-                },
-                $setOnInsert: {
-                    status: 'open',
-                    isSeenByAdmin: senderRole === 'User' ? false : true,
-                    isSeenByUser: senderRole === 'Admin' ? false : true,
-                },
-            },
-            { upsert: true, new: true }
-        );
-
+        // Update order status
         const updatedOrder = await OrderModel.findOneAndUpdate(
             { orderID },
             { status: 'In Revision' },
@@ -49,19 +35,27 @@ export async function PUT(req: NextRequest) {
 
         if (!updatedOrder) {
             return NextResponse.json(
-                { success: false, message: 'Order not found.' },
+                {
+                    success: false,
+                    message: 'Order not found.',
+                },
                 { status: 404 }
             );
         }
 
+        // Fetch user by userID from order
         const user = await UserModel.findOne({ userID: updatedOrder.userID });
         if (!user || !user.email) {
             return NextResponse.json(
-                { success: false, message: 'User not found or email missing.' },
+                {
+                    success: false,
+                    message: 'User not found or user email missing.',
+                },
                 { status: 404 }
             );
         }
 
+        // Email setup
         const subject =
             senderRole === 'User'
                 ? '🔁 Revision Requested for Your Order'
@@ -69,73 +63,68 @@ export async function PUT(req: NextRequest) {
 
         const html = `
             <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        background-color: #f4f4f4;
-                        padding: 20px;
-                        color: #333;
-                    }
-                    .container {
-                        background-color: #fff;
-                        border-radius: 8px;
-                        padding: 30px;
-                        max-width: 600px;
-                        margin: auto;
-                        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                    }
-                    .highlight {
-                        background-color: #e7f3ff;
-                        border-left: 4px solid #2196F3;
-                        padding: 15px;
-                        margin: 20px 0;
-                        border-radius: 5px;
-                    }
-                    a.button {
-                        display: inline-block;
-                        margin-top: 20px;
-                        padding: 12px 24px;
-                        background-color: #007bff;
-                        color: #fff;
-                        text-decoration: none;
-                        border-radius: 5px;
-                        font-weight: bold;
-                    }
-                    .footer {
-                        margin-top: 30px;
-                        font-size: 12px;
-                        color: #999;
-                        text-align: center;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h2>Hello ${user.name || 'there'},</h2>
-                    <p>Your order <strong>#${orderID}</strong> has a new revision message from <strong>${senderRole}</strong>.</p>
-
-                    <div class="highlight">
-                        <strong>Message:</strong><br/>
-                        ${message}
-                    </div>
-
-                    <p>You can view the full revision thread and respond if needed.</p>
-
-                    <a class="button" href="${
-                        process.env.NEXT_PUBLIC_BASE_URL
-                    }/orders/details/${orderID}">
-                        View Order & Reply
-                    </a>
-
-                    <div class="footer">
-                        © ${new Date().getFullYear()} Web Briks LLC – All rights reserved.
-                    </div>
-                </div>
-            </body>
-            </html>
+            <html><head><style>
+                body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; color: #333; }
+                .container { background: #fff; padding: 30px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+                .highlight { background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 5px; }
+                a.button { display: inline-block; margin-top: 20px; padding: 12px 24px; background: #007bff; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+                .footer { margin-top: 30px; font-size: 12px; color: #999; text-align: center; }
+            </style></head><body>
+            <div class="container">
+                <h2>Hello ${user.name || 'there'},</h2>
+                <p>Your order <strong>#${orderID}</strong> has a new revision message from <strong>${senderRole}</strong>.</p>
+                <div class="highlight"><strong>Message:</strong><br/>${message}</div>
+                <p>You can view the full revision thread and respond if needed.</p>
+                <a class="button" href="${
+                    process.env.NEXT_PUBLIC_BASE_URL
+                }/orders/details/${orderID}">View Order & Reply</a>
+                <div class="footer">© ${new Date().getFullYear()} Web Briks LLC – All rights reserved.</div>
+            </div>
+            </body></html>
         `;
+
+        const admin = await UserModel.findOne({
+            role: { $in: ['SuperAdmin', 'Admin', 'Developer'] },
+        });
+
+        if (!admin) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Admin user not found.',
+                },
+                { status: 404 }
+            );
+        }
+
+        let conversation = await ConversationModel.findOne({
+            participants: { $all: [senderID, admin.userID] },
+        });
+
+        if (!conversation) {
+            conversation = await ConversationModel.create({
+                participants: [senderID, admin.userID],
+                unreadCounts: { [admin._id.toString()]: 1 },
+                readBy: [senderID],
+            });
+        } else {
+            const recipientID =
+                senderID === admin.userID ? user.userID : admin.userID;
+            conversation.unreadCounts.set(
+                recipientID,
+                (conversation.unreadCounts.get(recipientID) || 0) + 1
+            );
+            conversation.readBy = [senderID];
+            await conversation.save();
+        }
+
+        const newMessage = await MessageModel.create({
+            conversationID: conversation._id,
+            senderID,
+            content: message,
+            orderID,
+            status: 'sent',
+        });
 
         await sendEmail({
             from: `"Web Briks LLC" <${process.env.EMAIL_USER}>`,
@@ -147,8 +136,8 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json(
             {
                 success: true,
-                message: 'Revision message added and email sent.',
-                data: revision,
+                message: 'Revision message sent and email delivered.',
+                data: newMessage,
             },
             { status: 200 }
         );
@@ -156,7 +145,7 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: 'Something went wrong.',
+                message: 'Something went wrong while processing the revision.',
                 errorMessage: (error as Error).message,
             },
             { status: 500 }

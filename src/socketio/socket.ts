@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Server as NetServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -14,7 +13,7 @@ export type NextApiResponseServerIO = NextApiResponse & {
 };
 
 export default function SocketHandler(
-    req: NextApiRequest,
+    _req: NextApiRequest,
     res: NextApiResponseServerIO
 ) {
     if (!res.socket.server.io) {
