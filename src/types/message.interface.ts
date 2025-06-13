@@ -3,7 +3,7 @@ export interface IMessageUser {
     name: string;
     email: string;
     profileImage: string;
-    isOnline: boolean;
+    isOnline?: boolean;
 }
 
 export interface IMessage {
@@ -22,12 +22,13 @@ export interface IMessage {
 
 export interface IConversation {
     _id?: string;
-    participants: IMessageUser[];
+    participants: string[];
     unreadCounts: {
         [userID: string]: number;
     };
     readBy: string[];
     lastMessage?: IMessage;
+    participantsInfo: IMessageUser[];
     createdAt: Date;
 }
 

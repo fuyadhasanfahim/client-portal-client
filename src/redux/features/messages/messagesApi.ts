@@ -12,10 +12,10 @@ export const messagesApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Messages'],
             }),
             getMessages: build.query({
-                query: (conversationID) => ({
+                query: (userID) => ({
                     url: 'messages/get-messages',
                     method: 'GET',
-                    params: { conversationID },
+                    params: { userID },
                 }),
                 providesTags: ['Messages'],
             }),

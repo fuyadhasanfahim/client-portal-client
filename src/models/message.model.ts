@@ -22,7 +22,7 @@ const MessageUserSchema = new Schema<IMessageUser>(
         name: { type: String, required: true },
         email: { type: String, required: true },
         profileImage: { type: String, required: true },
-        isOnline: { type: Boolean, required: true },
+        isOnline: { type: Boolean, default: false },
     },
     { _id: false }
 );
@@ -48,7 +48,7 @@ export const MessageModel =
 // User conversation model
 const ConversationSchema = new Schema<IConversation>(
     {
-        participants: [{ type: [MessageUserSchema], required: true }],
+        participants: [{ type: String, required: true }],
         unreadCounts: {
             type: Map,
             of: Number,
@@ -56,6 +56,7 @@ const ConversationSchema = new Schema<IConversation>(
         },
         readBy: [{ type: String }],
         lastMessage: { type: MessageSchema },
+        participantsInfo: [{ type: MessageUserSchema, required: true }],
     },
     { timestamps: true }
 );

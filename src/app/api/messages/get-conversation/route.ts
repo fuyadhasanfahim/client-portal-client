@@ -1,5 +1,3 @@
-// app/api/messages/get-conversation/route.ts
-
 import dbConfig from '@/lib/dbConfig';
 import { ConversationModel } from '@/models/message.model';
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,7 +22,7 @@ export async function GET(req: NextRequest) {
         }
 
         const conversations = await ConversationModel.findOne({
-            'participants.userID': userID,
+            participants: userID,
         });
 
         console.log(userID);

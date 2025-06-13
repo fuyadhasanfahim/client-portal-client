@@ -31,7 +31,7 @@ import {
     useSetMessageMutation,
 } from '@/redux/features/messages/messagesApi';
 import { format } from 'date-fns';
-import { IMessage } from '@/types/message.interface';
+import { IMessage, IMessageUser } from '@/types/message.interface';
 import { useSession } from 'next-auth/react';
 import { useSocket } from '@/app/SocketIOProvider';
 
@@ -65,17 +65,11 @@ const FloatingChatUI = () => {
 
     const userID = session?.user.id || '';
 
+    console.log(userID)
+
     const { data: conversationData, isLoading: loadingConversation } =
         useGetConversationQuery(userID);
-
-    console.log(userID, conversationData);
-
-    const { data, isLoading: loadingMessages } = useGetMessagesQuery(
-        conversationData?.data?._id,
-        {
-            skip: !conversationData?.data?._id,
-        }
-    );
+    const { data, isLoading: loadingMessages } = useGetMessagesQuery(userID);
     const [setMessage, { isLoading: sending }] = useSetMessageMutation();
     const { socket, isConnected } = useSocket();
 
@@ -97,25 +91,29 @@ const FloatingChatUI = () => {
     const handleSendMessage = async () => {
         if (!messageText.trim() || !session?.user?.id) return;
 
-        const newMessage = {
-            conversationID: !loadingConversation && conversationData?._id,
-            sender: {
-                userID: session.user.id,
-                name: session.user.name ?? '',
-                email: session.user.email ?? '',
-                profileImage: session.user.image ?? '',
-                isOnline: true,
-            },
+        const sender: IMessageUser = {
+            userID: session.user.id,
+            name: session.user.name ?? '',
+            email: session.user.email ?? '',
+            profileImage: session.user.image ?? '',
+            isOnline: true,
+        };
+
+        const newMessage: IMessage = {
+            conversationID: conversationData?.data?._id ?? '',
+            sender,
             content: messageText,
+            createdAt: new Date(),
         };
 
         try {
             const response = await setMessage(newMessage).unwrap();
 
-            const patchedMessage = {
+            const patchedMessage: IMessage = {
                 ...newMessage,
                 _id: response.data._id,
                 createdAt: new Date(),
+                status: 'sent',
             };
 
             socket?.emit('sendMessage', patchedMessage);

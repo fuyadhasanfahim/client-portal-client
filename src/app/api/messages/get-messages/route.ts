@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
 import { MessageModel } from '@/models/message.model';
+import { ConversationModel } from '@/models/message.model';
 import { IMessage } from '@/types/message.interface';
 
 export const dynamic = 'force-dynamic';
@@ -9,19 +10,31 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const conversationID = searchParams.get('conversationID');
-        console.log(searchParams)
+        const userID = searchParams.get('userID');
 
-        if (!conversationID) {
+        if (!userID) {
             return NextResponse.json(
-                { success: false, message: 'Missing conversationID' },
+                { success: false, message: 'Missing userID' },
                 { status: 400 }
             );
         }
 
         await dbConfig();
 
-        const messages = await MessageModel.find({ conversationID })
+        const conversation = await ConversationModel.findOne({
+            participants: userID,
+        });
+
+        if (!conversation) {
+            return NextResponse.json(
+                { success: true, data: [] },
+                { status: 200 }
+            );
+        }
+
+        const messages = await MessageModel.find({
+            conversationID: conversation._id,
+        })
             .sort({ createdAt: 1 })
             .populate({
                 path: 'sender',
@@ -29,8 +42,8 @@ export async function GET(req: NextRequest) {
                 select: 'userID name email profileImage isOnline',
             });
 
-            console.log(messages)
- 
+        console.log(messages);
+
         const formattedMessages: IMessage[] = messages.map((msg) => ({
             _id: msg._id?.toString(),
             conversationID: msg.conversationID,
@@ -55,7 +68,7 @@ export async function GET(req: NextRequest) {
             { status: 200 }
         );
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return NextResponse.json(
             {
                 success: false,
