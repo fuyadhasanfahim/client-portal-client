@@ -5,7 +5,6 @@ import OrderDetailsStatus from './OrderDetailsStatus';
 import OrderDetailsSummary from './OrderDetailsSummary';
 import OrderDetailsServiceList from './OrderDetailsServiceList';
 import OrderDetailsPaymentAndDetails from './OrderDetailsPaymentAndDetails';
-import OrderDetailsRevisionsCard from './OrderDetailsRevisionsCard';
 
 export default function OrderDetailsCard({
     order,
@@ -66,11 +65,6 @@ export default function OrderDetailsCard({
                     width={width}
                     supportingFileDownloadLink={supportingFileDownloadLink}
                     downloadLink={downloadLink}
-                />
-                <OrderDetailsRevisionsCard
-                    orderID={orderID}
-                    user={user}
-                    orderStatus={status}
                 />
             </div>
 

@@ -57,7 +57,7 @@ export default function SocketHandler(
 
                     await updateUnreadCounts(
                         messageData.conversationID,
-                        messageData.senderID
+                        messageData.sender.userID
                     );
                 } catch (error) {
                     console.error('Error sending message:', error);

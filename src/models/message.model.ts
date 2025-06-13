@@ -1,22 +1,36 @@
+import { Schema, model, models } from 'mongoose';
 import {
-    IConversationWithLastMessage,
     IMessage,
+    IMessageUser,
+    IConversation,
+    IUserTypingStatus,
 } from '@/types/message.interface';
-import { Schema, Document, model, models } from 'mongoose';
 
+// User message model
 const AttachmentSchema = new Schema(
     {
         type: { type: String, enum: ['image', 'file'], required: true },
         url: { type: String, required: true },
         name: { type: String },
     },
-    { _id: false, timestamps: true }
+    { _id: false }
+);
+
+const MessageUserSchema = new Schema<IMessageUser>(
+    {
+        userID: { type: String, required: true },
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+        profileImage: { type: String, required: true },
+        isOnline: { type: Boolean, required: true },
+    },
+    { _id: false }
 );
 
 const MessageSchema = new Schema<IMessage>(
     {
         conversationID: { type: String, required: true },
-        senderID: { type: String, required: true },
+        sender: { type: MessageUserSchema, required: true },
         content: { type: String, required: true },
         status: {
             type: String,
@@ -24,7 +38,6 @@ const MessageSchema = new Schema<IMessage>(
             default: 'sent',
         },
         attachments: [AttachmentSchema],
-        orderID: { type: String, required: true },
     },
     { timestamps: true }
 );
@@ -32,33 +45,34 @@ const MessageSchema = new Schema<IMessage>(
 export const MessageModel =
     models?.Message || model<IMessage>('Message', MessageSchema);
 
-const ConversationSchema = new Schema<IConversationWithLastMessage>(
+// User conversation model
+const ConversationSchema = new Schema<IConversation>(
     {
-        participants: [{ type: String, required: true }],
-        unreadCounts: { type: Map, of: Number, default: {} },
+        participants: [{ type: [MessageUserSchema], required: true }],
+        unreadCounts: {
+            type: Map,
+            of: Number,
+            default: {},
+        },
         readBy: [{ type: String }],
+        lastMessage: { type: MessageSchema },
     },
     { timestamps: true }
 );
 
 export const ConversationModel =
     models?.Conversation ||
-    model<IConversationWithLastMessage>('Conversation', ConversationSchema);
+    model<IConversation>('Conversation', ConversationSchema);
 
-export interface IUserTypingStatus extends Document {
-    userID: string;
-    conversationID: string;
-    isTyping: boolean;
-}
-
-const UserTypingStatusSchema = new Schema<IUserTypingStatus>({
-    userID: { type: String, required: true },
-    conversationID: {
-        type: String,
-        required: true,
+// User typing model
+const UserTypingStatusSchema = new Schema<IUserTypingStatus>(
+    {
+        userID: { type: String, required: true },
+        conversationID: { type: String, required: true },
+        isTyping: { type: Boolean, required: true },
     },
-    isTyping: { type: Boolean, required: true },
-});
+    { timestamps: true }
+);
 
 export const UserTypingStatusModel =
     models?.UserTypingStatus ||

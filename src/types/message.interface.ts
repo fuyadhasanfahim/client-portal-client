@@ -9,12 +9,10 @@ export interface IMessageUser {
 export interface IMessage {
     _id?: string;
     conversationID: string;
-    senderID: string;
+    sender: IMessageUser;
     content: string;
     status?: 'sent' | 'delivered' | 'seen';
     createdAt: Date;
-    orderID?: string;
-    updatedAt?: Date;
     attachments?: {
         type: 'image' | 'file';
         url: string;
@@ -22,24 +20,15 @@ export interface IMessage {
     }[];
 }
 
-export interface IMessageWithSender extends Omit<IMessage, 'senderID'> {
-    sender: IMessageUser;
-}
-
 export interface IConversation {
     _id?: string;
-    participants: string[];
+    participants: IMessageUser[];
     unreadCounts: {
         [userID: string]: number;
     };
     readBy: string[];
+    lastMessage?: IMessage;
     createdAt: Date;
-    updatedAt: Date;
-}
-
-export interface IConversationWithLastMessage extends IConversation {
-    lastMessage?: IMessageWithSender;
-    participantsInfo: IMessageUser[];
 }
 
 export interface IUserTypingStatus {

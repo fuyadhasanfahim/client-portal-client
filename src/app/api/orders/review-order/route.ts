@@ -26,7 +26,6 @@ export async function PUT(req: NextRequest) {
 
         await dbConfig();
 
-        // Update order status
         const updatedOrder = await OrderModel.findOneAndUpdate(
             { orderID },
             { status: 'In Revision' },
@@ -43,7 +42,6 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        // Fetch user by userID from order
         const user = await UserModel.findOne({ userID: updatedOrder.userID });
         if (!user || !user.email) {
             return NextResponse.json(
@@ -55,7 +53,6 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        // Email setup
         const subject =
             senderRole === 'User'
                 ? '🔁 Revision Requested for Your Order'
@@ -117,6 +114,8 @@ export async function PUT(req: NextRequest) {
             conversation.readBy = [senderID];
             await conversation.save();
         }
+
+        console.log(conversation)
 
         const newMessage = await MessageModel.create({
             conversationID: conversation._id,

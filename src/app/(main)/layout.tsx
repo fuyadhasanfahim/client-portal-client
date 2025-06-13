@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/shared/site-header';
 import { getUserData } from '@/actions/user.action';
 import VerificationAlert from '@/components/shared/VerificationAlert';
 import { Metadata } from 'next';
+import FloatingMessageButton from '@/components/shared/FloatingMessageButton';
 
 export const metadata: Metadata = {
     title: 'Client Portal',
@@ -44,6 +45,7 @@ export default async function Layout({
                         ) : (
                             <VerificationAlert email={user.email} />
                         )}
+                        {userData.role === 'User' && <FloatingMessageButton />}
                     </main>
                 </SidebarInset>
             </SidebarProvider>

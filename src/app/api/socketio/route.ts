@@ -1,6 +1,6 @@
-import SocketHandler from '@/socketio/socket';
+import SocketHandler from '@/lib/socket';
 import { NextApiRequest } from 'next';
-import type { NextApiResponseServerIO } from '@/socketio/socket';
+import type { NextApiResponseServerIO } from '@/lib/socket';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';

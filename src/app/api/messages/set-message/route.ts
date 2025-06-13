@@ -1,8 +1,6 @@
-// /app/api/messages/set-message/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConfig from '@/lib/dbConfig';
-import { MessageModel } from '@/models/message.model';
+import { ConversationModel, MessageModel } from '@/models/message.model';
 import UserModel from '@/models/user.model';
 
 export const dynamic = 'force-dynamic';
@@ -10,23 +8,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const {
-            orderID,
-            senderID,
-            content,
-            status = 'sent',
-            conversationID,
-        } = body;
+        const { sender, content } = body;
+        console.log(body);
 
-        console.log({
-            orderID,
-            senderID,
-            content,
-            status,
-            conversationID,
-        });
-
-        if (!orderID || !senderID || !content || !conversationID) {
+        if (!sender || !content) {
             return NextResponse.json(
                 { success: false, message: 'Missing required fields.' },
                 { status: 400 }
@@ -35,7 +20,7 @@ export async function POST(req: NextRequest) {
 
         await dbConfig();
 
-        const user = await UserModel.findOne({ userID: senderID }).select(
+        const user = await UserModel.findOne({ userID: sender.userID }).select(
             'userID name email profileImage'
         );
 
@@ -46,18 +31,30 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        let conversation = await ConversationModel.findOne({
+            participants: sender.userID,
+        });
+
+        if (!conversation) {
+            conversation = await ConversationModel.create({
+                participants: [sender.userID],
+                unreadCounts: {},
+                readBy: [],
+                participantsInfo: [user],
+                createdAt: new Date(),
+            });
+        }
+
         const newMessage = await MessageModel.create({
-            conversationID,
-            orderID,
-            senderID,
+            sender: sender,
+            conversationID: conversation._id,
             content,
-            status,
             attachments: [],
         });
 
         const responseData = {
             _id: newMessage._id,
-            conversationID,
+            conversationID: conversation._id,
             orderID: newMessage.orderID,
             content: newMessage.content,
             status: newMessage.status,
