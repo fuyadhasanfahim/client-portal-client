@@ -1,27 +1,28 @@
-import { IConversationWithLastMessage } from '@/types/message.interface';
+import { IConversation } from '@/types/message.interface';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function ConversationItem({
     conversation,
     isSelected,
     onClick,
 }: {
-    conversation: IConversationWithLastMessage;
+    conversation: IConversation;
     isSelected: boolean;
     onClick: () => void;
 }) {
-    // Get the other participant (assuming 1:1 chats)
     const otherParticipant = conversation.participantsInfo[0];
     const unreadCount = conversation.unreadCounts[otherParticipant.userID] || 0;
 
     return (
         <div
             onClick={onClick}
-            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+            className={cn(
+                'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all',
                 isSelected ? 'bg-muted' : 'hover:bg-muted/50'
-            }`}
+            )}
         >
             <div className="relative shrink-0">
                 <Avatar className="h-12 w-12 ring-1 ring-ring/20">

@@ -5,7 +5,11 @@ export const userApi = apiSlice.injectEndpoints({
         return {
             getUsersWithRole: build.query({
                 query: (role) => ({
-                    url: `user/get-user-with-role?role=${role}`,
+                    url: 'user/get-user-with-role',
+                    method: 'GET',
+                    params: {
+                        role,
+                    },
                 }),
                 providesTags: ['Users'],
             }),
@@ -18,8 +22,16 @@ export const userApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Users'],
             }),
+            getAdmin: build.query({
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                query: (_arg) => ({
+                    url: 'user/get-admin',
+                }),
+                providesTags: ['Users'],
+            }),
         };
     },
 });
 
-export const { useGetUsersWithRoleQuery, useGetUserQuery } = userApi;
+export const { useGetUsersWithRoleQuery, useGetUserQuery, useGetAdminQuery } =
+    userApi;

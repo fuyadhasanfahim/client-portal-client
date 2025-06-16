@@ -34,44 +34,33 @@ import { format } from 'date-fns';
 import { IMessage, IMessageUser } from '@/types/message.interface';
 import { useSession } from 'next-auth/react';
 import { useSocket } from '@/app/SocketIOProvider';
-
-const mockUser = {
-    userID: 'client-123',
-    name: 'John Doe',
-    email: 'john@example.com',
-    profileImage: '',
-    isOnline: true,
-};
-
-const mockAdmin = {
-    userID: 'admin-456',
-    name: 'Support Team',
-    email: 'support@company.com',
-    profileImage: '',
-    isOnline: true,
-};
+import ApiError from './ApiError';
+import { useGetAdminQuery } from '@/redux/features/users/userApi';
 
 const FloatingChatUI = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [messageText, setMessageText] = useState('');
-    const [unreadCount, setUnreadCount] = useState(2);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [isTyping, setIsTyping] = useState(false);
     const [messages, setMessages] = useState<IMessage[]>([]);
 
+    const { data: adminData } = useGetAdminQuery({});
+    const admin = adminData?.data;
+
     const { data: session } = useSession();
+    const userID = session?.user?.id;
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const userID = session?.user.id || '';
-
-    console.log(userID)
-
-    const { data: conversationData, isLoading: loadingConversation } =
-        useGetConversationQuery(userID);
-    const { data, isLoading: loadingMessages } = useGetMessagesQuery(userID);
+    const { data: conversationData } = useGetConversationQuery(userID);
+    const { data, isLoading: loadingMessages } = useGetMessagesQuery({
+        userID,
+    });
     const [setMessage, { isLoading: sending }] = useSetMessageMutation();
-    const { socket, isConnected } = useSocket();
+
+    const { socket } = useSocket();
 
     useEffect(() => {
         if (!loadingMessages && data?.data) {
@@ -82,20 +71,40 @@ const FloatingChatUI = () => {
     useEffect(() => {
         if (isOpen && !isMinimized) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
+            inputRef.current?.focus();
         }
     }, [isOpen, isMinimized, messages]);
 
+    useEffect(() => {
+        if (!socket || !userID) return;
+
+        socket.emit('joinUserRoom', userID);
+
+        socket.on('receiveMessage', (message: IMessage) => {
+            setMessages((prev) => [...prev, message]);
+            if (!isOpen || isMinimized) {
+                setUnreadCount((count) => count + 1);
+            }
+        });
+
+        socket.on('typing', (typing: boolean) => {
+            setIsTyping(typing);
+        });
+
+        return () => {
+            socket.off('receiveMessage');
+            socket.off('typing');
+        };
+    }, [socket, userID, isOpen, isMinimized]);
+
     const handleSendMessage = async () => {
-        if (!messageText.trim() || !session?.user?.id) return;
+        if (!messageText.trim() || !userID) return;
 
         const sender: IMessageUser = {
-            userID: session.user.id,
-            name: session.user.name ?? '',
-            email: session.user.email ?? '',
-            profileImage: session.user.image ?? '',
+            userID,
+            name: session?.user?.name || '',
+            email: session?.user?.email || '',
+            profileImage: session?.user?.image || '',
             isOnline: true,
         };
 
@@ -103,16 +112,15 @@ const FloatingChatUI = () => {
             conversationID: conversationData?.data?._id ?? '',
             sender,
             content: messageText,
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
         };
 
         try {
             const response = await setMessage(newMessage).unwrap();
-
             const patchedMessage: IMessage = {
                 ...newMessage,
                 _id: response.data._id,
-                createdAt: new Date(),
+                createdAt: new Date().toISOString(),
                 status: 'sent',
             };
 
@@ -120,7 +128,7 @@ const FloatingChatUI = () => {
             setMessages((prev) => [...prev, patchedMessage]);
             setMessageText('');
         } catch (error) {
-            console.error('Failed to send message:', error);
+            ApiError(error);
         }
     };
 
@@ -176,12 +184,12 @@ const FloatingChatUI = () => {
                                 <div className="relative">
                                     <Avatar className="w-8 h-8">
                                         <AvatarImage
-                                            src={mockAdmin.profileImage}
+                                            src={admin?.profileImage}
                                         />
                                         <AvatarFallback>
-                                            {mockAdmin.name
-                                                .split(' ')
-                                                .map((n) => n[0])
+                                            {admin?.name
+                                                ?.split(' ')
+                                                .map((n: string) => n[0])
                                                 .join('')}
                                         </AvatarFallback>
                                     </Avatar>
@@ -189,7 +197,7 @@ const FloatingChatUI = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h3 className="font-semibold text-sm truncate">
-                                        {mockAdmin.name}
+                                        {admin?.name || 'Support'}
                                     </h3>
                                     <p className="text-xs text-primary-foreground/80">
                                         {isTyping ? 'Typing...' : 'Online'}
@@ -234,8 +242,8 @@ const FloatingChatUI = () => {
 
                         {!isMinimized && (
                             <>
-                                <ScrollArea className="flex-1 p-4 h-[440px]">
-                                    <div className="space-y-4">
+                                <ScrollArea className="flex-1 px-4 h-[440px]">
+                                    <div className="space-y-4 py-2">
                                         {loadingMessages ? (
                                             <div className="h-full flex items-center justify-center">
                                                 <p className="text-sm leading-relaxed">
@@ -246,40 +254,39 @@ const FloatingChatUI = () => {
                                             messages.map((msg: IMessage) => (
                                                 <div
                                                     key={msg._id}
-                                                    className={`flex ${
+                                                    className={cn(
+                                                        'flex',
                                                         msg.sender.userID ===
-                                                        mockUser.userID
+                                                            userID
                                                             ? 'justify-end'
                                                             : 'justify-start'
-                                                    }`}
+                                                    )}
                                                 >
                                                     <div
                                                         className={`flex items-end space-x-2 max-w-[85%] ${
                                                             msg.sender
                                                                 .userID ===
-                                                            mockUser.userID
+                                                            userID
                                                                 ? 'flex-row-reverse space-x-reverse'
                                                                 : ''
                                                         }`}
                                                     >
                                                         {msg.sender.userID !==
-                                                            mockUser.userID && (
-                                                            <Avatar className="w-6 h-6 mb-1">
+                                                            userID && (
+                                                            <Avatar className="w-6 h-6">
                                                                 <AvatarImage
                                                                     src={
-                                                                        msg
-                                                                            .sender
-                                                                            .profileImage
+                                                                        admin?.profileImage
                                                                     }
                                                                 />
                                                                 <AvatarFallback className="text-xs bg-gray-100">
-                                                                    {msg.sender.name
-                                                                        .split(
+                                                                    {admin?.name
+                                                                        ?.split(
                                                                             ' '
                                                                         )
                                                                         .map(
                                                                             (
-                                                                                n
+                                                                                n: string
                                                                             ) =>
                                                                                 n[0]
                                                                         )
@@ -293,9 +300,9 @@ const FloatingChatUI = () => {
                                                             className={`rounded-2xl px-4 py-2 shadow-sm ${
                                                                 msg.sender
                                                                     .userID ===
-                                                                mockUser.userID
-                                                                    ? 'bg-primary text-primary-foreground'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                                userID
+                                                                    ? 'bg-muted text-muted-foreground'
+                                                                    : 'bg-primary text-primary-foreground'
                                                             }`}
                                                         >
                                                             <p className="text-sm leading-relaxed">
@@ -305,9 +312,9 @@ const FloatingChatUI = () => {
                                                                 className={`flex items-center justify-between mt-1 ${
                                                                     msg.sender
                                                                         .userID ===
-                                                                    mockUser.userID
-                                                                        ? 'text-primary-foreground/70'
-                                                                        : 'text-muted-foreground/70'
+                                                                    userID
+                                                                        ? 'text-muted-foreground/70'
+                                                                        : 'text-primary-foreground/70'
                                                                 }`}
                                                             >
                                                                 <span className="text-xs">
@@ -320,7 +327,7 @@ const FloatingChatUI = () => {
                                                                 </span>
                                                                 {msg.sender
                                                                     .userID ===
-                                                                    mockUser.userID && (
+                                                                    userID && (
                                                                     <div className="ml-2">
                                                                         {getStatusIcon(
                                                                             msg.status ||
@@ -340,14 +347,16 @@ const FloatingChatUI = () => {
                                                     <Avatar className="w-6 h-6 mb-1">
                                                         <AvatarImage
                                                             src={
-                                                                mockAdmin.profileImage
+                                                                admin?.profileImage
                                                             }
                                                         />
                                                         <AvatarFallback className="text-xs bg-muted">
-                                                            {mockAdmin.name
-                                                                .split(' ')
+                                                            {admin?.name
+                                                                ?.split(' ')
                                                                 .map(
-                                                                    (n) => n[0]
+                                                                    (
+                                                                        n: string
+                                                                    ) => n[0]
                                                                 )
                                                                 .join('')}
                                                         </AvatarFallback>

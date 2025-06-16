@@ -9,15 +9,16 @@ export const messagesApi = apiSlice.injectEndpoints({
                     method: 'POST',
                     body: data,
                 }),
-                invalidatesTags: ['Messages'],
             }),
             getMessages: build.query({
-                query: (userID) => ({
+                query: ({ conversationID, userID }) => ({
                     url: 'messages/get-messages',
                     method: 'GET',
-                    params: { userID },
+                    params: {
+                        conversation_id: conversationID,
+                        user_id: userID,
+                    },
                 }),
-                providesTags: ['Messages'],
             }),
             getConversation: build.query({
                 query: (userID) => ({
@@ -27,14 +28,23 @@ export const messagesApi = apiSlice.injectEndpoints({
                         userID,
                     },
                 }),
-                providesTags: ['Messages'],
+            }),
+            getAllConversations: build.query({
+                query: (role) => ({
+                    url: 'messages/get-all-conversations',
+                    method: 'GET',
+                    params: {
+                        role,
+                    },
+                }),
             }),
         };
     },
 });
 
 export const {
-    useGetMessagesQuery,
     useSetMessageMutation,
+    useGetMessagesQuery,
     useGetConversationQuery,
+    useGetAllConversationsQuery,
 } = messagesApi;

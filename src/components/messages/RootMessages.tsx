@@ -1,181 +1,163 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import ConversationItem from './ConversationItem';
-import ChatArea from './ChatArea';
+import {
+    useGetAllConversationsQuery,
+    useGetMessagesQuery,
+    useSetMessageMutation,
+} from '@/redux/features/messages/messagesApi';
 import { useSession } from 'next-auth/react';
+import MessageConversations from './MessageConversations';
+import { useRef, useState, useEffect } from 'react';
+import { IConversation, IMessage, IUserTypingStatus } from '@/types/message.interface';
+import MessageChatArea from './MessageChatArea';
+import ApiError from '../shared/ApiError';
 import { useSocket } from '@/app/SocketIOProvider';
-import { IConversationWithLastMessage, IMessageWithSender } from '@/types/message.interface';
 
 export default function RootMessages() {
     const { data: session } = useSession();
-    const { socket, isConnected } = useSocket();
-    const [conversations, setConversations] = useState<
-        IConversationWithLastMessage[]
-    >([]);
     const [selectedConversation, setSelectedConversation] =
-        useState<IConversationWithLastMessage | null>(null);
-    const [messages, setMessages] = useState<IMessageWithSender[]>([]);
+        useState<IConversation | null>(null);
     const [messageText, setMessageText] = useState('');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
-    const [typingStatus, setTypingStatus] = useState<Record<string, boolean>>(
-        {}
+    const [messages, setMessages] = useState<IMessage[]>([]);
+    const [typingStatus, setTypingStatus] = useState<{
+        [key: string]: boolean;
+    }>({});
+    const inputRef = useRef<HTMLInputElement>(null);
+    const { socket } = useSocket();
+
+    const {
+        data: conversationsData,
+        isLoading: isConversationLoading,
+        isError: isConversationError,
+    } = useGetAllConversationsQuery(session?.user.role ?? '', {
+        skip: !session,
+    });
+
+    const {
+        data: messagesData,
+        isLoading: isMessagesLoading,
+        isError: isMessageError,
+    } = useGetMessagesQuery(
+        {
+            conversationID: selectedConversation?._id,
+            userID: session?.user?.id,
+        },
+        {
+            skip: !selectedConversation?._id || !session?.user?.id,
+        }
     );
 
-    // Fetch conversations on component mount
-    useEffect(() => {
-        const fetchConversations = async () => {
-            try {
-                const res = await fetch('/api/conversations');
-                const data = await res.json();
-                setConversations(data);
-                if (data.length > 0 && !selectedConversation) {
-                    setSelectedConversation(data[0]);
-                }
-            } catch (error) {
-                console.error('Error fetching conversations:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchConversations();
-    }, [selectedConversation]);
+    const [setMessage, { isLoading, isError }] = useSetMessageMutation();
 
     useEffect(() => {
-        if (!selectedConversation) return;
-
-        const fetchMessages = async () => {
-            try {
-                const res = await fetch(
-                    `/api/messages?conversationId=${selectedConversation._id}`
-                );
-                const data = await res.json();
-                setMessages(data);
-            } catch (error) {
-                console.error('Error fetching messages:', error);
-            }
-        };
-
-        fetchMessages();
-
-        // Join conversation room
-        if (socket && isConnected) {
-            socket.emit('joinConversation', selectedConversation._id);
+        if (messagesData?.data) {
+            setMessages(messagesData.data);
         }
-    }, [selectedConversation, socket, isConnected]);
+    }, [messagesData]);
 
-    // Socket.io event listeners
     useEffect(() => {
-        if (!socket || !selectedConversation) return;
+        if (!socket || !selectedConversation?._id) return;
 
-        const handleNewMessage = (message: IMessageWithSender) => {
-            if (message.conversationID === selectedConversation._id) {
+        socket.emit('joinConversation', selectedConversation._id);
+
+        socket.on('receiveMessage', (message: IMessage) => {
+            setMessages((prev) => [...prev, message]);
+        });
+
+        socket.on('typing', (userId: string, isTyping: boolean) => {
+            setTypingStatus((prev) => ({
+                ...prev,
+                [userId]: isTyping,
+            }));
+        });
+
+        return () => {
+            socket.off('receiveMessage');
+            socket.off('typing');
+            socket.emit('leaveConversation', selectedConversation._id);
+        };
+    }, [socket, selectedConversation]);
+
+    useEffect(() => {
+        if (!socket || !selectedConversation?._id) return;
+
+        const convId = selectedConversation._id;
+
+        socket.emit('joinConversation', convId);
+
+        const handleReceiveMessage = (message: IMessage) => {
+            if (message.conversationID === convId) {
                 setMessages((prev) => [...prev, message]);
             }
-            // Update last message in conversations list
-            setConversations((prev) =>
-                prev.map((conv) =>
-                    conv._id === message.conversationID
-                        ? { ...conv, lastMessage: message }
-                        : conv
-                )
-            );
         };
 
-        const handleUserTyping = (data: {
-            userId: string;
-            isTyping: boolean;
-        }) => {
-            if (data.userId !== session?.user?.id) {
+        const handleTyping = (data: IUserTypingStatus) => {
+            if (data.conversationID === convId) {
                 setTypingStatus((prev) => ({
                     ...prev,
-                    [data.userId]: data.isTyping,
+                    [data.userID]: data.isTyping,
                 }));
             }
         };
 
-        socket.on('newMessage', handleNewMessage);
-        socket.on('userTyping', handleUserTyping);
+        socket.on('receiveMessage', handleReceiveMessage);
+        socket.on('userTyping', handleTyping);
 
         return () => {
-            socket.off('newMessage', handleNewMessage);
-            socket.off('userTyping', handleUserTyping);
+            socket.emit('leaveConversation', convId);
+            socket.off('receiveMessage', handleReceiveMessage);
+            socket.off('userTyping', handleTyping);
         };
-    }, [socket, selectedConversation, session]);
-
-    const filteredConversations = conversations.filter((conv) =>
-        conv.participantsInfo.some(
-            (p) =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.email.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    );
+    }, [socket, selectedConversation?._id]);
 
     const handleSendMessage = async () => {
         if (!messageText.trim() || !selectedConversation || !session?.user?.id)
             return;
 
-        const newMessage = {
-            conversationID: selectedConversation._id,
-            senderID: session.user.id,
+        const sender = {
+            userID: session.user.id,
+            name: session.user.name || '',
+            email: session.user.email || '',
+            profileImage: session.user.image || '',
+            isOnline: true,
+        };
+
+        const newMessage: IMessage = {
+            _id: '',
+            conversationID: selectedConversation._id!,
+            sender,
             content: messageText,
+            createdAt: new Date().toISOString(),
             status: 'sent',
         };
 
         try {
-            // Optimistically add message to UI
-            const tempId = Date.now().toString();
-            setMessages((prev) => [
-                ...prev,
-                {
-                    ...newMessage,
-                    _id: tempId,
-                    createdAt: new Date(),
-                    sender: {
-                        userID: session.user.id,
-                        name: session.user.name ?? '',
-                        email: session.user.email ?? '',
-                        profileImage: session.user.image ?? '',
-                        isOnline: true,
-                    },
-                } as IMessageWithSender,
-            ]);
+            const response = await setMessage(newMessage).unwrap();
+            const sentMessage: IMessage = {
+                ...newMessage,
+                _id: response.data._id,
+                status: 'sent',
+            };
 
-            // Emit message via socket
-            socket?.emit('sendMessage', newMessage);
+            socket?.emit('sendMessage', selectedConversation._id, sentMessage);
+
+            setMessages((prev) => [...prev, sentMessage]);
             setMessageText('');
+            inputRef.current?.focus();
         } catch (error) {
-            console.error('Error sending message:', error);
+            ApiError(error);
         }
-    };
-
-    const handleTyping = (isTyping: boolean) => {
-        if (!selectedConversation || !session?.user?.id) return;
-        socket?.emit('typing', {
-            userId: session.user.id,
-            conversationId: selectedConversation._id,
-            isTyping,
-        });
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSendMessage();
-        } else {
-            handleTyping(true);
         }
     };
-
-    if (isLoading) {
-        return <div>Loading conversations...</div>;
-    }
 
     return (
         <Card className="h-[calc(100vh-96px)] overflow-hidden py-0 w-full">
@@ -187,30 +169,31 @@ export default function RootMessages() {
                     <Separator />
                     <ScrollArea className="h-[calc(100vh-200px)]">
                         <div className="p-2">
-                            {filteredConversations.map((conv) => (
-                                <ConversationItem
-                                    key={conv._id}
-                                    conversation={conv}
-                                    isSelected={
-                                        selectedConversation?._id === conv._id
-                                    }
-                                    onClick={() =>
-                                        setSelectedConversation(conv)
-                                    }
-                                />
-                            ))}
+                            <MessageConversations
+                                conversations={conversationsData?.data}
+                                isLoading={isConversationLoading}
+                                isError={isConversationError}
+                                selectedConversation={selectedConversation}
+                                setSelectedConversation={
+                                    setSelectedConversation
+                                }
+                            />
                         </div>
                     </ScrollArea>
                 </div>
+
                 {selectedConversation ? (
-                    <ChatArea
-                        selectedConversation={selectedConversation}
-                        messages={messages}
-                        messageText={messageText}
-                        setMessageText={setMessageText}
-                        handleSendMessage={handleSendMessage}
+                    <MessageChatArea
                         handleKeyPress={handleKeyPress}
+                        handleSendMessage={handleSendMessage}
+                        isError={isMessageError}
+                        isLoading={isMessagesLoading}
+                        messageText={messageText}
+                        messages={messages}
+                        selectedConversation={selectedConversation}
+                        setMessageText={setMessageText}
                         typingStatus={typingStatus}
+                        disable={isLoading || isError}
                     />
                 ) : (
                     <div className="col-span-8 flex items-center justify-center">

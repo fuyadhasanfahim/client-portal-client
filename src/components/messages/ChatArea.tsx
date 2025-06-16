@@ -7,19 +7,17 @@ import { Textarea } from '../ui/textarea';
 import ChatHeader from './ChatHeader';
 import ChatBubble from './ChatBubble';
 import { useSession } from 'next-auth/react';
-import {
-    IConversationWithLastMessage,
-    IMessageWithSender,
-} from '@/types/message.interface';
+import { IConversation, IMessage } from '@/types/message.interface';
 
 interface ChatAreaProps {
-    selectedConversation: IConversationWithLastMessage;
-    messages: IMessageWithSender[];
+    selectedConversation: IConversation;
+    messages: IMessage[];
     messageText: string;
     setMessageText: React.Dispatch<React.SetStateAction<string>>;
     handleSendMessage: () => void;
     handleKeyPress: (e: React.KeyboardEvent) => void;
     typingStatus: Record<string, boolean>;
+    disable?: boolean;
 }
 
 export default function ChatArea({
@@ -30,6 +28,7 @@ export default function ChatArea({
     handleSendMessage,
     handleKeyPress,
     typingStatus,
+    disable,
 }: ChatAreaProps) {
     const { data: session } = useSession();
     const otherParticipant = selectedConversation.participantsInfo[0];
@@ -38,9 +37,9 @@ export default function ChatArea({
         <CardContent className="col-span-8 flex flex-col h-full px-0">
             <ChatHeader user={otherParticipant} />
             <Separator />
-            <ScrollArea className="flex-1 p-4 bg-background">
-                <div className="space-y-4">
-                    {messages.map((msg) => (
+            <ScrollArea className="flex-1 px-4 bg-background max-h-[calc(100vh-300px)]">
+                <div className="space-y-4 py-2">
+                    {messages?.map((msg) => (
                         <ChatBubble
                             key={msg._id}
                             message={msg}
@@ -65,7 +64,7 @@ export default function ChatArea({
                     />
                     <Button
                         onClick={handleSendMessage}
-                        disabled={!messageText.trim()}
+                        disabled={!messageText.trim() || disable}
                         size="icon"
                         className="rounded-full"
                     >

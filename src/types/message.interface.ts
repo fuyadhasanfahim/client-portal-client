@@ -12,7 +12,7 @@ export interface IMessage {
     sender: IMessageUser;
     content: string;
     status?: 'sent' | 'delivered' | 'seen';
-    createdAt: Date;
+    createdAt: string;
     attachments?: {
         type: 'image' | 'file';
         url: string;
@@ -23,13 +23,13 @@ export interface IMessage {
 export interface IConversation {
     _id?: string;
     participants: string[];
-    unreadCounts: {
-        [userID: string]: number;
-    };
+    unreadCounts: { [userID: string]: number };
     readBy: string[];
     lastMessage?: IMessage;
     participantsInfo: IMessageUser[];
-    createdAt: Date;
+    createdAt: string;
+    assignedTo?: string;
+    status?: 'open' | 'in-progress' | 'resolved' | 'closed';
 }
 
 export interface IUserTypingStatus {

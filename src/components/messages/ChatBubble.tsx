@@ -1,11 +1,11 @@
-import { IMessageWithSender } from '@/types/message.interface';
+import { IMessage } from '@/types/message.interface';
 import { format } from 'date-fns';
 
 export default function ChatBubble({
     message,
     isOwn,
 }: {
-    message: IMessageWithSender;
+    message: IMessage;
     isOwn: boolean;
 }) {
     return (
@@ -23,7 +23,7 @@ export default function ChatBubble({
                         isOwn ? 'text-blue-100' : 'text-gray-500'
                     }`}
                 >
-                    {format('PPP', message.createdAt.toISOString())}
+                    {format(message.createdAt, 'PPP')}
                 </p>
             </div>
         </div>

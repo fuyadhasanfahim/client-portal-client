@@ -41,23 +41,48 @@ export default function SocketHandler(
                     const message = new MessageModel(messageData);
                     await message.save();
 
-                    const messageWithSender = await MessageModel.findById(
+                    const populatedMessage = await MessageModel.findById(
                         message._id
                     )
-                        .populate(
-                            'senderID',
-                            'userID name email profileImage isOnline'
-                        )
-                        .exec();
+                        .populate({
+                            path: 'senderID',
+                            select: 'userID name email profileImage isOnline',
+                        })
+                        .lean();
 
-                    io.to(messageData.conversationID).emit(
-                        'newMessage',
-                        messageWithSender
+                    if (!populatedMessage) return;
+
+                    const msg = Array.isArray(populatedMessage)
+                        ? populatedMessage[0]
+                        : populatedMessage;
+                    if (!msg) return;
+
+                    const normalizedMessage: IMessage = {
+                        _id: (
+                            msg._id as string | { toString(): string }
+                        ).toString(),
+                        conversationID: msg.conversationID.toString(),
+                        content: msg.content,
+                        createdAt: msg.createdAt.toString(),
+                        status: 'sent',
+                        attachments: msg.attachments || [],
+                        sender: {
+                            userID: msg.senderID.userID,
+                            name: msg.senderID.name,
+                            email: msg.senderID.email,
+                            profileImage: msg.senderID.profileImage,
+                            isOnline: msg.senderID.isOnline,
+                        },
+                    };
+
+                    io.to(normalizedMessage.sender.userID).emit(
+                        'receiveMessage',
+                        normalizedMessage
                     );
 
                     await updateUnreadCounts(
-                        messageData.conversationID,
-                        messageData.sender.userID
+                        normalizedMessage.conversationID,
+                        normalizedMessage.sender.userID
                     );
                 } catch (error) {
                     console.error('Error sending message:', error);

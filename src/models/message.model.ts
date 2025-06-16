@@ -57,6 +57,12 @@ const ConversationSchema = new Schema<IConversation>(
         readBy: [{ type: String }],
         lastMessage: { type: MessageSchema },
         participantsInfo: [{ type: MessageUserSchema, required: true }],
+        assignedTo: String,
+        status: {
+            type: String,
+            enum: ['open', 'in-progress', 'resolved', 'closed'],
+            default: 'open',
+        },
     },
     { timestamps: true }
 );

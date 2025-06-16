@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
-import { MessageModel } from '@/models/message.model';
-import { ConversationModel } from '@/models/message.model';
+import { MessageModel, ConversationModel } from '@/models/message.model';
 import { IMessage } from '@/types/message.interface';
 
 export const dynamic = 'force-dynamic';
@@ -10,25 +9,35 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const userID = searchParams.get('userID');
-
-        if (!userID) {
-            return NextResponse.json(
-                { success: false, message: 'Missing userID' },
-                { status: 400 }
-            );
-        }
+        const conversationID = searchParams.get('conversation_id');
+        const userID = searchParams.get('user_id');
 
         await dbConfig();
 
-        const conversation = await ConversationModel.findOne({
-            participants: userID,
-        });
+        let conversation;
 
-        if (!conversation) {
+        if (conversationID) {
+            conversation = await ConversationModel.findById(conversationID);
+            if (!conversation) {
+                return NextResponse.json(
+                    { success: false, message: 'Conversation not found' },
+                    { status: 404 }
+                );
+            }
+        } else if (userID) {
+            conversation = await ConversationModel.findOne({
+                participants: userID,
+            });
+            if (!conversation) {
+                return NextResponse.json(
+                    { success: true, data: [] },
+                    { status: 200 }
+                );
+            }
+        } else {
             return NextResponse.json(
-                { success: true, data: [] },
-                { status: 200 }
+                { success: false, message: 'Missing conversationID or userID' },
+                { status: 400 }
             );
         }
 
@@ -41,8 +50,6 @@ export async function GET(req: NextRequest) {
                 model: UserModel,
                 select: 'userID name email profileImage isOnline',
             });
-
-        console.log(messages);
 
         const formattedMessages: IMessage[] = messages.map((msg) => ({
             _id: msg._id?.toString(),
