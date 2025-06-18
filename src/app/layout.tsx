@@ -2,7 +2,6 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import NextAuthProvider from './NextAuthProvider';
 import ReduxProvider from './ReduxProvider';
-import SocketIOProvider from './SocketIOProvider';
 
 export default function RootLayout({
     children,
@@ -20,15 +19,10 @@ export default function RootLayout({
             </head>
             <body className={`antialiased`}>
                 <ReduxProvider>
-                    <SocketIOProvider>
-                        <NextAuthProvider>
-                            {children}
-                            <Toaster
-                                position="bottom-right"
-                                reverseOrder={false}
-                            />
-                        </NextAuthProvider>
-                    </SocketIOProvider>
+                    <NextAuthProvider>
+                        {children}
+                        <Toaster position="bottom-right" reverseOrder={false} />
+                    </NextAuthProvider>
                 </ReduxProvider>
             </body>
         </html>

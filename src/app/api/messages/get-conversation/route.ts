@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         await dbConfig();
 
         const { searchParams } = new URL(req.nextUrl);
-        const userID = searchParams.get('userID');
+        const userID = searchParams.get('user_id');
 
         if (!userID) {
             return NextResponse.json(
@@ -24,8 +24,6 @@ export async function GET(req: NextRequest) {
         const conversations = await ConversationModel.findOne({
             participants: userID,
         });
-
-        console.log(userID);
 
         return NextResponse.json(
             {

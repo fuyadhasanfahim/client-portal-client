@@ -3,6 +3,7 @@ export interface IMessageUser {
     name: string;
     email: string;
     profileImage: string;
+    role: string;
     isOnline?: boolean;
 }
 
@@ -12,7 +13,7 @@ export interface IMessage {
     sender: IMessageUser;
     content: string;
     status?: 'sent' | 'delivered' | 'seen';
-    createdAt: string;
+    createdAt?: string;
     attachments?: {
         type: 'image' | 'file';
         url: string;

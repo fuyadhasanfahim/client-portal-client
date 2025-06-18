@@ -1,68 +1,123 @@
-import { IConversation, IMessage } from '@/types/message.interface';
-import { Skeleton } from '../ui/skeleton';
-import ChatArea from './ChatArea';
+'use client';
 
-interface MessageChatAreaProps {
-    isLoading: boolean;
-    isError: boolean;
-    messages: IMessage[];
-    selectedConversation: IConversation;
-    messageText: string;
-    setMessageText: React.Dispatch<React.SetStateAction<string>>;
-    handleSendMessage: () => void;
-    handleKeyPress: (e: React.KeyboardEvent) => void;
-    typingStatus: Record<string, boolean>;
-    disable?: boolean;
-}
+import { useEffect, useRef, useState } from 'react';
+import ChatArea from './ChatArea';
+import { IMessage } from '@/types/message.interface';
+import { socket } from '@/lib/socket';
+import toast from 'react-hot-toast';
+import ApiError from '../shared/ApiError';
+import { useSession } from 'next-auth/react';
+import { useSetMessageMutation } from '@/redux/features/messages/messagesApi';
 
 export default function MessageChatArea({
-    isLoading,
-    isError,
-    messages,
-    selectedConversation,
-    messageText,
-    setMessageText,
-    handleSendMessage,
-    handleKeyPress,
-    typingStatus,
-    disable,
-}: MessageChatAreaProps) {
-    if (isLoading) {
-        return (
-            <div className="space-y-4 p-4">
-                {Array.from({ length: 10 }).map((_, index) => (
-                    <Skeleton key={index} className="h-24 w-full rounded-xl" />
-                ))}
-            </div>
-        );
-    }
+    conversationID,
+}: {
+    conversationID: string;
+}) {
+    const { data: session } = useSession();
+    const { name, email, id, image, role } = session?.user || {};
 
-    if (isError) {
-        return (
-            <div className="text-red-500 text-center py-6">
-                Failed to load chat messages. Please try again later.
-            </div>
-        );
-    }
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    if (messages.length === 0) {
-        return (
-            <div className="text-gray-500 text-center py-6">
-                No messages yet. Start the conversation!
-            </div>
-        );
-    }
+    const [messageText, setMessageText] = useState('');
+    const [messages, setMessages] = useState<IMessage[]>([]);
+
+    const [setMessage, { isLoading }] = useSetMessageMutation();
+
+    useEffect(() => {
+        const fetchMessages = async () => {
+            if (!conversationID) return;
+
+            try {
+                const response = await fetch(
+                    `/api/messages/get-messages?conversation_id=${conversationID}`
+                );
+                const result = await response.json();
+
+                if (result.success) {
+                    setMessages(result.data);
+                } else {
+                    toast.error(result.message);
+                }
+            } catch (error) {
+                ApiError(error);
+            }
+        };
+
+        fetchMessages();
+    }, [conversationID, setMessages]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        inputRef.current?.focus();
+    }, [messages]);
+
+    useEffect(() => {
+        const handleNewMessage = (data: IMessage) => {
+            setMessages((prev) => [...prev, data]);
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newMessage', handleNewMessage);
+        };
+    }, []);
+
+    const handleSendMessage = async () => {
+        if (messageText.trim() === '') {
+            return;
+        }
+
+        const newMessage = {
+            conversationID,
+            sender: {
+                userID: id!,
+                name: name ?? '',
+                email: email ?? '',
+                profileImage: image ?? '',
+                role: role ?? '',
+                isOnline: true,
+            },
+            content: messageText,
+        };
+
+        try {
+            const response = await setMessage(newMessage).unwrap();
+
+            socket.emit('sendMessage', newMessage);
+
+            const patchedMessage: IMessage = {
+                ...newMessage,
+                _id: response.data._id,
+                sender: response.data.sender,
+                status: 'sent',
+            };
+
+            socket.emit('sendMessage', patchedMessage);
+            setMessageText('');
+        } catch (error) {
+            ApiError(error);
+        }
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    };
 
     return (
         <ChatArea
-            selectedConversation={selectedConversation}
             messages={messages}
             messageText={messageText}
             setMessageText={setMessageText}
             handleSendMessage={handleSendMessage}
             handleKeyPress={handleKeyPress}
-            typingStatus={typingStatus}
-            disable={disable}
+            inputRef={inputRef}
+            isLoading={isLoading}
         />
     );
 }

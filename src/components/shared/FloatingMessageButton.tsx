@@ -25,17 +25,14 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import {
-    useGetConversationQuery,
-    useGetMessagesQuery,
-    useSetMessageMutation,
-} from '@/redux/features/messages/messagesApi';
+import { useSetMessageMutation } from '@/redux/features/messages/messagesApi';
 import { format } from 'date-fns';
-import { IMessage, IMessageUser } from '@/types/message.interface';
+import { IConversation, IMessage } from '@/types/message.interface';
 import { useSession } from 'next-auth/react';
-import { useSocket } from '@/app/SocketIOProvider';
 import ApiError from './ApiError';
 import { useGetAdminQuery } from '@/redux/features/users/userApi';
+import { socket } from '@/lib/socket';
+import toast from 'react-hot-toast';
 
 const FloatingChatUI = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -43,30 +40,71 @@ const FloatingChatUI = () => {
     const [messageText, setMessageText] = useState('');
     const [unreadCount, setUnreadCount] = useState(0);
     const [isTyping, setIsTyping] = useState(false);
-    const [messages, setMessages] = useState<IMessage[]>([]);
+    const [messages, setMessages] = useState<IMessage[] | []>([]);
+    const [conversation, setConversation] = useState<IConversation | null>(
+        null
+    );
+
+    const loadingMessages = false;
 
     const { data: adminData } = useGetAdminQuery({});
     const admin = adminData?.data;
 
     const { data: session } = useSession();
-    const userID = session?.user?.id;
+    const { name, email, id, image, role } = session?.user || {};
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { data: conversationData } = useGetConversationQuery(userID);
-    const { data, isLoading: loadingMessages } = useGetMessagesQuery({
-        userID,
-    });
-    const [setMessage, { isLoading: sending }] = useSetMessageMutation();
+    useEffect(() => {
+        if (!session?.user?.id) return;
 
-    const { socket } = useSocket();
+        const fetchConversation = async () => {
+            try {
+                const response = await fetch(
+                    `/api/messages/get-conversation?user_id=${session.user.id}`
+                );
+                const result = await response.json();
+
+                if (result.success) {
+                    setConversation(result.data);
+                } else {
+                    toast.error(result.message);
+                }
+            } catch (error) {
+                ApiError(error);
+            }
+        };
+
+        fetchConversation();
+    }, [session?.user?.id]);
 
     useEffect(() => {
-        if (!loadingMessages && data?.data) {
-            setMessages(data.data);
-        }
-    }, [loadingMessages, data]);
+        const fetchMessages = async () => {
+            if (!conversation) return;
+
+            try {
+                const response = await fetch(
+                    `/api/messages/get-messages?conversation_id=${
+                        conversation._id as string
+                    }`
+                );
+                const result = await response.json();
+
+                if (result.success) {
+                    setMessages(result.data);
+                } else {
+                    toast.error(result.message);
+                }
+            } catch (error) {
+                ApiError(error);
+            }
+        };
+
+        fetchMessages();
+    }, [conversation, setMessages]);
+
+    const [setMessage, { isLoading: sending }] = useSetMessageMutation();
 
     useEffect(() => {
         if (isOpen && !isMinimized) {
@@ -76,56 +114,43 @@ const FloatingChatUI = () => {
     }, [isOpen, isMinimized, messages]);
 
     useEffect(() => {
-        if (!socket || !userID) return;
-
-        socket.emit('joinUserRoom', userID);
-
-        socket.on('receiveMessage', (message: IMessage) => {
-            setMessages((prev) => [...prev, message]);
-            if (!isOpen || isMinimized) {
-                setUnreadCount((count) => count + 1);
-            }
+        socket.on('newMessage', (data: IMessage) => {
+            setMessages((prev) => [...prev, data]);
         });
-
-        socket.on('typing', (typing: boolean) => {
-            setIsTyping(typing);
-        });
-
-        return () => {
-            socket.off('receiveMessage');
-            socket.off('typing');
-        };
-    }, [socket, userID, isOpen, isMinimized]);
+    }, []);
 
     const handleSendMessage = async () => {
-        if (!messageText.trim() || !userID) return;
+        if (messageText.trim() === '') {
+            return;
+        }
 
-        const sender: IMessageUser = {
-            userID,
-            name: session?.user?.name || '',
-            email: session?.user?.email || '',
-            profileImage: session?.user?.image || '',
-            isOnline: true,
-        };
-
-        const newMessage: IMessage = {
-            conversationID: conversationData?.data?._id ?? '',
-            sender,
+        const newMessage = {
+            conversationID: conversation?._id,
+            sender: {
+                userID: id!,
+                name: name ?? '',
+                email: email ?? '',
+                profileImage: image ?? '',
+                role: role ?? '',
+                isOnline: true,
+            },
             content: messageText,
-            createdAt: new Date().toISOString(),
         };
 
         try {
             const response = await setMessage(newMessage).unwrap();
+
+            socket.emit('sendMessage', newMessage);
+
             const patchedMessage: IMessage = {
                 ...newMessage,
                 _id: response.data._id,
-                createdAt: new Date().toISOString(),
+                conversationID: response.data._id,
+                sender: response.data.sender,
                 status: 'sent',
             };
 
-            socket?.emit('sendMessage', patchedMessage);
-            setMessages((prev) => [...prev, patchedMessage]);
+            socket.emit('sendMessage', patchedMessage);
             setMessageText('');
         } catch (error) {
             ApiError(error);
@@ -251,95 +276,105 @@ const FloatingChatUI = () => {
                                                 </p>
                                             </div>
                                         ) : (
-                                            messages.map((msg: IMessage) => (
-                                                <div
-                                                    key={msg._id}
-                                                    className={cn(
-                                                        'flex',
-                                                        msg.sender.userID ===
-                                                            userID
-                                                            ? 'justify-end'
-                                                            : 'justify-start'
-                                                    )}
-                                                >
+                                            messages.map(
+                                                (
+                                                    msg: IMessage,
+                                                    index: number
+                                                ) => (
                                                     <div
-                                                        className={`flex items-end space-x-2 max-w-[85%] ${
+                                                        key={index}
+                                                        className={cn(
+                                                            'flex',
                                                             msg.sender
-                                                                .userID ===
-                                                            userID
-                                                                ? 'flex-row-reverse space-x-reverse'
-                                                                : ''
-                                                        }`}
-                                                    >
-                                                        {msg.sender.userID !==
-                                                            userID && (
-                                                            <Avatar className="w-6 h-6">
-                                                                <AvatarImage
-                                                                    src={
-                                                                        admin?.profileImage
-                                                                    }
-                                                                />
-                                                                <AvatarFallback className="text-xs bg-gray-100">
-                                                                    {admin?.name
-                                                                        ?.split(
-                                                                            ' '
-                                                                        )
-                                                                        .map(
-                                                                            (
-                                                                                n: string
-                                                                            ) =>
-                                                                                n[0]
-                                                                        )
-                                                                        .join(
-                                                                            ''
-                                                                        )}
-                                                                </AvatarFallback>
-                                                            </Avatar>
+                                                                .userID === id
+                                                                ? 'justify-end'
+                                                                : 'justify-start'
                                                         )}
+                                                    >
                                                         <div
-                                                            className={`rounded-2xl px-4 py-2 shadow-sm ${
+                                                            className={`flex items-end space-x-2 max-w-[85%] ${
                                                                 msg.sender
                                                                     .userID ===
-                                                                userID
-                                                                    ? 'bg-muted text-muted-foreground'
-                                                                    : 'bg-primary text-primary-foreground'
+                                                                id
+                                                                    ? 'flex-row-reverse space-x-reverse'
+                                                                    : ''
                                                             }`}
                                                         >
-                                                            <p className="text-sm leading-relaxed">
-                                                                {msg.content}
-                                                            </p>
+                                                            {msg.sender
+                                                                .userID !==
+                                                                id && (
+                                                                <Avatar className="w-6 h-6">
+                                                                    <AvatarImage
+                                                                        src={
+                                                                            admin?.profileImage
+                                                                        }
+                                                                    />
+                                                                    <AvatarFallback className="text-xs bg-gray-100">
+                                                                        {admin?.name
+                                                                            ?.split(
+                                                                                ' '
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    n: string
+                                                                                ) =>
+                                                                                    n[0]
+                                                                            )
+                                                                            .join(
+                                                                                ''
+                                                                            )}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                            )}
                                                             <div
-                                                                className={`flex items-center justify-between mt-1 ${
+                                                                className={`rounded-2xl px-4 py-2 shadow-sm ${
                                                                     msg.sender
                                                                         .userID ===
-                                                                    userID
-                                                                        ? 'text-muted-foreground/70'
-                                                                        : 'text-primary-foreground/70'
+                                                                    id
+                                                                        ? 'bg-muted text-muted-foreground'
+                                                                        : 'bg-primary text-primary-foreground'
                                                                 }`}
                                                             >
-                                                                <span className="text-xs">
-                                                                    {format(
-                                                                        new Date(
-                                                                            msg.createdAt
-                                                                        ),
-                                                                        'p'
+                                                                <p className="text-sm leading-relaxed">
+                                                                    {
+                                                                        msg.content
+                                                                    }
+                                                                </p>
+                                                                <div
+                                                                    className={`flex items-center justify-between mt-1 ${
+                                                                        msg
+                                                                            .sender
+                                                                            .userID ===
+                                                                        id
+                                                                            ? 'text-muted-foreground/70'
+                                                                            : 'text-primary-foreground/70'
+                                                                    }`}
+                                                                >
+                                                                    <span className="text-xs">
+                                                                        {msg.createdAt &&
+                                                                            format(
+                                                                                new Date(
+                                                                                    msg.createdAt
+                                                                                ),
+                                                                                'p'
+                                                                            )}
+                                                                    </span>
+                                                                    {msg.sender
+                                                                        .userID ===
+                                                                        id && (
+                                                                        <div className="ml-2">
+                                                                            {getStatusIcon(
+                                                                                msg.status ||
+                                                                                    'sent'
+                                                                            )}
+                                                                        </div>
                                                                     )}
-                                                                </span>
-                                                                {msg.sender
-                                                                    .userID ===
-                                                                    userID && (
-                                                                    <div className="ml-2">
-                                                                        {getStatusIcon(
-                                                                            msg.status ||
-                                                                                'sent'
-                                                                        )}
-                                                                    </div>
-                                                                )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))
+                                                )
+                                            )
                                         )}
                                         {isTyping && (
                                             <div className="flex justify-start">

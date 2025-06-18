@@ -23,7 +23,7 @@ export default function ChatBubble({
                         isOwn ? 'text-blue-100' : 'text-gray-500'
                     }`}
                 >
-                    {format(message.createdAt, 'PPP')}
+                    {message.createdAt && format(message.createdAt, 'PPP')}
                 </p>
             </div>
         </div>
