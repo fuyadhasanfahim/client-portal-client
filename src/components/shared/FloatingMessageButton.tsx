@@ -25,134 +25,186 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useSetMessageMutation } from '@/redux/features/messages/messagesApi';
 import { format } from 'date-fns';
-import { IConversation, IMessage } from '@/types/message.interface';
+import { IMessage } from '@/types/message.interface';
 import { useSession } from 'next-auth/react';
 import ApiError from './ApiError';
 import { useGetAdminQuery } from '@/redux/features/users/userApi';
 import { socket } from '@/lib/socket';
-import toast from 'react-hot-toast';
+import {
+    useSetMessageMutation,
+    useGetMessagesQuery,
+    useGetConversationQuery,
+} from '@/redux/features/messages/messagesApi';
+import { nanoid } from 'nanoid';
+
+// Helper functions
+const getStatusIcon = (status: string) => {
+    const iconProps = 'w-3 h-3';
+    switch (status) {
+        case 'sent':
+            return (
+                <Clock className={`${iconProps} text-muted-foreground/50`} />
+            );
+        case 'delivered':
+            return (
+                <Check className={`${iconProps} text-muted-foreground/50`} />
+            );
+        case 'seen':
+            return <CheckCheck className={`${iconProps} text-primary`} />;
+        default:
+            return null;
+    }
+};
 
 const FloatingChatUI = () => {
+    // State management
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [messageText, setMessageText] = useState('');
     const [unreadCount, setUnreadCount] = useState(0);
-    const [isTyping, setIsTyping] = useState(false);
-    const [messages, setMessages] = useState<IMessage[] | []>([]);
-    const [conversation, setConversation] = useState<IConversation | null>(
-        null
+    const isTyping = false;
+    const [optimisticMessages, setOptimisticMessages] = useState<IMessage[]>(
+        []
     );
 
-    const loadingMessages = false;
-
-    const { data: adminData } = useGetAdminQuery({});
-    const admin = adminData?.data;
-
-    const { data: session } = useSession();
-    const { name, email, id, image, role } = session?.user || {};
-
+    // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        if (!session?.user?.id) return;
+    // Session and user data
+    const { data: session } = useSession();
+    const { name, email, id, image, role } = session?.user || {};
+    const { data: adminData } = useGetAdminQuery({});
+    const admin = adminData?.data;
 
-        const fetchConversation = async () => {
-            try {
-                const response = await fetch(
-                    `/api/messages/get-conversation?user_id=${session.user.id}`
-                );
-                const result = await response.json();
+    // RTK Query hooks
+    const { data: conversationData } = useGetConversationQuery(id as string, {
+        skip: !id,
+    });
+    const conversation = conversationData?.data;
 
-                if (result.success) {
-                    setConversation(result.data);
-                } else {
-                    toast.error(result.message);
-                }
-            } catch (error) {
-                ApiError(error);
-            }
-        };
-
-        fetchConversation();
-    }, [session?.user?.id]);
-
-    useEffect(() => {
-        const fetchMessages = async () => {
-            if (!conversation) return;
-
-            try {
-                const response = await fetch(
-                    `/api/messages/get-messages?conversation_id=${
-                        conversation._id as string
-                    }`
-                );
-                const result = await response.json();
-
-                if (result.success) {
-                    setMessages(result.data);
-                } else {
-                    toast.error(result.message);
-                }
-            } catch (error) {
-                ApiError(error);
-            }
-        };
-
-        fetchMessages();
-    }, [conversation, setMessages]);
+    const {
+        data: messagesData,
+        isLoading: loadingMessages,
+        isFetching: fetchingMessages,
+    } = useGetMessagesQuery(
+        {
+            conversationID: conversation?._id as string,
+            userID: id as string,
+        },
+        {
+            skip: !conversation?._id || !id,
+            // Reduced polling interval for better UX
+            pollingInterval: 10000,
+        }
+    );
 
     const [setMessage, { isLoading: sending }] = useSetMessageMutation();
 
+    // Combine server messages with optimistic updates
+    const messages = [
+        ...(messagesData?.data || []),
+        ...optimisticMessages.filter(
+            (optMsg) =>
+                !messagesData?.data?.some(
+                    (msg: IMessage) => msg._id === optMsg._id
+                )
+        ),
+    ].sort(
+        (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    // Effects
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
     useEffect(() => {
         if (isOpen && !isMinimized) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             inputRef.current?.focus();
         }
-    }, [isOpen, isMinimized, messages]);
+    }, [isOpen, isMinimized]);
 
     useEffect(() => {
-        socket.on('newMessage', (data: IMessage) => {
-            setMessages((prev) => [...prev, data]);
-        });
-    }, []);
-
-    const handleSendMessage = async () => {
-        if (messageText.trim() === '') {
-            return;
+        if (!socket.connected) {
+            socket.connect();
         }
 
-        const newMessage = {
-            conversationID: conversation?._id,
+        const handleNewMessage = (data: IMessage) => {
+            if (data.conversationID === conversation?._id) {
+                // Remove optimistic message if it exists
+                setOptimisticMessages((prev) =>
+                    prev.filter((msg) => msg._id !== data._id)
+                );
+            }
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newMessage', handleNewMessage);
+        };
+    }, [conversation?._id]);
+
+    // Event handlers
+    const handleSendMessage = async () => {
+        const trimmed = messageText.trim();
+        if (!trimmed || !id) return;
+
+        const baseMessage = {
             sender: {
-                userID: id!,
+                userID: id,
                 name: name ?? '',
                 email: email ?? '',
                 profileImage: image ?? '',
                 role: role ?? '',
                 isOnline: true,
             },
-            content: messageText,
+            content: trimmed,
         };
 
+        const tempId = nanoid(10);
+        const optimisticMessage: IMessage = {
+            ...baseMessage,
+            _id: tempId,
+            createdAt: new Date().toString(),
+            status: 'sent',
+        };
+
+        // Add optimistic message immediately
+        setOptimisticMessages((prev) => [...prev, optimisticMessage]);
+        setMessageText('');
+
         try {
-            const response = await setMessage(newMessage).unwrap();
+            const response = await setMessage(baseMessage).unwrap();
 
-            socket.emit('sendMessage', newMessage);
-
-            const patchedMessage: IMessage = {
-                ...newMessage,
+            const confirmedMessage = {
+                ...optimisticMessage,
                 _id: response.data._id,
-                conversationID: response.data._id,
-                sender: response.data.sender,
-                status: 'sent',
+                status: 'delivered',
             };
 
-            socket.emit('sendMessage', patchedMessage);
-            setMessageText('');
+            // Update optimistic message with real ID
+            setOptimisticMessages((prev) =>
+                prev.map((msg) =>
+                    msg._id === tempId
+                        ? {
+                              ...msg,
+                              _id: response.data._id,
+                              status: 'delivered',
+                          }
+                        : msg
+                )
+            );
+
+            socket.emit('sendMessage', confirmedMessage);
         } catch (error) {
+            // Remove optimistic message if send fails
+            setOptimisticMessages((prev) =>
+                prev.filter((msg) => msg._id !== tempId)
+            );
             ApiError(error);
         }
     };
@@ -175,18 +227,91 @@ const FloatingChatUI = () => {
         setIsMinimized(!isMinimized);
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'sent':
-                return <Clock className="w-3 h-3 text-muted-foreground/50" />;
-            case 'delivered':
-                return <Check className="w-3 h-3 text-muted-foreground/50" />;
-            case 'seen':
-                return <CheckCheck className="w-3 h-3 text-primary" />;
-            default:
-                return null;
-        }
-    };
+    // UI rendering
+    const renderMessage = (msg: IMessage, index: number) => (
+        <div
+            key={msg._id || index}
+            className={cn(
+                'flex',
+                msg.sender.userID === id ? 'justify-end' : 'justify-start'
+            )}
+        >
+            <div
+                className={`flex items-end space-x-2 max-w-[85%] ${
+                    msg.sender.userID === id
+                        ? 'flex-row-reverse space-x-reverse'
+                        : ''
+                }`}
+            >
+                {msg.sender.userID !== id && (
+                    <Avatar className="w-6 h-6">
+                        <AvatarImage src={admin?.profileImage} />
+                        <AvatarFallback className="text-xs bg-gray-100">
+                            {admin?.name
+                                ?.split(' ')
+                                .map((n: string) => n[0])
+                                .join('')}
+                        </AvatarFallback>
+                    </Avatar>
+                )}
+                <div
+                    className={`rounded-2xl px-4 py-2 shadow-sm ${
+                        msg.sender.userID === id
+                            ? 'bg-muted text-muted-foreground'
+                            : 'bg-primary text-primary-foreground'
+                    }`}
+                >
+                    <p className="text-sm leading-relaxed">{msg.content}</p>
+                    <div
+                        className={`flex items-center justify-between mt-1 ${
+                            msg.sender.userID === id
+                                ? 'text-muted-foreground/70'
+                                : 'text-primary-foreground/70'
+                        }`}
+                    >
+                        <span className="text-xs">
+                            {msg.createdAt &&
+                                format(new Date(msg.createdAt), 'p')}
+                        </span>
+                        {msg.sender.userID === id && (
+                            <div className="ml-2">
+                                {getStatusIcon(msg.status || 'sent')}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderTypingIndicator = () => (
+        <div className="flex justify-start">
+            <div className="flex items-end space-x-2">
+                <Avatar className="w-6 h-6 mb-1">
+                    <AvatarImage src={admin?.profileImage} />
+                    <AvatarFallback className="text-xs bg-muted">
+                        {admin?.name
+                            ?.split(' ')
+                            .map((n: string) => n[0])
+                            .join('')}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="bg-muted rounded-2xl px-4 py-3">
+                    <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
+                        <div
+                            className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                            style={{ animationDelay: '0.1s' }}
+                        ></div>
+                        <div
+                            className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                            style={{ animationDelay: '0.2s' }}
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <TooltipProvider>
@@ -269,155 +394,16 @@ const FloatingChatUI = () => {
                             <>
                                 <ScrollArea className="flex-1 px-4 h-[440px]">
                                     <div className="space-y-4 py-2">
-                                        {loadingMessages ? (
+                                        {loadingMessages || fetchingMessages ? (
                                             <div className="h-full flex items-center justify-center">
                                                 <p className="text-sm leading-relaxed">
-                                                    Loading previous messages...
+                                                    Loading messages...
                                                 </p>
                                             </div>
                                         ) : (
-                                            messages.map(
-                                                (
-                                                    msg: IMessage,
-                                                    index: number
-                                                ) => (
-                                                    <div
-                                                        key={index}
-                                                        className={cn(
-                                                            'flex',
-                                                            msg.sender
-                                                                .userID === id
-                                                                ? 'justify-end'
-                                                                : 'justify-start'
-                                                        )}
-                                                    >
-                                                        <div
-                                                            className={`flex items-end space-x-2 max-w-[85%] ${
-                                                                msg.sender
-                                                                    .userID ===
-                                                                id
-                                                                    ? 'flex-row-reverse space-x-reverse'
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {msg.sender
-                                                                .userID !==
-                                                                id && (
-                                                                <Avatar className="w-6 h-6">
-                                                                    <AvatarImage
-                                                                        src={
-                                                                            admin?.profileImage
-                                                                        }
-                                                                    />
-                                                                    <AvatarFallback className="text-xs bg-gray-100">
-                                                                        {admin?.name
-                                                                            ?.split(
-                                                                                ' '
-                                                                            )
-                                                                            .map(
-                                                                                (
-                                                                                    n: string
-                                                                                ) =>
-                                                                                    n[0]
-                                                                            )
-                                                                            .join(
-                                                                                ''
-                                                                            )}
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                            )}
-                                                            <div
-                                                                className={`rounded-2xl px-4 py-2 shadow-sm ${
-                                                                    msg.sender
-                                                                        .userID ===
-                                                                    id
-                                                                        ? 'bg-muted text-muted-foreground'
-                                                                        : 'bg-primary text-primary-foreground'
-                                                                }`}
-                                                            >
-                                                                <p className="text-sm leading-relaxed">
-                                                                    {
-                                                                        msg.content
-                                                                    }
-                                                                </p>
-                                                                <div
-                                                                    className={`flex items-center justify-between mt-1 ${
-                                                                        msg
-                                                                            .sender
-                                                                            .userID ===
-                                                                        id
-                                                                            ? 'text-muted-foreground/70'
-                                                                            : 'text-primary-foreground/70'
-                                                                    }`}
-                                                                >
-                                                                    <span className="text-xs">
-                                                                        {msg.createdAt &&
-                                                                            format(
-                                                                                new Date(
-                                                                                    msg.createdAt
-                                                                                ),
-                                                                                'p'
-                                                                            )}
-                                                                    </span>
-                                                                    {msg.sender
-                                                                        .userID ===
-                                                                        id && (
-                                                                        <div className="ml-2">
-                                                                            {getStatusIcon(
-                                                                                msg.status ||
-                                                                                    'sent'
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            )
+                                            messages.map(renderMessage)
                                         )}
-                                        {isTyping && (
-                                            <div className="flex justify-start">
-                                                <div className="flex items-end space-x-2">
-                                                    <Avatar className="w-6 h-6 mb-1">
-                                                        <AvatarImage
-                                                            src={
-                                                                admin?.profileImage
-                                                            }
-                                                        />
-                                                        <AvatarFallback className="text-xs bg-muted">
-                                                            {admin?.name
-                                                                ?.split(' ')
-                                                                .map(
-                                                                    (
-                                                                        n: string
-                                                                    ) => n[0]
-                                                                )
-                                                                .join('')}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="bg-muted rounded-2xl px-4 py-3">
-                                                        <div className="flex space-x-1">
-                                                            <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
-                                                            <div
-                                                                className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
-                                                                style={{
-                                                                    animationDelay:
-                                                                        '0.1s',
-                                                                }}
-                                                            ></div>
-                                                            <div
-                                                                className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
-                                                                style={{
-                                                                    animationDelay:
-                                                                        '0.2s',
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
+                                        {isTyping && renderTypingIndicator()}
                                         <div ref={messagesEndRef} />
                                     </div>
                                 </ScrollArea>

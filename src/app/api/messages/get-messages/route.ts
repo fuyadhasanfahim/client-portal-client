@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
                 name: msg.sender.name,
                 email: msg.sender.email,
                 profileImage: msg.sender.profileImage,
+                role: msg.sender.role,
                 isOnline: msg.sender.isOnline || false,
             },
             attachments: msg.attachments || [],

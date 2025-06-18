@@ -9,7 +9,7 @@ export interface IMessageUser {
 
 export interface IMessage {
     _id?: string;
-    conversationID: string;
+    conversationID?: string;
     sender: IMessageUser;
     content: string;
     status?: 'sent' | 'delivered' | 'seen';

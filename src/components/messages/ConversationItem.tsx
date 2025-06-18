@@ -44,9 +44,10 @@ export default function ConversationItem({
                         {otherParticipant.name}
                     </h4>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {conversation.lastMessage
+                        {conversation.lastMessage &&
+                        conversation.lastMessage.createdAt
                             ? formatDistanceToNow(
-                                  new Date(conversation.lastMessage.createdAt),
+                                  conversation.lastMessage.createdAt,
                                   { addSuffix: true }
                               )
                             : 'No messages'}

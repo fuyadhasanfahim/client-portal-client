@@ -34,13 +34,9 @@ export default function ChatHeader({
                     )}
                 </div>
                 {isConversationLoading ? (
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-sm">
-                            <Skeleton className="h-4 w-42" />
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                            <Skeleton className="h-4 w-42" />
-                        </p>
+                    <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-42" />
+                        <Skeleton className="h-4 w-42" />
                         <p className="text-xs text-muted-foreground">
                             {isOnline ? (
                                 <span className="text-green-600">● Online</span>

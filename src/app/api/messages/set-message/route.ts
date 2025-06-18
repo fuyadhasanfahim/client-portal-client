@@ -9,14 +9,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const {
-            sender,
-            content,
-            conversationID,
-        }: { sender: IMessageUser; content: string; conversationID: string } =
+        const { sender, content }: { sender: IMessageUser; content: string } =
             body;
-
-        console.log(sender);
 
         if (!sender || !content) {
             return NextResponse.json(
@@ -79,7 +73,7 @@ export async function POST(req: NextRequest) {
 
         conversation.lastMessage = {
             _id: newMessage._id,
-            conversationID,
+            conversationID: conversation._id,
             content: newMessage.content,
             status: newMessage.status,
             createdAt: newMessage.createdAt,

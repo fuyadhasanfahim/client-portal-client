@@ -4,9 +4,9 @@ import MessageConversations from '@/components/messages/MessageConversations';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { demoData } from './data';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useGetAllConversationsQuery } from '@/redux/features/messages/messagesApi';
 
 export default function MessageLayout({
     children,
@@ -24,6 +24,8 @@ export default function MessageLayout({
         }
     }, [router, selectedConversationID]);
 
+    const { data, isLoading } = useGetAllConversationsQuery([]);
+
     return (
         <Card className="h-[calc(100vh-96px)] overflow-hidden py-0 w-full">
             <div className="grid grid-cols-12 h-full">
@@ -35,11 +37,12 @@ export default function MessageLayout({
                     <ScrollArea className="h-[calc(100vh-200px)]">
                         <div className="p-2">
                             <MessageConversations
-                                conversations={demoData.conversations}
+                                conversations={data?.data || []}
                                 selectedConversationID={selectedConversationID}
                                 setSelectedConversationID={
                                     setSelectedConversationID
                                 }
+                                isLoading={isLoading}
                             />
                         </div>
                     </ScrollArea>

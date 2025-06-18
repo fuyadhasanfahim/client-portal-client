@@ -20,11 +20,7 @@ app.prepare().then(() => {
     });
 
     io.on('connection', (socket) => {
-        console.log('User connected', socket.id);
-        
         socket.on('sendMessage', (data) => {
-            console.log(data);
-
             io.emit('newMessage', data);
         });
     });
