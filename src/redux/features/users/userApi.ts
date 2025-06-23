@@ -29,9 +29,17 @@ export const userApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Users'],
             }),
+            getLoggedInUser: build.query({
+                query: () => 'user/get-loggedin-user',
+                providesTags: ['Users'],
+            }),
         };
     },
 });
 
-export const { useGetUsersWithRoleQuery, useGetUserQuery, useGetAdminQuery } =
-    userApi;
+export const {
+    useGetUsersWithRoleQuery,
+    useGetUserQuery,
+    useGetAdminQuery,
+    useGetLoggedInUserQuery,
+} = userApi;
