@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function InvoiceCard({
     order,
@@ -31,6 +33,7 @@ export default function InvoiceCard({
     authToken: string;
 }) {
     const [user, setUser] = useState<IUser | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -50,16 +53,36 @@ export default function InvoiceCard({
     }, [order.userID, authToken]);
 
     const handleSendInvoice = async () => {
-        await fetch(`http://localhost:5000/api/invoice/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${authToken}`,
-            },
-            body: JSON.stringify({ orderId: order._id }),
-        });
+        try {
+            if (!order._id) return;
+            setIsLoading(true);
 
-        alert('Invoice sent successfully.');
+            const orderID = order._id;
+
+            const response = await fetch(
+                'http://localhost:5000/api/invoices/send-invoice-pdf-to-client',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify({ orderID }),
+                }
+            );
+
+            if (response.ok) {
+                toast.success('Invoice sent successfully.');
+            }
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to send invoice. Please try again.'
+            );
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -88,7 +111,7 @@ export default function InvoiceCard({
                     <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg">
                         <Avatar className="size-14 ring-2 ring-primary/50">
                             <AvatarImage
-                                src={user?.profileImage}
+                                src={user?.profileImage!}
                                 alt={`${user?.name}'s profile image.`}
                             />
                             <AvatarFallback className="bg-primary/10 text-primary">
@@ -191,15 +214,15 @@ export default function InvoiceCard({
                         </h3>
                         <div className="overflow-x-auto border rounded-lg">
                             <Table className="w-full">
-                                <TableHeader>
+                                <TableHeader className="bg-accent">
                                     <TableRow>
-                                        <TableHead className="w-[40%] font-medium text-primary">
+                                        <TableHead className="w-[40%] text-center font-medium text-primary border-r">
                                             Service
                                         </TableHead>
-                                        <TableHead className="w-[40%] font-medium text-primary">
+                                        <TableHead className="w-[40%] text-center font-medium text-primary border-r">
                                             Type & Complexity
                                         </TableHead>
-                                        <TableHead className="w-[20%] text-right font-medium text-primary">
+                                        <TableHead className="w-[20%] text-center font-medium text-primary">
                                             Price
                                         </TableHead>
                                     </TableRow>
@@ -211,10 +234,10 @@ export default function InvoiceCard({
                                                 key={service._id}
                                                 className="hover:bg-muted/50"
                                             >
-                                                <TableCell className="font-medium">
+                                                <TableCell className="font-medium text-center border-r">
                                                     {service.name}
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell className="text-center border-r">
                                                     {service.types
                                                         ?.map(
                                                             (t: IOrderType) =>
@@ -224,9 +247,9 @@ export default function InvoiceCard({
                                                                     'Standard'
                                                                 })`
                                                         )
-                                                        .join(', ')}
+                                                        .join(', ') || 'N/A'}
                                                 </TableCell>
-                                                <TableCell className="text-right font-medium">
+                                                <TableCell className="text-center font-medium">
                                                     ${' '}
                                                     {service.price ??
                                                         service.types?.reduce(
@@ -248,27 +271,11 @@ export default function InvoiceCard({
                     </div>
 
                     <div className="flex justify-end">
-                        <div className="w-full max-w-xs space-y-2">
-                            <div className="flex justify-between border-b pb-1">
-                                <span className="text-muted-foreground">
-                                    Subtotal
-                                </span>
-                                <span className="font-medium">
-                                    $ {order.total}
-                                </span>
-                            </div>
-                            <div className="flex justify-between border-b pb-1">
-                                <span className="text-muted-foreground">
-                                    Tax (0%)
-                                </span>
-                                <span className="font-medium">$ 0.00</span>
-                            </div>
-                            <div className="flex justify-between pt-2">
-                                <span className="font-semibold">Total</span>
-                                <span className="text-xl font-bold text-primary">
-                                    ৳{order.total}
-                                </span>
-                            </div>
+                        <div className="flex justify-between items-center gap-5 pr-8">
+                            <span className="font-semibold">Total: </span>
+                            <span className="text-xl font-bold text-primary">
+                                $ {order.total}
+                            </span>
                         </div>
                     </div>
 
@@ -279,8 +286,12 @@ export default function InvoiceCard({
                         >
                             Print Invoice
                         </Button>
-                        <Button onClick={handleSendInvoice}>
-                            Send to Client
+                        <Button
+                            onClick={handleSendInvoice}
+                            disabled={isLoading}
+                        >
+                            {isLoading && <Loader2 className="animate-spin" />}
+                            {isLoading ? 'Sending...' : 'Send to Client'}
                         </Button>
                     </div>
 

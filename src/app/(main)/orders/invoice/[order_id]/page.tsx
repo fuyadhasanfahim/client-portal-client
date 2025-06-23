@@ -8,7 +8,7 @@ interface InvoicePageProps {
 export default async function InvoicePage({
     params,
 }: {
-    params: InvoicePageProps;
+    params: Promise<InvoicePageProps>;
 }) {
     const { order_id } = await params;
     const authToken = await getAuthToken();
