@@ -14,7 +14,7 @@ export default async function InvoicePage({
     const authToken = await getAuthToken();
 
     const response = await fetch(
-        `http://localhost:5000/api/orders/get-order-by-id?order_id=${order_id}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-order-by-id?order_id=${order_id}`,
         {
             headers: {
                 Authorization: `Bearer ${authToken}`,

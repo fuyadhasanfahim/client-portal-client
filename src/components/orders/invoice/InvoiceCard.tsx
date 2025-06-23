@@ -38,7 +38,7 @@ export default function InvoiceCard({
     useEffect(() => {
         const fetchUser = async () => {
             const res = await fetch(
-                `http://localhost:5000/api/users/get-user-by-id?user_id=${order.userID}`,
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/get-user-by-id?user_id=${order.userID}`,
                 {
                     headers: {
                         Authorization: `Bearer ${authToken}`,
@@ -60,7 +60,7 @@ export default function InvoiceCard({
             const orderID = order._id;
 
             const response = await fetch(
-                'http://localhost:5000/api/invoices/send-invoice-pdf-to-client',
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/send-invoice-pdf-to-client`,
                 {
                     method: 'POST',
                     headers: {
@@ -111,8 +111,8 @@ export default function InvoiceCard({
                     <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg">
                         <Avatar className="size-14 ring-2 ring-primary/50">
                             <AvatarImage
-                                src={user?.profileImage!}
-                                alt={`${user?.name}'s profile image.`}
+                                src={user?.profileImage || undefined}
+                                alt={`${user?.name ?? 'Client'}'s profile image.`}
                             />
                             <AvatarFallback className="bg-primary/10 text-primary">
                                 {user?.name.charAt(0).toUpperCase()}

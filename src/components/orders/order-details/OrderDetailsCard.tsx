@@ -80,13 +80,7 @@ export default function OrderDetailsCard({
                     orderID={orderID}
                     userID={userID}
                 />
-                {user.role === 'User' && order.status === 'Completed' ? (
-                    <OrderDetailsInvoice order={order} user={user} />
-                ) : (
-                    (user.role === 'Admin' || user.role === 'SuperAdmin') && (
-                        <OrderDetailsInvoice order={order} user={user} />
-                    )
-                )}
+                <OrderDetailsInvoice order={order} user={user} />
             </div>
         </div>
     );
