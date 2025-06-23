@@ -5,6 +5,7 @@ import OrderDetailsStatus from './OrderDetailsStatus';
 import OrderDetailsSummary from './OrderDetailsSummary';
 import OrderDetailsServiceList from './OrderDetailsServiceList';
 import OrderDetailsPaymentAndDetails from './OrderDetailsPaymentAndDetails';
+import OrderDetailsInvoice from './OrderDetailsInvoice';
 
 export default function OrderDetailsCard({
     order,
@@ -79,6 +80,13 @@ export default function OrderDetailsCard({
                     orderID={orderID}
                     userID={userID}
                 />
+                {user.role === 'User' && order.status === 'Completed' ? (
+                    <OrderDetailsInvoice order={order} user={user} />
+                ) : (
+                    (user.role === 'Admin' || user.role === 'SuperAdmin') && (
+                        <OrderDetailsInvoice order={order} user={user} />
+                    )
+                )}
             </div>
         </div>
     );
