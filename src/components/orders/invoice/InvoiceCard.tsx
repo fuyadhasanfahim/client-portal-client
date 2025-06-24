@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { IOrder, IOrderService, IOrderType } from '@/types/order.interface';
+import { IOrder, IOrderService } from '@/types/order.interface';
 import IUser from '@/types/user.interface';
 import {
     Card,
