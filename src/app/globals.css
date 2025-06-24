@@ -116,4 +116,22 @@
     footer {
         display: none !important;
     }
+
+    table {
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 6px 8px !important;
+    }
+
+    tr {
+        break-inside: avoid;
+    }
+
+    body {
+        font-size: 12px;
+        color: #000;
+    }
 }

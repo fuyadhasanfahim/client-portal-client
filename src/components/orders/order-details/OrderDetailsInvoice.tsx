@@ -37,7 +37,7 @@ export default function OrderDetailsInvoice({
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Link href={`/orders/invoice/${order._id}`}>
+                <Link href={`/orders/invoice/${order.orderID}`}>
                     <Button className="w-full">
                         <IconInvoice />
                         {isUser ? 'Generate My Invoice' : 'Generate Invoice'}

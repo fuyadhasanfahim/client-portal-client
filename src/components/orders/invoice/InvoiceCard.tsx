@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 export default function InvoiceCard({
     order,
@@ -32,6 +33,7 @@ export default function InvoiceCard({
     order: IOrder;
     authToken: string;
 }) {
+    const { data: session } = useSession();
     const [user, setUser] = useState<IUser | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -54,10 +56,10 @@ export default function InvoiceCard({
 
     const handleSendInvoice = async () => {
         try {
-            if (!order._id) return;
+            if (!order.orderID) return;
             setIsLoading(true);
 
-            const orderID = order._id;
+            const orderID = order.orderID;
 
             const response = await fetch(
                 `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/send-invoice-pdf-to-client`,
@@ -71,8 +73,12 @@ export default function InvoiceCard({
                 }
             );
 
+            console.log(response);
+
             if (response.ok) {
                 toast.success('Invoice sent successfully.');
+            } else {
+                toast.error('Failed to send invoice.');
             }
         } catch (error) {
             toast.error(
@@ -87,7 +93,7 @@ export default function InvoiceCard({
 
     return (
         <section className="w-full h-full flex items-center justify-center p-4 print:p-0">
-            <Card className="max-w-4xl w-full mx-auto">
+            <Card className="max-w-3xl w-full mx-auto">
                 <CardHeader className="flex flex-row justify-between items-start p-6 pb-4 border-b">
                     <div className="space-y-2">
                         <div className="flex items-center gap-4">
@@ -112,7 +118,9 @@ export default function InvoiceCard({
                         <Avatar className="size-14 ring-2 ring-primary/50">
                             <AvatarImage
                                 src={user?.profileImage || undefined}
-                                alt={`${user?.name ?? 'Client'}'s profile image.`}
+                                alt={`${
+                                    user?.name ?? 'Client'
+                                }'s profile image.`}
                             />
                             <AvatarFallback className="bg-primary/10 text-primary">
                                 {user?.name.charAt(0).toUpperCase()}
@@ -135,77 +143,54 @@ export default function InvoiceCard({
                 </CardHeader>
 
                 <CardContent className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                         <div className="space-y-2">
                             <h3 className="font-semibold text-lg text-primary">
                                 Order Summary
                             </h3>
                             <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Status
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <strong className="text-muted-foreground">
+                                        Status:
+                                    </strong>
                                     <p className="font-medium capitalize">
                                         {order.status}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Payment
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <strong className="text-muted-foreground">
+                                        Payment:
+                                    </strong>
                                     <p className="font-medium capitalize">
                                         {order.paymentStatus}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Order Type
-                                    </p>
-                                    <p className="font-medium">
-                                        {order.services
-                                            .map((s) => s.name)
-                                            .join(', ')}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Format
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <strong className="text-muted-foreground">
+                                        Format:
+                                    </strong>
                                     <p className="font-medium">
                                         {order.returnFileFormat}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Resizing
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <strong className="text-muted-foreground">
+                                        Resizing:
+                                    </strong>
                                     <p className="font-medium">
                                         {order.imageResizing}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground">
-                                        Dimensions
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <strong className="text-muted-foreground">
+                                        Dimensions:
+                                    </strong>
                                     <p className="font-medium">
                                         {order.width} x {order.height}
                                     </p>
                                 </div>
                             </div>
                         </div>
-
-                        {order.instructions && (
-                            <div className="space-y-2">
-                                <h3 className="font-semibold text-lg text-primary">
-                                    Special Instructions
-                                </h3>
-                                <div className="bg-muted/50 p-4 rounded-lg">
-                                    <p className="text-sm italic">
-                                        {order.instructions}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -216,83 +201,156 @@ export default function InvoiceCard({
                             <Table className="w-full">
                                 <TableHeader className="bg-accent">
                                     <TableRow>
-                                        <TableHead className="w-[40%] text-center font-medium text-primary border-r">
+                                        <TableHead className="w-[25%] text-center font-medium border-r">
                                             Service
                                         </TableHead>
-                                        <TableHead className="w-[40%] text-center font-medium text-primary border-r">
+                                        <TableHead className="w-[25%] text-center font-medium border-r">
                                             Type & Complexity
                                         </TableHead>
-                                        <TableHead className="w-[20%] text-center font-medium text-primary">
-                                            Price
+                                        <TableHead className="w-[10%] text-center font-medium border-r">
+                                            Images
+                                        </TableHead>
+                                        <TableHead className="w-[20%] text-center font-medium border-r">
+                                            Price/Image
+                                        </TableHead>
+                                        <TableHead className="w-[20%] text-center font-medium">
+                                            Total
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {order.services.map(
-                                        (service: IOrderService) => (
-                                            <TableRow
-                                                key={service._id}
-                                                className="hover:bg-muted/50"
-                                            >
-                                                <TableCell className="font-medium text-center border-r">
-                                                    {service.name}
-                                                </TableCell>
-                                                <TableCell className="text-center border-r">
-                                                    {service.types
-                                                        ?.map(
-                                                            (t: IOrderType) =>
-                                                                `${t.name} (${
-                                                                    t.complexity
-                                                                        ?.name ||
-                                                                    'Standard'
-                                                                })`
-                                                        )
-                                                        .join(', ') || 'N/A'}
-                                                </TableCell>
-                                                <TableCell className="text-center font-medium">
-                                                    ${' '}
-                                                    {service.price ??
-                                                        service.types?.reduce(
-                                                            (sum, t) =>
+                                        (
+                                            service: IOrderService,
+                                            index: number
+                                        ) => {
+                                            const imageCount =
+                                                order.images || 0;
+
+                                            const typeNames =
+                                                service.types &&
+                                                service.types.length > 0
+                                                    ? service.types
+                                                          .map((t) =>
+                                                              t.complexity?.name
+                                                                  ? `${t.name} (${t.complexity.name})`
+                                                                  : t.name
+                                                          )
+                                                          .join(', ')
+                                                    : service.complexity?.name
+                                                    ? service.complexity.name
+                                                    : service.colorCodes?.length
+                                                    ? service.colorCodes
+                                                          .map((c) => `#${c}`)
+                                                          .join(', ')
+                                                    : 'N/A';
+                                            let pricePerImage = 0;
+
+                                            if (
+                                                typeof service.price ===
+                                                'number'
+                                            ) {
+                                                pricePerImage = service.price;
+                                            } else if (service.types?.length) {
+                                                pricePerImage =
+                                                    service.types.reduce(
+                                                        (sum, t) => {
+                                                            if (
+                                                                typeof t.price ===
+                                                                'number'
+                                                            )
+                                                                return (
+                                                                    sum +
+                                                                    t.price
+                                                                );
+                                                            return (
                                                                 sum +
                                                                 (t.complexity
                                                                     ?.price ||
-                                                                    0),
-                                                            0
-                                                        ) ??
-                                                        0}
-                                                </TableCell>
-                                            </TableRow>
-                                        )
+                                                                    0)
+                                                            );
+                                                        },
+                                                        0
+                                                    );
+                                            } else if (
+                                                service.complexity?.price
+                                            ) {
+                                                pricePerImage =
+                                                    service.complexity.price;
+                                            }
+
+                                            const totalPrice =
+                                                pricePerImage * imageCount;
+
+                                            return (
+                                                <TableRow
+                                                    key={service._id}
+                                                    className="break-inside-avoid print:break-inside-avoid"
+                                                >
+                                                    <TableCell className="text-start border-r font-medium">
+                                                        {index + 1}.{' '}
+                                                        {service.name}
+                                                    </TableCell>
+                                                    <TableCell className="text-start border-r whitespace-normal break-words">
+                                                        {typeNames}
+                                                    </TableCell>
+                                                    <TableCell className="text-center border-r">
+                                                        {imageCount}
+                                                    </TableCell>
+                                                    <TableCell className="text-center border-r">
+                                                        $
+                                                        {pricePerImage.toFixed(
+                                                            2
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-center font-medium">
+                                                        ${totalPrice.toFixed(2)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        }
                                     )}
+
+                                    <TableRow className="bg-muted font-semibold print:bg-transparent">
+                                        <TableCell
+                                            colSpan={4}
+                                            className="text-end border-r pr-4"
+                                        >
+                                            Grand Total
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            ${order.total?.toFixed(2) || '0.00'}
+                                        </TableCell>
+                                    </TableRow>
                                 </TableBody>
                             </Table>
                         </div>
                     </div>
 
-                    <div className="flex justify-end">
-                        <div className="flex justify-between items-center gap-5 pr-8">
-                            <span className="font-semibold">Total: </span>
-                            <span className="text-xl font-bold text-primary">
-                                $ {order.total}
-                            </span>
-                        </div>
-                    </div>
-
                     <div className="flex flex-col sm:flex-row justify-end gap-3 print:hidden pt-4 border-t">
                         <Button
-                            variant="secondary"
+                            variant={
+                                (session &&
+                                    (session.user.role !== 'User'
+                                        ? 'secondary'
+                                        : 'default')) ||
+                                'default'
+                            }
                             onClick={() => window.print()}
                         >
                             Print Invoice
                         </Button>
-                        <Button
-                            onClick={handleSendInvoice}
-                            disabled={isLoading}
-                        >
-                            {isLoading && <Loader2 className="animate-spin" />}
-                            {isLoading ? 'Sending...' : 'Send to Client'}
-                        </Button>
+                        {session && session.user.role !== 'User' && (
+                            <Button
+                                onClick={handleSendInvoice}
+                                disabled={isLoading}
+                            >
+                                {isLoading && (
+                                    <Loader2 className="animate-spin" />
+                                )}
+                                {isLoading ? 'Sending...' : 'Send to Client'}
+                            </Button>
+                        )}
                     </div>
 
                     <div className="text-center text-xs text-muted-foreground mt-8 pt-4 border-t">
