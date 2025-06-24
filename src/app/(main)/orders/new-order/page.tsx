@@ -10,5 +10,7 @@ export const metadata: Metadata = {
 export default async function NewOrderPage() {
     const user = await getUserData();
 
-    return <OrderServices userID={user.userID} />;
+    return (
+        <OrderServices userID={user.userID} />
+    );
 }

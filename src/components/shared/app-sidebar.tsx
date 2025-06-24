@@ -12,6 +12,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { sidebarItems } from '@/data/sidebar';
+import Link from 'next/link';
 
 export function AppSidebar(
     props: React.ComponentProps<typeof Sidebar> & {
@@ -34,12 +35,15 @@ export function AppSidebar(
                             asChild
                             className="data-[slot=sidebar-menu-button]:!p-1.5"
                         >
-                            <div className="cursor-pointer flex items-center gap-2 text-xl">
+                            <Link
+                                href={'/dashboard'}
+                                className="cursor-pointer flex items-center gap-2 text-xl"
+                            >
                                 <IconInnerShadowTop className="!size-5" />
                                 <span className="font-semibold">
                                     Client Portal
                                 </span>
-                            </div>
+                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
