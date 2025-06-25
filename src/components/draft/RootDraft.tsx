@@ -33,16 +33,18 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
+import getLoggedInUser from '@/utils/getLoggedInUser';
 
 export default function RootDraft({ authToken }: { authToken: string }) {
-    const { data: session } = useSession();
+    const user = getLoggedInUser();
+    const { userID, role } = user ?? {};
 
     const router = useRouter();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [quantity, setQuantity] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [orders, setOrders] = useState<IOrder[] | []>([]);
     const [pagination, setPagination] = useState({
         total: 0,
@@ -53,26 +55,23 @@ export default function RootDraft({ authToken }: { authToken: string }) {
 
     useEffect(() => {
         const fetchOrders = async () => {
+            setIsLoading(true);
+
             try {
-                const userID = session?.user.id as string;
-                const userRole = session?.user.role as string;
-
-                if (userID) {
-                    const response = await fetch(
-                        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-draft-order?user_id=${userID}&user_role=${userRole}&limit=${quantity}&search=${searchQuery}&page=${currentPage}`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${authToken}`,
-                            },
-                        }
-                    );
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        setOrders(result.data);
-                        setPagination(result.pagination);
+                const response = await fetch(
+                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-draft-order?user_id=${userID}&user_role=${role}&limit=${quantity}&search=${searchQuery}&page=${currentPage}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${authToken}`,
+                        },
                     }
+                );
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setOrders(result.data);
+                    setPagination(result.pagination);
                 }
             } catch (error) {
                 ApiError(error);
@@ -81,10 +80,10 @@ export default function RootDraft({ authToken }: { authToken: string }) {
             }
         };
 
-        if (session?.user?.id && session?.user.role) {
+        if (userID && role) {
             fetchOrders();
         }
-    }, [session?.user?.id, currentPage, quantity, searchQuery]);
+    }, [userID, role, currentPage, quantity, searchQuery]);
 
     const redirectTo = (orderID: string) => {
         const selectedOrder = orders.find((order) => order.orderID === orderID);
@@ -294,7 +293,7 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                                             )}
                                         ></TableCell>
                                         <TableCell className="text-center hover:underline cursor-pointer">
-                                            {session?.user.role !== 'User' ? (
+                                            {role !== 'User' ? (
                                                 <Tooltip>
                                                     <TooltipTrigger>
                                                         Continue

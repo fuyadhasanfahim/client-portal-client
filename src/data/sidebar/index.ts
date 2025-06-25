@@ -42,6 +42,6 @@ export const sidebarItems = [
         title: 'Invoices',
         url: '/invoices',
         icon: IconFileInvoice,
-        access: ['Admin', 'SuperAdmin', 'Developer'],
+        access: ['Admin', 'User', 'SuperAdmin', 'Developer'],
     },
 ];
