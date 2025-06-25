@@ -1,0 +1,370 @@
+'use client';
+
+import ApiError from '@/components/shared/ApiError';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { statusData } from '@/data/orders';
+import { cn } from '@/lib/utils';
+import { IOrder } from '@/types/order.interface';
+import { se } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight, NotebookText, Search } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
+
+export default function RootDraft({ authToken }: { authToken: string }) {
+    const { data: session } = useSession();
+
+    const router = useRouter();
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [quantity, setQuantity] = useState(10);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
+    const [orders, setOrders] = useState<IOrder[] | []>([]);
+    const [pagination, setPagination] = useState({
+        total: 0,
+        quantity: 10,
+        page: 1,
+        totalPages: 1,
+    });
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const userID = session?.user.id as string;
+                const userRole = session?.user.role as string;
+
+                if (userID) {
+                    const response = await fetch(
+                        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-draft-order?user_id=${userID}&user_role=${userRole}&limit=${quantity}&search=${searchQuery}&page=${currentPage}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                            },
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setOrders(result.data);
+                        setPagination(result.pagination);
+                    }
+                }
+            } catch (error) {
+                ApiError(error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (session?.user?.id && session?.user.role) {
+            fetchOrders();
+        }
+    }, [session?.user?.id, currentPage, quantity, searchQuery]);
+
+    const redirectTo = (orderID: string) => {
+        const selectedOrder = orders.find((order) => order.orderID === orderID);
+
+        if (selectedOrder?.images === 0) {
+            return router.push(
+                `http://localhost:3000/orders/new-order/${selectedOrder.orderID!}/details`
+            );
+        } else {
+            return router.push(
+                `http://localhost:3000/orders/new-order/${orderID}/review`
+            );
+        }
+    };
+
+    const handleSearch = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setCurrentPage(1);
+    };
+    return (
+        <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-row items-center justify-between">
+                <form onSubmit={handleSearch} className="w-full max-w-sm">
+                    <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search orders..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8"
+                        />
+                    </div>
+                </form>
+
+                <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <NotebookText size={16} /> Show:
+                        </span>
+                        <Select
+                            value={quantity.toString()}
+                            onValueChange={(value) =>
+                                setQuantity(Number(value))
+                            }
+                        >
+                            <SelectTrigger className="w-24 h-9">
+                                <SelectValue placeholder={quantity} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {[10, 25, 50, 100].map((val) => (
+                                    <SelectItem
+                                        key={val}
+                                        value={val.toString()}
+                                    >
+                                        {val}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border bg-background">
+                <Table>
+                    <TableHeader className="bg-accent text-primary-foreground">
+                        <TableRow>
+                            {[
+                                'Order ID',
+                                'Client',
+                                'Services',
+                                'Total ($)',
+                                'Payment ($)',
+                                'Working Status',
+                                'Order Status',
+                                'Actions',
+                            ].map((title, idx) => (
+                                <TableHead
+                                    key={idx}
+                                    className="text-center font-semibold border-r last:border-r-0"
+                                >
+                                    {title}
+                                </TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            Array.from({ length: 8 }).map((_, i) => (
+                                <TableRow key={`loading-${i}`}>
+                                    {Array.from({ length: 8 }).map((_, j) => (
+                                        <TableCell
+                                            key={j}
+                                            className="text-center"
+                                        >
+                                            <Skeleton className="h-6 w-full mx-auto" />
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : !isLoading && orders && orders.length === 0 ? (
+                            <TableRow>
+                                <TableCell
+                                    colSpan={8}
+                                    className="text-center py-8"
+                                >
+                                    <p className="text-gray-500">
+                                        No draft orders found
+                                    </p>
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            !isLoading &&
+                            orders &&
+                            orders.map((order: IOrder, index: number) => {
+                                const item = statusData.find(
+                                    (item) => item.value === order.status
+                                );
+
+                                return (
+                                    <TableRow
+                                        key={index}
+                                        className="hover:bg-muted/50"
+                                    >
+                                        <TableCell className="text-center font-medium border-r">
+                                            <Link
+                                                href={`/orders/details/${order.orderID!}`}
+                                                className={cn(
+                                                    'text-primary underline',
+                                                    order.orderStatus ===
+                                                        'Canceled' &&
+                                                        'text-destructive'
+                                                )}
+                                            >
+                                                #{order.orderID}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            {order.userID}
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-start text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            <ul className="list-decimal list-inside space-y-1">
+                                                {order.services.map(
+                                                    (service) => (
+                                                        <li key={service.name}>
+                                                            {service.name}
+                                                        </li>
+                                                    )
+                                                )}
+                                            </ul>
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            ${order?.total?.toFixed(2) || 0}
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r',
+                                                order.orderStatus ===
+                                                    'Canceled' &&
+                                                    'text-destructive'
+                                            )}
+                                        >
+                                            Nothing
+                                        </TableCell>
+                                        <TableCell className="text-center text-sm border-r">
+                                            <span
+                                                className={cn(
+                                                    'flex items-center justify-center gap-1',
+                                                    item && item.text
+                                                )}
+                                            >
+                                                {item ? (
+                                                    <item.icon
+                                                        size={16}
+                                                        className={cn(
+                                                            item.text
+                                                        )}
+                                                    />
+                                                ) : null}
+                                                {order.status}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell
+                                            className={cn(
+                                                'text-center text-sm border-r'
+                                            )}
+                                        ></TableCell>
+                                        <TableCell className="text-center hover:underline cursor-pointer">
+                                            {session?.user.role !== 'User' ? (
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        Continue
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>
+                                                            You can't access
+                                                            this.
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ) : (
+                                                <p
+                                                    onClick={() =>
+                                                        redirectTo(
+                                                            order.orderID!
+                                                        )
+                                                    }
+                                                >
+                                                    Continue
+                                                </p>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <div className="flex items-center justify-between px-2 text-sm text-muted-foreground">
+                <div>
+                    Showing{' '}
+                    {pagination?.total > 0
+                        ? `${(currentPage - 1) * quantity + 1} to ${Math.min(
+                              currentPage * quantity,
+                              pagination?.total
+                          )}`
+                        : '0'}{' '}
+                    of {pagination?.total} entries
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() =>
+                            setCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={currentPage <= 1 || isLoading}
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() =>
+                            setCurrentPage((prev) =>
+                                prev < pagination.totalPages ? prev + 1 : prev
+                            )
+                        }
+                        disabled={
+                            currentPage >= pagination.totalPages || isLoading
+                        }
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}

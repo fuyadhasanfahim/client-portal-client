@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
                 height,
                 instructions,
                 supportingFileDownloadLink,
-                orderStatus: 'Waiting For Approval',
+                orderStatus: 'Awaiting For Payment Details',
             });
 
             await order.save();
@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
         if (typeof total === 'number') {
             order.total = total;
             order.paymentStatus = 'Pay Later';
+            order.orderStatus = 'Waiting For Approval';
             await order.save();
 
             return NextResponse.json(

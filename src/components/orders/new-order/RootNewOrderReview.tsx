@@ -24,7 +24,7 @@ export default function RootNewOrderReview({
     const router = useRouter();
     const { data, isLoading, isError } = useGetOrderQuery({
         order_id: id,
-        order_status: 'Waiting For Approval',
+        order_status: 'Awaiting For Payment Details',
     });
 
     let content;

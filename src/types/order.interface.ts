@@ -39,6 +39,7 @@ export type OrderStatus =
 
 export type OrderOrderStatus =
     | 'Awaiting For Details'
+    | 'Awaiting For Payment Details'
     | 'Waiting For Approval'
     | 'Accepted'
     | 'Canceled';

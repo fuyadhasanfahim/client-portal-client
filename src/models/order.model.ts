@@ -95,6 +95,7 @@ const orderSchema = new Schema(
             type: String,
             enum: [
                 'Awaiting For Details',
+                'Awaiting For Payment Details',
                 'Waiting For Approval',
                 'Accepted',
                 'Canceled',
