@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, InfoIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import NewOrderPricingCard from './NewOrderPricingCard';
@@ -31,7 +31,7 @@ export default function RootNewOrderReview({
 
     if (isLoading) {
         content = (
-            <Card className="max-w-2xl mx-auto animate-pulse">
+            <Card className="animate-pulse">
                 <CardHeader className="space-y-2">
                     <CardTitle>
                         <Skeleton className="h-6 w-1/3 rounded-md" />
@@ -54,7 +54,7 @@ export default function RootNewOrderReview({
         );
     } else if (!isLoading && isError) {
         content = (
-            <Card className="max-w-2xl mx-auto border border-red-300 bg-red-50 text-destructive rounded-xl shadow-sm">
+            <Card className="border-red-300 bg-red-50 text-destructive">
                 <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
                     <AlertTriangle className="w-8 h-8 text-destructive" />
                     <p className="text-center text-base font-medium">
@@ -74,7 +74,7 @@ export default function RootNewOrderReview({
 
     if (!isLoading && !isError && !data) {
         content = (
-            <Card className="max-w-2xl mx-auto">
+            <Card>
                 <CardContent className="flex items-center justify-center h-full">
                     <p className="text-destructive">No draft order found.</p>
                 </CardContent>
@@ -86,5 +86,23 @@ export default function RootNewOrderReview({
         content = <NewOrderPricingCard order={data.data} />;
     }
 
-    return content;
+    return (
+        <div className="grid grid-cols-3 items-start gap-10">
+            <div className="col-span-2">{content}</div>
+            <Card className="text-destructive col-span-1">
+                <CardHeader className="flex items-center gap-2">
+                    <InfoIcon size={24} />
+                    <CardTitle className="text-2xl">Important Notice</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>
+                        <span className="font-semibold">Note:</span> The final
+                        price may be adjusted after our team reviews your images
+                        for complexity. We’ll notify you before any changes are
+                        made.
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

@@ -126,9 +126,8 @@ export const authOptions: NextAuthOptions = {
                         'Invalid credentials! Please use credentials to sign in.'
                     );
                 } else if (!existingUser) {
-
                     const newUser = await UserModel.create({
-                        userID: `USER-${nanoid(10)}`,
+                        userID: `USER-${nanoid(10).toUpperCase()}`,
                         name: user?.name,
                         email: user?.email,
                         username: user?.email?.split('@')[0],

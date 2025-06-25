@@ -8,6 +8,7 @@ import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -21,7 +22,6 @@ import {
     TableCell,
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -92,20 +92,35 @@ export default function InvoiceCard({
     };
 
     return (
-        <section className="w-full h-full flex items-center justify-center p-4 print:p-0">
+        <section className="w-full h-full flex flex-col gap-6 items-center justify-center p-4 print:p-0">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 print:hidden">
+                <Button
+                    variant={
+                        (session &&
+                            (session.user.role !== 'User'
+                                ? 'secondary'
+                                : 'default')) ||
+                        'default'
+                    }
+                    onClick={() => window.print()}
+                >
+                    Print Invoice
+                </Button>
+                {session && session.user.role !== 'User' && (
+                    <Button onClick={handleSendInvoice} disabled={isLoading}>
+                        {isLoading && <Loader2 className="animate-spin" />}
+                        {isLoading ? 'Sending...' : 'Send to Client'}
+                    </Button>
+                )}
+            </div>
+
             <Card className="max-w-3xl w-full mx-auto">
                 <CardHeader className="flex flex-row justify-between items-start p-6 pb-4 border-b">
                     <div className="space-y-2">
                         <div className="flex items-center gap-4">
-                            <CardTitle className="text-3xl font-bold text-primary">
-                                INVOICE
+                            <CardTitle className="text-3xl font-bold text-primary uppercase">
+                                Invoice
                             </CardTitle>
-                            <Badge
-                                variant="outline"
-                                className="text-sm font-medium"
-                            >
-                                {order.orderID}
-                            </Badge>
                         </div>
                         {order.createdAt && (
                             <p className="text-sm text-muted-foreground">
@@ -142,13 +157,21 @@ export default function InvoiceCard({
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-6 space-y-6">
+                <CardContent className="space-y-6">
                     <div>
                         <div className="space-y-2">
                             <h3 className="font-semibold text-lg text-primary">
                                 Order Summary
                             </h3>
                             <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <strong className="text-muted-foreground">
+                                        Order ID:
+                                    </strong>
+                                    <p className="font-medium">
+                                        {order.orderID}
+                                    </p>
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <strong className="text-muted-foreground">
                                         Status:
@@ -326,40 +349,13 @@ export default function InvoiceCard({
                             </Table>
                         </div>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row justify-end gap-3 print:hidden pt-4 border-t">
-                        <Button
-                            variant={
-                                (session &&
-                                    (session.user.role !== 'User'
-                                        ? 'secondary'
-                                        : 'default')) ||
-                                'default'
-                            }
-                            onClick={() => window.print()}
-                        >
-                            Print Invoice
-                        </Button>
-                        {session && session.user.role !== 'User' && (
-                            <Button
-                                onClick={handleSendInvoice}
-                                disabled={isLoading}
-                            >
-                                {isLoading && (
-                                    <Loader2 className="animate-spin" />
-                                )}
-                                {isLoading ? 'Sending...' : 'Send to Client'}
-                            </Button>
-                        )}
-                    </div>
-
-                    <div className="text-center text-xs text-muted-foreground mt-8 pt-4 border-t">
-                        <p>Thank you for your business!</p>
-                        <p className="mt-1">
-                            For any questions, please contact our support team.
-                        </p>
-                    </div>
                 </CardContent>
+                <CardFooter className="flex items-center justify-center flex-col border-t">
+                    <h3>Thank you for your business!</h3>
+                    <CardDescription>
+                        For any questions, please contact our support team.
+                    </CardDescription>
+                </CardFooter>
             </Card>
         </section>
     );

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
             }
 
             const newOrder = await OrderModel.create({
-                orderID: `ORDER-${nanoid(10)}`,
+                orderID: `ORDER-${nanoid(10).toUpperCase()}`,
                 userID,
                 services,
                 status: 'Pending',

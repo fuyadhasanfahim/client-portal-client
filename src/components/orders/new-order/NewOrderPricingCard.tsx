@@ -109,7 +109,7 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
     };
 
     return (
-        <Card className="max-w-2xl mx-auto border border-muted shadow-sm">
+        <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Pricing Breakdown</CardTitle>
                 <CardDescription className="text-muted-foreground">
