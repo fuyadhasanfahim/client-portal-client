@@ -3,7 +3,15 @@ import { createSlice } from '@reduxjs/toolkit';
 
 interface AuthState {
     accessToken: string | undefined;
-    user: IUser | undefined;
+    user:
+        | {
+              id: string;
+              name: string;
+              email: string;
+              image: string;
+              role: 'User' | 'Admin';
+          }
+        | undefined;
 }
 
 const initialState: AuthState = {

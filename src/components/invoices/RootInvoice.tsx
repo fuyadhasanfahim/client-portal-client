@@ -12,11 +12,6 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     Table,
     TableBody,
     TableCell,
@@ -29,16 +24,14 @@ import { cn } from '@/lib/utils';
 import { IOrder } from '@/types/order.interface';
 import { ChevronLeft, ChevronRight, NotebookText, Search } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
+import ExportInvoices from './ExportInvoices';
 
-export default function RootDraft({ authToken }: { authToken: string }) {
+export default function RootInvoice({ authToken }: { authToken: string }) {
     const user = getLoggedInUser();
-    const { userID, role } = user ?? {};
-
-    const router = useRouter();
+    const { id: userID, role } = user ?? {};
 
     const [searchQuery, setSearchQuery] = useState('');
     const [quantity, setQuantity] = useState(10);
@@ -54,11 +47,11 @@ export default function RootDraft({ authToken }: { authToken: string }) {
 
     useEffect(() => {
         const fetchOrders = async () => {
-            setIsLoading(true);
-
             try {
+                setIsLoading(true);
+
                 const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-draft-order?user_id=${userID}&user_role=${role}&limit=${quantity}&search=${searchQuery}&page=${currentPage}`,
+                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-all-orders?userID=${userID}&role=${role}&page=${currentPage}&limit=${quantity}&searchQuery=${searchQuery}`,
                     {
                         headers: {
                             Authorization: `Bearer ${authToken}`,
@@ -82,26 +75,21 @@ export default function RootDraft({ authToken }: { authToken: string }) {
         if (userID && role) {
             fetchOrders();
         }
-    }, [userID, role, currentPage, quantity, searchQuery]);
+    }, [userID, role, currentPage, quantity, searchQuery, authToken]);
 
-    const redirectTo = (orderID: string) => {
-        const selectedOrder = orders.find((order) => order.orderID === orderID);
-
-        if (selectedOrder?.images === 0) {
-            return router.push(
-                `http://localhost:3000/orders/new-order/${selectedOrder.orderID!}/details`
-            );
-        } else {
-            return router.push(
-                `http://localhost:3000/orders/new-order/${orderID}/review`
-            );
-        }
-    };
-
-    const handleSearch = (e: FormEvent<HTMLFormElement>) => {
+    const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const target = e.target as HTMLFormElement;
+        setSearchQuery(target.searchQuery.value);
         setCurrentPage(1);
     };
+
+    console.log({
+        userID,
+        role,
+        orders,
+    });
+
     return (
         <div className="space-y-6 animate-fadeIn">
             <div className="flex flex-row items-center justify-between">
@@ -118,6 +106,8 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                 </form>
 
                 <div className="flex flex-wrap gap-4">
+                    <ExportInvoices orders={orders} role={role!} />
+
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                             <NotebookText size={16} /> Show:
@@ -190,7 +180,7 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                                     className="text-center py-8"
                                 >
                                     <p className="text-gray-500">
-                                        No draft orders found
+                                        No orders found for invoice
                                     </p>
                                 </TableCell>
                             </TableRow>
@@ -298,29 +288,11 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                                             />
                                         </TableCell>
                                         <TableCell className="text-center hover:underline cursor-pointer">
-                                            {role !== 'User' ? (
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        Continue
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>
-                                                            You can't access
-                                                            this.
-                                                        </p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            ) : (
-                                                <p
-                                                    onClick={() =>
-                                                        redirectTo(
-                                                            order.orderID!
-                                                        )
-                                                    }
-                                                >
-                                                    Continue
-                                                </p>
-                                            )}
+                                            <Link
+                                                href={`/orders/invoice/${order.orderID}`}
+                                            >
+                                                Get Invoice
+                                            </Link>
                                         </TableCell>
                                     </TableRow>
                                 );
