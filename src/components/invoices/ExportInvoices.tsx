@@ -25,6 +25,7 @@ import { FileSearch, FileUp, FileText, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
+import { downloadOrdersPdf } from '@/utils/downloadPdf';
 
 export default function ExportInvoices({
     orders,
@@ -124,15 +125,8 @@ export default function ExportInvoices({
 
         setIsLoading(true);
         try {
-            console.log(type)
-            // await generatePDF({
-            //     orders: selectedOrders,
-            //     fileName: `invoices_${format(
-            //         new Date(),
-            //         'yyyyMMdd_HHmmss'
-            //     )}.pdf`,
-            //     type: type,
-            // });
+            console.log(type);
+            await downloadOrdersPdf(orders);
             toast.success('PDF exported successfully');
         } catch (error) {
             toast.error('Failed to generate PDF');
