@@ -1,4 +1,3 @@
-import IUser from '@/types/user.interface';
 import { createSlice } from '@reduxjs/toolkit';
 
 interface AuthState {

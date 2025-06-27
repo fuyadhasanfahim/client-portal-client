@@ -38,11 +38,9 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { DataTable } from '@/components/dashboard/data-table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import data from '@/app/(main)/dashboard/data.json';
 
 export const metadata: Metadata = {
     title: 'Profile - Account | Client Portal',
@@ -490,7 +488,14 @@ export default async function ProfilePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <DataTable data={data} />
+                            <div>
+                                Lorem ipsum dolor sit amet, consectetur
+                                adipisicing elit. Inventore quibusdam
+                                perferendis quam, nisi debitis placeat iure
+                                molestias, culpa doloribus ipsam ut eos
+                                temporibus obcaecati. Laboriosam tempore animi
+                                repellendus dolores a!
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

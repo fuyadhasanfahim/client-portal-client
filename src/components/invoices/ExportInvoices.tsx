@@ -18,10 +18,10 @@ import { IOrder } from '@/types/order.interface';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { generatePDF } from '@/utils/pdf-generator';
+// import { generatePDF } from '@/utils/pdf-generator';
 import toast from 'react-hot-toast';
 import { Label } from '../ui/label';
-import { FileSearch, FileUp, FileText, Send, X } from 'lucide-react';
+import { FileSearch, FileUp, FileText, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
@@ -110,6 +110,7 @@ export default function ExportInvoices({
             );
             toast.success('Excel file exported successfully');
         } catch (error) {
+            console.error(error);
             toast.error('Failed to export Excel file');
         }
     };
@@ -123,14 +124,15 @@ export default function ExportInvoices({
 
         setIsLoading(true);
         try {
-            await generatePDF({
-                orders: selectedOrders,
-                fileName: `invoices_${format(
-                    new Date(),
-                    'yyyyMMdd_HHmmss'
-                )}.pdf`,
-                type: type,
-            });
+            console.log(type)
+            // await generatePDF({
+            //     orders: selectedOrders,
+            //     fileName: `invoices_${format(
+            //         new Date(),
+            //         'yyyyMMdd_HHmmss'
+            //     )}.pdf`,
+            //     type: type,
+            // });
             toast.success('PDF exported successfully');
         } catch (error) {
             toast.error('Failed to generate PDF');

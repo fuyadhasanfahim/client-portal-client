@@ -36,7 +36,7 @@ import SelectOrderStatus from '../orders/SelectOrderStatus';
 
 export default function RootDraft({ authToken }: { authToken: string }) {
     const user = getLoggedInUser();
-    const { userID, role } = user ?? {};
+    const { id: userID, role } = user ?? {};
 
     const router = useRouter();
 
@@ -82,7 +82,7 @@ export default function RootDraft({ authToken }: { authToken: string }) {
         if (userID && role) {
             fetchOrders();
         }
-    }, [userID, role, currentPage, quantity, searchQuery]);
+    }, [userID, role, currentPage, quantity, searchQuery, authToken]);
 
     const redirectTo = (orderID: string) => {
         const selectedOrder = orders.find((order) => order.orderID === orderID);
@@ -305,8 +305,8 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                                                     </TooltipTrigger>
                                                     <TooltipContent>
                                                         <p>
-                                                            You can't access
-                                                            this.
+                                                            You can$apos;t
+                                                            access this.
                                                         </p>
                                                     </TooltipContent>
                                                 </Tooltip>
