@@ -84,11 +84,12 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
         setCurrentPage(1);
     };
 
-    console.log({
-        userID,
-        role,
-        orders,
-    });
+    const chunkSize = 13;
+    const itemChunks = [];
+
+    for (let i = 0; i < orders.length; i += chunkSize) {
+        itemChunks.push(orders.slice(i, i + chunkSize));
+    }
 
     return (
         <div className="space-y-6 animate-fadeIn">

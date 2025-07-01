@@ -4,6 +4,7 @@ import {
     IconFileInvoice,
     IconMessage,
     IconPackage,
+    IconReportAnalytics,
     IconServer,
 } from '@tabler/icons-react';
 
@@ -42,6 +43,12 @@ export const sidebarItems = [
         title: 'Invoices',
         url: '/invoices',
         icon: IconFileInvoice,
+        access: ['Admin', 'User', 'SuperAdmin', 'Developer'],
+    },
+    {
+        title: 'Reports',
+        url: '/reports',
+        icon: IconReportAnalytics,
         access: ['Admin', 'User', 'SuperAdmin', 'Developer'],
     },
 ];

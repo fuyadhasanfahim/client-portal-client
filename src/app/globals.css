@@ -132,15 +132,29 @@
 
     body {
         font-size: 12px;
-        color: #000;
+        color: #0e0e0e;
+        margin: 0;
+        padding: 0;
+    }
+
+    .invoice-card {
+        page-break-inside: avoid;
+    }
+
+    .invoice-card + .invoice-card {
+        margin-top: 20px;
+    }
+
+    .no-print {
+        display: none !important;
     }
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
     }
 }

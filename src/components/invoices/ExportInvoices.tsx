@@ -18,7 +18,6 @@ import { IOrder } from '@/types/order.interface';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-// import { generatePDF } from '@/utils/pdf-generator';
 import toast from 'react-hot-toast';
 import { Label } from '../ui/label';
 import { FileSearch, FileUp, FileText, Send } from 'lucide-react';
