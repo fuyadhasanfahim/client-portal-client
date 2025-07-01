@@ -1,4 +1,4 @@
-import RootReportPage from '@/components/reports/RootReportPage';
+// import RootReportPage from '@/components/reports/RootReportPage';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ReportsPage() {
-    return <RootReportPage />;
+    return;
 }

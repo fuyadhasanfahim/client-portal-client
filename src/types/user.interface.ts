@@ -5,6 +5,8 @@ export default interface IUser {
     username: string;
     email: string;
     phone?: string;
+    address?: string;
+    company?: string;
     role: 'User' | 'Admin' | 'SuperAdmin' | 'Developer';
     isEmailVerified: boolean;
     password: string;

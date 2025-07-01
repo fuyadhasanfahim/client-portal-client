@@ -5,6 +5,8 @@ import { SiteHeader } from '@/components/shared/site-header';
 import { getUserData } from '@/actions/user.action';
 import VerificationAlert from '@/components/shared/VerificationAlert';
 import { Metadata } from 'next';
+import AdditionalInformationAlert from '@/components/shared/AdditionalInformationAlert';
+import getAuthToken from '@/utils/getAuthToken';
 
 export const metadata: Metadata = {
     title: 'Client Portal',
@@ -17,6 +19,7 @@ export default async function Layout({
     children: React.ReactNode;
 }) {
     const user = await getUserData();
+    const authToken = await getAuthToken();
 
     const userData = {
         name: user.name,
@@ -39,10 +42,17 @@ export default async function Layout({
                 <SidebarInset>
                     <SiteHeader user={userData} />
                     <main className="p-4">
-                        {user?.isEmailVerified ? (
-                            children
-                        ) : (
+                        {!user?.isEmailVerified ? (
                             <VerificationAlert email={user.email} />
+                        ) : !user?.address || !user.phone ? (
+                            <AdditionalInformationAlert
+                                authToken={authToken as string}
+                                userPhone={user.phone}
+                                userAddress={user.address}
+                                userCompany={user.company}
+                            />
+                        ) : (
+                            children
                         )}
                     </main>
                 </SidebarInset>

@@ -18,6 +18,14 @@ const UserSchema: Schema = new Schema<IUser>(
             enum: ['User', 'Admin', 'SuperAdmin', 'Developer'],
             default: 'User',
         },
+        address: {
+            type: String,
+            required: false,
+        },
+        company: {
+            type: String,
+            required: false,
+        },
         isEmailVerified: { type: Boolean, default: false },
         password: {
             type: String,

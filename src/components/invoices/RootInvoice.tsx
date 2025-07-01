@@ -22,12 +22,17 @@ import {
 import { statusData } from '@/data/orders';
 import { cn } from '@/lib/utils';
 import { IOrder } from '@/types/order.interface';
-import { ChevronLeft, ChevronRight, NotebookText, Search } from 'lucide-react';
+import {
+    ChevronLeft,
+    ChevronRight,
+    FileUp,
+    NotebookText,
+    Search,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
-import ExportInvoices from './ExportInvoices';
 
 export default function RootInvoice({ authToken }: { authToken: string }) {
     const user = getLoggedInUser();
@@ -107,7 +112,12 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                 </form>
 
                 <div className="flex flex-wrap gap-4">
-                    <ExportInvoices orders={orders} role={role!} />
+                    <Button variant="outline" asChild className="gap-2">
+                        <Link href={'/invoices/export-invoice'}>
+                            <FileUp className="h-4 w-4" />
+                            Export Invoices
+                        </Link>
+                    </Button>
 
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
