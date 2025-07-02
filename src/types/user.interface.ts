@@ -7,6 +7,7 @@ export default interface IUser {
     phone?: string;
     address?: string;
     company?: string;
+    stripeCustomerId?: string;
     role: 'User' | 'Admin' | 'SuperAdmin' | 'Developer';
     isEmailVerified: boolean;
     password: string;

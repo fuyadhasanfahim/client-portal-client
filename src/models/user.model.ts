@@ -26,6 +26,10 @@ const UserSchema: Schema = new Schema<IUser>(
             type: String,
             required: false,
         },
+        stripeCustomerId: {
+            type: String,
+            required: false,
+        },
         isEmailVerified: { type: Boolean, default: false },
         password: {
             type: String,
@@ -40,7 +44,6 @@ const UserSchema: Schema = new Schema<IUser>(
             required: true,
         },
         googleId: { type: String, default: '' },
-
         emailVerificationToken: { type: String, default: '' },
         emailVerificationTokenExpiry: { type: Date, default: null },
         forgetPasswordToken: { type: String, default: '' },
@@ -48,7 +51,6 @@ const UserSchema: Schema = new Schema<IUser>(
         isPasswordChanged: { type: Boolean, default: false },
         lastPasswordChange: { type: Date, default: null },
         lastLogin: { type: Date, default: null },
-
         profileImage: { type: String, default: '' },
         isActive: { type: Boolean, default: true },
         isDeleted: { type: Boolean, default: false },

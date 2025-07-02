@@ -15,12 +15,15 @@ import { use, useEffect, useState } from 'react';
 import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout,
+    Elements,
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
 import { useRouter } from 'next/navigation';
+import getLoggedInUser from '@/utils/getLoggedInUser';
+import SaveCardForm from './SaveCardForm';
 
 const paymentOptions = [
     {
@@ -46,15 +49,25 @@ const paymentMethods = [
     },
 ];
 
+const stripePromise = loadStripe(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
+
 export default function RootNewOrderPayment({
     params,
 }: {
     params: Promise<{ id: string }>;
 }) {
+    const user = getLoggedInUser();
+    const { id: userID } = user ?? {};
     const { id } = use(params);
-    const [paymentOption, setPaymentOption] = useState('Pay Later');
+
+    const [paymentOption, setPaymentOption] = useState<
+        'Pay Now' | 'Pay Later' | ''
+    >('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clientSecret, setClientSecret] = useState('');
+    const [customerId, setCustomerId] = useState('');
 
     useEffect(() => {
         const createSession = async () => {
@@ -80,30 +93,42 @@ export default function RootNewOrderPayment({
         createSession();
     }, [paymentOption, paymentMethod, id]);
 
-    const stripePromise = loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-    );
+    const createSetupIntent = async () => {
+        if (paymentOption === 'Pay Later' && userID) {
+            try {
+                const res = await fetch('/api/stripe/create-setup-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userID, orderID: id }),
+                });
 
-    const [newOrder, { isLoading }] = useNewOrderMutation();
+                if (!res.ok) {
+                    throw new Error('Failed to create setup intent');
+                }
 
-    const router = useRouter();
+                const result = await res.json();
 
-    const handlePayment = async () => {
-        try {
-            const response = await newOrder({
-                data: {
-                    orderID: id,
-                    paymentOption,
-                },
-            });
-
-            if (response?.data?.success) {
-                router.push(`/orders`);
+                if (result && result.data.client_secret) {
+                    setClientSecret(result.data.client_secret);
+                    setCustomerId(result.data.customer_id);
+                } else {
+                    console.error('No client secret received');
+                }
+            } catch (error) {
+                ApiError(error);
             }
-        } catch (error) {
-            ApiError(error);
         }
     };
+
+    useEffect(() => {
+        console.log('Payment option changed:', paymentOption);
+        if (paymentOption === 'Pay Later') {
+            console.log('Creating setup intent...');
+            createSetupIntent();
+        }
+    }, [paymentOption]);
+
+    console.log(clientSecret);
 
     return (
         <section className="grid grid-cols-2 gap-6 items-start">
@@ -122,11 +147,12 @@ export default function RootNewOrderPayment({
                         <h3 className="text-lg font-semibold">
                             Payment Options
                         </h3>
-
                         <RadioGroup
                             value={paymentOption}
                             onValueChange={(val) => {
-                                setPaymentOption(val);
+                                setPaymentOption(
+                                    val as 'Pay Now' | 'Pay Later'
+                                );
                                 if (val === 'Pay Later') setPaymentMethod('');
                             }}
                             className="grid gap-4"
@@ -165,7 +191,6 @@ export default function RootNewOrderPayment({
                         <h3 className="text-lg font-semibold">
                             Payment Methods
                         </h3>
-
                         <RadioGroup
                             value={paymentMethod}
                             onValueChange={setPaymentMethod}
@@ -211,48 +236,47 @@ export default function RootNewOrderPayment({
                         </RadioGroup>
                     </div>
                 </CardContent>
-                {paymentOption === 'Pay Later' && (
-                    <CardFooter>
-                        <Button
-                            className="w-full"
-                            disabled={isLoading}
-                            onClick={handlePayment}
-                        >
-                            Place Order
-                        </Button>
-                    </CardFooter>
-                )}
             </Card>
 
-            {paymentOption === 'Pay Now' &&
-                paymentMethod === 'Card Payment' && (
-                    <Card className="min-h-[600px]">
-                        <CardHeader>
-                            <CardTitle className="text-2xl">
-                                Complete Your Payment
-                            </CardTitle>
-                            <CardDescription>
-                                You’ll be redirected here after securely
-                                submitting payment through Stripe.
-                            </CardDescription>
-                        </CardHeader>
+            <Card className="min-h-[600px]">
+                <CardHeader>
+                    <CardTitle className="text-2xl">
+                        Complete Your Payment
+                    </CardTitle>
+                    <CardDescription>
+                        You’ll be redirected here after securely submitting
+                        payment.
+                    </CardDescription>
+                </CardHeader>
 
-                        <CardContent>
-                            {clientSecret ? (
-                                <EmbeddedCheckoutProvider
-                                    stripe={stripePromise}
-                                    options={{ clientSecret }}
-                                >
-                                    <EmbeddedCheckout className="w-full" />
-                                </EmbeddedCheckoutProvider>
-                            ) : (
-                                <p className="text-muted-foreground text-sm">
-                                    Loading payment session...
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
+                <CardContent>
+                    {paymentOption === 'Pay Now' &&
+                        paymentMethod === 'Card Payment' &&
+                        clientSecret && (
+                            <EmbeddedCheckoutProvider
+                                stripe={stripePromise}
+                                options={{ clientSecret }}
+                            >
+                                <EmbeddedCheckout className="w-full" />
+                            </EmbeddedCheckoutProvider>
+                        )}
+
+                    {paymentOption === 'Pay Later' && clientSecret ? (
+                        <Elements
+                            stripe={stripePromise}
+                            options={{ clientSecret }}
+                        >
+                            <SaveCardForm
+                                userID={userID!}
+                                orderID={id}
+                                customerId={customerId}
+                            />
+                        </Elements>
+                    ) : paymentOption === 'Pay Later' ? (
+                        <p>Loading payment form...</p>
+                    ) : null}
+                </CardContent>
+            </Card>
         </section>
     );
 }
