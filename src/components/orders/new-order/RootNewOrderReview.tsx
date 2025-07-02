@@ -82,7 +82,7 @@ export default function RootNewOrderReview({
         );
     }
 
-    if (!isLoading && !isError && data) {
+    if (!isLoading && !isError && data.data) {
         content = <NewOrderPricingCard order={data.data} />;
     }
 
