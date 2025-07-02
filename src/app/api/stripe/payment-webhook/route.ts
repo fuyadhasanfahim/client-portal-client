@@ -51,6 +51,40 @@ export async function POST(req: NextRequest) {
         try {
             await dbConfig();
 
+            // First check if a payment for this order already exists
+            const existingPayment = await PaymentModel.findOne({
+                orderID,
+            });
+
+            const paymentIntentId = session.payment_intent?.toString();
+            const paymentData = {
+                userID,
+                orderID,
+                paymentOption,
+                paymentMethod,
+                customerId: session.customer?.toString(),
+                amount: (session.amount_subtotal ?? 0) / 100,
+                tax: (session.total_details?.amount_tax ?? 0) / 100,
+                totalAmount: (session.amount_total ?? 0) / 100,
+                currency: session.currency,
+                status: session.payment_status,
+                paymentIntentId,
+            };
+
+            if (existingPayment) {
+                // Update existing payment
+                await PaymentModel.updateOne(
+                    { _id: existingPayment._id },
+                    paymentData
+                );
+                console.log(`Updated existing payment for order ${orderID}`);
+            } else {
+                // Create new payment
+                await PaymentModel.create(paymentData);
+                console.log(`Created new payment for order ${orderID}`);
+            }
+
+            // Update the order
             await OrderModel.findOneAndUpdate(
                 { orderID },
                 {
@@ -58,29 +92,20 @@ export async function POST(req: NextRequest) {
                     paymentStatus: 'Paid',
                     paymentOption,
                     paymentMethod,
-                    paymentId: session.payment_intent?.toString(),
-                }
+                    paymentId: paymentIntentId,
+                },
+                { new: true }
             );
 
-            await PaymentModel.create({
-                userID,
-                orderID,
-                paymentOption,
-                paymentMethod,
-                paymentIntentId: session.payment_intent?.toString(),
-                customerId: session.customer?.toString(),
-                amount: (session.amount_subtotal ?? 0) / 100,
-                tax: (session.total_details?.amount_tax ?? 0) / 100,
-                totalAmount: (session.amount_total ?? 0) / 100,
-                currency: session.currency,
-                status: session.payment_status,
-            });
+            console.log(`Updated order ${orderID} payment status`);
 
+            // Send confirmation email
             const user = await UserModel.findOne({ userID });
+
             if (user?.email) {
                 await sendEmail({
                     from: process.env.EMAIL_USER!,
-                    to: user.email!,
+                    to: user.email,
                     subject: `✅ Payment Completed - Order #${orderID}`,
                     html: `
                         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
@@ -94,6 +119,9 @@ export async function POST(req: NextRequest) {
                                 <div style="margin: 20px 0; padding: 16px; background-color: #f9f9f9; border-left: 4px solid #0f9d58;">
                                 <p><strong>User ID:</strong> ${userID}</p>
                                 <p><strong>Order ID:</strong> ${orderID}</p>
+                                <p><strong>Amount Paid:</strong> ${
+                                    (session.amount_total ?? 0) / 100
+                                } ${session.currency?.toUpperCase()}</p>
                                 </div>
 
                                 <p>You can expect an update once your order is completed and ready for delivery.</p>
@@ -102,9 +130,10 @@ export async function POST(req: NextRequest) {
 
                                 <p style="margin-top: 30px;">Best regards,<br /><strong>The Project Pixel Forge Team</strong></p>
                             </div>
-                            </div>
+                        </div>
                     `,
                 });
+                console.log(`Sent confirmation email for order ${orderID}`);
             }
         } catch (err) {
             console.error('Webhook processing error:', err);

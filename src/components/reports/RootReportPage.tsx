@@ -5,7 +5,7 @@ import getLoggedInUser from '@/utils/getLoggedInUser';
 import {
     Card,
     CardContent,
-    CardDescription,
+    // CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -16,20 +16,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-} from 'recharts';
+// import { Badge } from '@/components/ui/badge';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import {
+//     LineChart,
+//     Line,
+//     XAxis,
+//     YAxis,
+//     CartesianGrid,
+//     Tooltip,
+//     Legend,
+//     ResponsiveContainer,
+//     BarChart,
+//     Bar,
+// } from 'recharts';
 import {
     Calendar,
     DollarSign,
@@ -38,14 +38,25 @@ import {
     TrendingDown,
     LucideIcon,
 } from 'lucide-react';
-import { IOrder } from '@/types/order.interface';
+// import { IOrder } from '@/types/order.interface';
 import ApiError from '../shared/ApiError';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../ui/skeleton';
+import IPayment from '@/types/payment.interface';
 
 // Mock data generator
-const generateMockData = (days) => {
-    const data = [];
+interface MockDataItem {
+    date: string;
+    dateFormatted: string;
+    salesPrice: number;
+    newOrders: number;
+    completedOrders: number;
+    canceledOrders: number;
+    revenue: number;
+}
+
+const generateMockData = (days: number): MockDataItem[] => {
+    const data: MockDataItem[] = [];
     const today = new Date();
 
     for (let i = days - 1; i >= 0; i--) {
@@ -82,14 +93,19 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
 
     const [timeRange, setTimeRange] = useState('30');
     const [chartType, setChartType] = useState('line');
-    const [completedOrdersLoading, setCompletedOrdersLoading] =
+    const [isCompletedOrdersLoading, setIsCompletedOrdersLoading] =
         useState<boolean>(false);
-    const [completedOrders, setCompletedOrders] = useState(0);
+    const [completedOrders, setCompletedOrders] = useState<number>(0);
+    const [isPaymentLoading, setIsPaymentLoading] = useState<boolean>(false);
+    const [payments, setPayments] = useState<number>(0);
+    setChartType("line")
+    console.log(payments, isPaymentLoading, chartType)
 
+    // completed orders api
     useEffect(() => {
         const fetchCompletedOrders = async () => {
             try {
-                setCompletedOrdersLoading(true);
+                setIsCompletedOrdersLoading(true);
 
                 if (!role) return;
 
@@ -119,12 +135,48 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
             } catch (error) {
                 ApiError(error);
             } finally {
-                setCompletedOrdersLoading(false);
+                setIsCompletedOrdersLoading(false);
             }
         };
 
         fetchCompletedOrders();
     }, [authToken, userID, role]);
+
+    // payments api
+    useEffect(() => {
+        const fetchPayments = async () => {
+            try {
+                setIsPaymentLoading(true);
+
+                const response = await fetch(
+                    `${process.env
+                        .NEXT_PUBLIC_BACKEND_URL!}/api/payments/get-payments-by-status?status=Paid`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${authToken}`,
+                        },
+                    }
+                );
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setPayments(
+                        result.data.reduce(
+                            (sum: number, payment: IPayment) =>
+                                sum + (payment.totalAmount ?? 0)
+                        )
+                    );
+                }
+            } catch (error) {
+                ApiError(error);
+            } finally {
+                setIsPaymentLoading(false);
+            }
+        };
+
+        fetchPayments();
+    });
 
     const currentMonth = new Date().toLocaleDateString('en-US', {
         month: 'long',
@@ -274,7 +326,7 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     title="Orders Completed"
                     value={completedOrders}
                     icon={CheckCircle}
-                    loading={completedOrdersLoading}
+                    loading={isCompletedOrdersLoading}
                 />
                 <StatCard
                     title={

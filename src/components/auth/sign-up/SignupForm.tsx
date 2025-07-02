@@ -24,7 +24,7 @@ import ApiError from '@/components/shared/ApiError';
 export default function SignupForm() {
     const router = useRouter();
 
-    const form = useForm({
+    const form = useForm<z.infer<typeof SignupSchema>>({
         resolver: zodResolver(SignupSchema),
         defaultValues: {
             name: '',

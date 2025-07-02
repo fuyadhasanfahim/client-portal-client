@@ -1,6 +1,5 @@
 import dbConfig from '@/lib/dbConfig';
 import { sendEmail } from '@/lib/nodemailer';
-import { ConversationModel, MessageModel } from '@/models/message.model';
 import OrderModel from '@/models/order.model';
 import UserModel from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
@@ -93,41 +92,9 @@ export async function PUT(req: NextRequest) {
                 { status: 404 }
             );
         }
-
-        let conversation = await ConversationModel.findOne({
-            participants: { $all: [senderID, admin.userID] },
-        });
-
-        if (!conversation) {
-            conversation = await ConversationModel.create({
-                participants: [senderID, admin.userID],
-                unreadCounts: { [admin._id.toString()]: 1 },
-                readBy: [senderID],
-            });
-        } else {
-            const recipientID =
-                senderID === admin.userID ? user.userID : admin.userID;
-            conversation.unreadCounts.set(
-                recipientID,
-                (conversation.unreadCounts.get(recipientID) || 0) + 1
-            );
-            conversation.readBy = [senderID];
-            await conversation.save();
-        }
-
-        console.log(conversation)
-
-        const newMessage = await MessageModel.create({
-            conversationID: conversation._id,
-            senderID,
-            content: message,
-            orderID,
-            status: 'sent',
-        });
-
         await sendEmail({
-            from: `"Web Briks LLC" <${process.env.EMAIL_USER}>`,
-            to: user.email,
+            from:user.email!,
+            to: process.env.EMAIL_USER!,
             subject,
             html,
         });
@@ -135,8 +102,7 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json(
             {
                 success: true,
-                message: 'Revision message sent and email delivered.',
-                data: newMessage,
+                message: 'Revision message sent to email.',
             },
             { status: 200 }
         );

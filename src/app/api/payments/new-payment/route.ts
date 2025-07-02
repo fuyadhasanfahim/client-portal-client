@@ -28,10 +28,8 @@ export async function POST(req: NextRequest) {
             amount: order.total,
         });
 
-        await OrderModel.updateOne(
-            { orderID: orderID },
-            { $set: { paymentStatus: 'Pay Later' } }
-        );
+        order.paymentOption = 'Pay Later';
+        await order.save();
 
         return NextResponse.json(
             {

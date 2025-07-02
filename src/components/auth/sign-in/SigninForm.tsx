@@ -26,7 +26,7 @@ import ApiError from '@/components/shared/ApiError';
 export default function SigninForm() {
     const router = useRouter();
 
-    const form = useForm({
+    const form = useForm<z.infer<typeof SigninSchema>>({
         resolver: zodResolver(SigninSchema),
         defaultValues: {
             email: '',

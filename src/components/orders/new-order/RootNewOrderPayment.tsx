@@ -4,7 +4,6 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -18,10 +17,7 @@ import {
     Elements,
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { Button } from '@/components/ui/button';
-import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
-import { useRouter } from 'next/navigation';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import SaveCardForm from './SaveCardForm';
 
@@ -93,40 +89,42 @@ export default function RootNewOrderPayment({
         createSession();
     }, [paymentOption, paymentMethod, id]);
 
-    const createSetupIntent = async () => {
-        if (paymentOption === 'Pay Later' && userID) {
-            try {
-                const res = await fetch('/api/stripe/create-setup-intent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userID, orderID: id }),
-                });
-
-                if (!res.ok) {
-                    throw new Error('Failed to create setup intent');
-                }
-
-                const result = await res.json();
-
-                if (result && result.data.client_secret) {
-                    setClientSecret(result.data.client_secret);
-                    setCustomerId(result.data.customer_id);
-                } else {
-                    console.error('No client secret received');
-                }
-            } catch (error) {
-                ApiError(error);
-            }
-        }
-    };
-
     useEffect(() => {
         console.log('Payment option changed:', paymentOption);
         if (paymentOption === 'Pay Later') {
-            console.log('Creating setup intent...');
+            const createSetupIntent = async () => {
+                if (paymentOption === 'Pay Later' && userID) {
+                    try {
+                        const res = await fetch(
+                            '/api/stripe/create-setup-intent',
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userID, orderID: id }),
+                            }
+                        );
+
+                        if (!res.ok) {
+                            throw new Error('Failed to create setup intent');
+                        }
+
+                        const result = await res.json();
+
+                        if (result && result.data.client_secret) {
+                            setClientSecret(result.data.client_secret);
+                            setCustomerId(result.data.customer_id);
+                        } else {
+                            console.error('No client secret received');
+                        }
+                    } catch (error) {
+                        ApiError(error);
+                    }
+                }
+            };
+
             createSetupIntent();
         }
-    }, [paymentOption]);
+    }, [paymentOption, userID, id]);
 
     console.log(clientSecret);
 
