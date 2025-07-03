@@ -5,7 +5,7 @@ import getLoggedInUser from '@/utils/getLoggedInUser';
 import {
     Card,
     CardContent,
-    // CardDescription,
+    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -16,20 +16,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-// import { Badge } from '@/components/ui/badge';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// import {
-//     LineChart,
-//     Line,
-//     XAxis,
-//     YAxis,
-//     CartesianGrid,
-//     Tooltip,
-//     Legend,
-//     ResponsiveContainer,
-//     BarChart,
-//     Bar,
-// } from 'recharts';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+} from 'recharts';
 import {
     Calendar,
     DollarSign,
@@ -38,54 +38,11 @@ import {
     TrendingDown,
     LucideIcon,
 } from 'lucide-react';
-// import { IOrder } from '@/types/order.interface';
+import { IOrder } from '@/types/order.interface';
 import ApiError from '../shared/ApiError';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../ui/skeleton';
 import IPayment from '@/types/payment.interface';
-
-// Mock data generator
-interface MockDataItem {
-    date: string;
-    dateFormatted: string;
-    salesPrice: number;
-    newOrders: number;
-    completedOrders: number;
-    canceledOrders: number;
-    revenue: number;
-}
-
-const generateMockData = (days: number): MockDataItem[] => {
-    const data: MockDataItem[] = [];
-    const today = new Date();
-
-    for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-
-        const basePrice = 50 + Math.random() * 100;
-        const newOrders = Math.floor(Math.random() * 20) + 5;
-        const completedOrders = Math.floor(
-            newOrders * (0.7 + Math.random() * 0.25)
-        );
-        const canceledOrders = newOrders - completedOrders;
-
-        data.push({
-            date: date.toISOString().split('T')[0],
-            dateFormatted: date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-            }),
-            salesPrice: Math.round(basePrice * 100) / 100,
-            newOrders,
-            completedOrders,
-            canceledOrders,
-            revenue: Math.round(completedOrders * basePrice * 100) / 100,
-        });
-    }
-
-    return data;
-};
 
 export default function RootReportPage({ authToken }: { authToken: string }) {
     const user = getLoggedInUser();
@@ -94,45 +51,53 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
     const [timeRange, setTimeRange] = useState('30');
     const [chartType, setChartType] = useState('line');
     const [isCompletedOrdersLoading, setIsCompletedOrdersLoading] =
-        useState<boolean>(false);
-    const [completedOrders, setCompletedOrders] = useState<number>(0);
-    const [isPaymentLoading, setIsPaymentLoading] = useState<boolean>(false);
-    const [payments, setPayments] = useState<number>(0);
-    setChartType("line")
-    console.log(payments, isPaymentLoading, chartType)
+        useState(true);
+    const [completedOrders, setCompletedOrders] = useState(0);
+    const [isPaymentLoading, setIsPaymentLoading] = useState(true);
+    const [payments, setPayments] = useState({
+        totalAmount: 0,
+        revenueTrend: 0,
+    });
+    const [isPendingLoading, setIsPendingLoading] = useState(true);
+    const [pending, setPending] = useState({ totalAmount: 0, revenueTrend: 0 });
+    const [isPaymentToMonthLoading, setIsPaymentToMonthLoading] =
+        useState(true);
+    const [paymentToMonth, setPaymentToMonth] = useState({
+        totalAmount: 0,
+        revenueTrend: 0,
+    });
 
-    // completed orders api
+    const currentMonth = new Date().toLocaleDateString('en-US', {
+        month: 'long',
+    });
+
     useEffect(() => {
         const fetchCompletedOrders = async () => {
             try {
-                setIsCompletedOrdersLoading(true);
-
-                if (!role) return;
-
-                const queryParams = new URLSearchParams({
-                    status: 'Completed',
-                    userID: userID!,
-                    role: role!,
-                }).toString();
-
                 const response = await fetch(
-                    `${process.env
-                        .NEXT_PUBLIC_BACKEND_URL!}/api/orders/get-orders-by-status?${queryParams}`,
+                    `${
+                        process.env.NEXT_PUBLIC_BACKEND_URL
+                    }/api/orders/get-orders-by-status?status=Completed&userID=${userID!}&role=${role!}`,
                     {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
+                        headers: { Authorization: `Bearer ${authToken}` },
                     }
                 );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const result = await response.json();
 
                 if (result.success) {
                     setCompletedOrders(result.data.length);
                 } else {
-                    toast.error('Something went wrong! Try again later.');
+                    toast.error(
+                        result.message || 'Failed to fetch completed orders'
+                    );
                 }
             } catch (error) {
+                console.error('Error fetching completed orders:', error);
                 ApiError(error);
             } finally {
                 setIsCompletedOrdersLoading(false);
@@ -142,33 +107,31 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
         fetchCompletedOrders();
     }, [authToken, userID, role]);
 
-    // payments api
     useEffect(() => {
         const fetchPayments = async () => {
             try {
-                setIsPaymentLoading(true);
-
                 const response = await fetch(
-                    `${process.env
-                        .NEXT_PUBLIC_BACKEND_URL!}/api/payments/get-payments-by-status?status=Paid`,
+                    `${
+                        process.env.NEXT_PUBLIC_BACKEND_URL
+                    }/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay%20Now&userID=${userID!}&role=${role!}`,
                     {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
+                        headers: { Authorization: `Bearer ${authToken}` },
                     }
                 );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const result = await response.json();
 
                 if (result.success) {
-                    setPayments(
-                        result.data.reduce(
-                            (sum: number, payment: IPayment) =>
-                                sum + (payment.totalAmount ?? 0)
-                        )
-                    );
+                    setPayments(result.data);
+                } else {
+                    toast.error(result.message || 'Failed to fetch payments');
                 }
             } catch (error) {
+                console.error('Error fetching payments:', error);
                 ApiError(error);
             } finally {
                 setIsPaymentLoading(false);
@@ -176,54 +139,76 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
         };
 
         fetchPayments();
-    });
+    }, [authToken, userID, role]);
 
-    const currentMonth = new Date().toLocaleDateString('en-US', {
-        month: 'long',
-    });
+    useEffect(() => {
+        const fetchPending = async () => {
+            try {
+                const response = await fetch(
+                    `${
+                        process.env.NEXT_PUBLIC_BACKEND_URL
+                    }/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay Later&userID=${userID!}&role=${role!}`,
+                    {
+                        headers: { Authorization: `Bearer ${authToken}` },
+                    }
+                );
 
-    const data = useMemo(
-        () => generateMockData(parseInt(timeRange)),
-        [timeRange]
-    );
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
-    // Calculate statistics
-    const stats = useMemo(() => {
-        const totalRevenue = data.reduce((sum, item) => sum + item.revenue, 0);
-        const totalCompleted = data.reduce(
-            (sum, item) => sum + item.completedOrders,
-            0
-        );
-        const currentMonthRevenue = data
-            .filter(
-                (item) =>
-                    new Date(item.date).getMonth() === new Date().getMonth()
-            )
-            .reduce((sum, item) => sum + item.revenue, 0);
-        const avgSellingPrice = totalRevenue / totalCompleted || 0;
+                const result = await response.json();
 
-        // Calculate trends (comparing first half vs second half of period)
-        const midPoint = Math.floor(data.length / 2);
-        const firstHalf = data.slice(0, midPoint);
-        const secondHalf = data.slice(midPoint);
-
-        const firstHalfAvg =
-            firstHalf.reduce((sum, item) => sum + item.revenue, 0) /
-            firstHalf.length;
-        const secondHalfAvg =
-            secondHalf.reduce((sum, item) => sum + item.revenue, 0) /
-            secondHalf.length;
-        const revenueTrend =
-            ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100;
-
-        return {
-            totalRevenue,
-            totalCompleted,
-            currentMonthRevenue,
-            avgSellingPrice,
-            revenueTrend,
+                if (result.success) {
+                    setPending(result.data);
+                } else {
+                    toast.error(
+                        result.message || 'Failed to fetch pending payments'
+                    );
+                }
+            } catch (error) {
+                console.error('Error fetching pending payments:', error);
+                ApiError(error);
+            } finally {
+                setIsPendingLoading(false);
+            }
         };
-    }, [data]);
+
+        fetchPending();
+    }, [authToken, userID, role]);
+
+    useEffect(() => {
+        const fetchPaymentToMonth = async () => {
+            try {
+                const response = await fetch(
+                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay%20Now&month=${currentMonth}&userID=${userID}&role=${role}`,
+                    {
+                        headers: { Authorization: `Bearer ${authToken}` },
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setPaymentToMonth(result.data);
+                } else {
+                    toast.error(
+                        result.message || 'Failed to fetch monthly payments'
+                    );
+                }
+            } catch (error) {
+                ApiError(error);
+            } finally {
+                setIsPaymentToMonthLoading(false);
+            }
+        };
+
+        fetchPaymentToMonth();
+    }, [authToken, userID, role, currentMonth]);
 
     const StatCard = ({
         title,
@@ -236,7 +221,7 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
     }: {
         title: string;
         value: string | number;
-        icon: LucideIcon;
+        icon: any;
         trend?: number;
         prefix?: string;
         suffix?: string;
@@ -245,9 +230,10 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="font-medium">{title}</CardTitle>
-                {React.createElement(icon, {
-                    className: 'h-4 w-4 text-muted-foreground text-primary',
-                })}
+                {icon &&
+                    React.createElement(icon, {
+                        className: 'h-4 w-4 text-primary',
+                    })}
             </CardHeader>
             <CardContent>
                 {loading ? (
@@ -311,16 +297,24 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 </div>
             </div>
 
-            {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                     title={
                         role === 'User' ? 'Expense to Date' : 'Earnings to Date'
                     }
-                    value={stats.totalRevenue}
+                    value={payments.totalAmount}
                     icon={DollarSign}
                     prefix="$"
-                    trend={stats.revenueTrend}
+                    loading={isPaymentLoading}
+                    trend={payments.revenueTrend}
+                />
+                <StatCard
+                    title="Pending to Date"
+                    value={pending.totalAmount}
+                    icon={DollarSign}
+                    prefix="$"
+                    loading={isPendingLoading}
+                    trend={pending.revenueTrend}
                 />
                 <StatCard
                     title="Orders Completed"
@@ -334,24 +328,15 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                             ? `Expense in ${currentMonth}`
                             : `Earnings in ${currentMonth}`
                     }
-                    value={stats.currentMonthRevenue}
+                    value={paymentToMonth.totalAmount}
                     icon={Calendar}
                     prefix="$"
-                />
-                <StatCard
-                    title={
-                        role === 'User'
-                            ? 'Avg Expense Price'
-                            : 'Avg Selling Price'
-                    }
-                    value={stats.avgSellingPrice.toFixed(2)}
-                    icon={TrendingUp}
-                    prefix="$"
+                    loading={isPaymentToMonthLoading}
+                    trend={paymentToMonth.revenueTrend}
                 />
             </div>
 
-            {/* Overview Section */}
-            {/* <Card>
+            <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
@@ -569,10 +554,13 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                         </TabsContent>
                     </Tabs>
                 </CardContent>
-            </Card> */}
+            </Card>
+        </div>
+    );
+}
 
-            {/* Detailed Summary */}
-            {/* <div className="grid gap-4 md:grid-cols-2">
+{
+    /* <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>Summary Statistics</CardTitle>
@@ -666,7 +654,5 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                         </div>
                     </CardContent>
                 </Card>
-            </div> */}
-        </div>
-    );
+            </div> */
 }
