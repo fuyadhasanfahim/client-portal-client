@@ -16,8 +16,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     LineChart,
     Line,
@@ -27,8 +25,6 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-    BarChart,
-    Bar,
 } from 'recharts';
 import {
     Calendar,
@@ -38,18 +34,19 @@ import {
     TrendingDown,
     LucideIcon,
 } from 'lucide-react';
-import { IOrder } from '@/types/order.interface';
 import ApiError from '../shared/ApiError';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../ui/skeleton';
-import IPayment from '@/types/payment.interface';
+import { format, subDays, subMonths } from 'date-fns';
+import { IOrder } from '@/types/order.interface';
 
 export default function RootReportPage({ authToken }: { authToken: string }) {
     const user = getLoggedInUser();
     const { id: userID, role } = user ?? {};
 
-    const [timeRange, setTimeRange] = useState('30');
-    const [chartType, setChartType] = useState('line');
+    const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+    const [orders, setOrders] = useState([]);
+    const [chartDateRange, setChartDateRange] = useState('30');
     const [isCompletedOrdersLoading, setIsCompletedOrdersLoading] =
         useState(true);
     const [completedOrders, setCompletedOrders] = useState(0);
@@ -71,6 +68,168 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
         month: 'long',
     });
 
+    const transformOrdersToChartData = (orders: IOrder[], range: string) => {
+        const now = new Date();
+        const startDate =
+            range === '15'
+                ? subDays(now, 15)
+                : range === '30'
+                ? subDays(now, 30)
+                : range === '365'
+                ? subMonths(now, 12) // Changed from subDays(365) to subMonths(12)
+                : subDays(now, 30);
+
+        if (range === '365') {
+            // Handle year range - group by month
+            const monthlyData: Record<
+                string,
+                {
+                    date: Date;
+                    newOrders: number;
+                    completedOrders: number;
+                    canceledOrders: number;
+                    monthKey: string;
+                }
+            > = {};
+
+            // Initialize all months in the range
+            const date = new Date(startDate);
+            while (date <= now) {
+                const monthKey = format(date, 'yyyy-MM');
+                monthlyData[monthKey] = {
+                    date: new Date(date),
+                    newOrders: 0,
+                    completedOrders: 0,
+                    canceledOrders: 0,
+                    monthKey,
+                };
+                date.setMonth(date.getMonth() + 1);
+            }
+
+            // Process orders and group by month
+            orders.forEach((order) => {
+                const orderDate = new Date(order.createdAt ?? '');
+                if (orderDate < startDate) return;
+
+                const monthKey = format(orderDate, 'yyyy-MM');
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {
+                        date: orderDate,
+                        newOrders: 0,
+                        completedOrders: 0,
+                        canceledOrders: 0,
+                        monthKey,
+                    };
+                }
+
+                if (order.status === 'Completed') {
+                    monthlyData[monthKey].completedOrders += 1;
+                } else if (order.status === 'Canceled') {
+                    monthlyData[monthKey].canceledOrders += 1;
+                }
+                monthlyData[monthKey].newOrders += 1;
+            });
+
+            // Convert to array and format for chart
+            return Object.values(monthlyData)
+                .sort((a, b) => a.date.getTime() - b.date.getTime())
+                .map((item) => ({
+                    ...item,
+                    dateFormatted: format(item.date, 'MMM yyyy'), // Format as "Jan 2023" etc.
+                }));
+        } else {
+            // Handle day ranges (15, 30 days) - same as before
+            const dailyData: Record<
+                string,
+                {
+                    date: Date;
+                    newOrders: number;
+                    completedOrders: number;
+                    canceledOrders: number;
+                }
+            > = {};
+
+            // Initialize all dates in the range with zero values
+            const date = new Date(startDate);
+            while (date <= now) {
+                const dateKey = date.toISOString().split('T')[0];
+                dailyData[dateKey] = {
+                    date: new Date(date),
+                    newOrders: 0,
+                    completedOrders: 0,
+                    canceledOrders: 0,
+                };
+                date.setDate(date.getDate() + 1);
+            }
+
+            // Process each order and count by status and date
+            orders.forEach((order) => {
+                const orderDate = new Date(order.createdAt ?? '');
+                if (orderDate < startDate) return;
+
+                const dateKey = orderDate.toISOString().split('T')[0];
+                if (!dailyData[dateKey]) {
+                    dailyData[dateKey] = {
+                        date: orderDate,
+                        newOrders: 0,
+                        completedOrders: 0,
+                        canceledOrders: 0,
+                    };
+                }
+
+                if (order.status === 'Completed') {
+                    dailyData[dateKey].completedOrders += 1;
+                } else if (order.status === 'Canceled') {
+                    dailyData[dateKey].canceledOrders += 1;
+                }
+                dailyData[dateKey].newOrders += 1;
+            });
+
+            // Convert to array and format for chart
+            return Object.values(dailyData)
+                .sort((a, b) => a.date.getTime() - b.date.getTime())
+                .map((item) => ({
+                    ...item,
+                    dateFormatted: format(item.date, 'MMM dd'), // Format as "Jan 01" etc.
+                }));
+        }
+    };
+
+    const chartData = useMemo(() => {
+        return transformOrdersToChartData(orders, chartDateRange);
+    }, [orders, chartDateRange]);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const response = await fetch(
+                    `${
+                        process.env.NEXT_PUBLIC_BACKEND_URL
+                    }/api/orders/get-orders-for-report-page?userID=${userID!}&role=${role!}`,
+                    {
+                        headers: { Authorization: `Bearer ${authToken}` },
+                    }
+                );
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setOrders(result.data);
+                } else {
+                    toast.error(
+                        result.message || 'Failed to fetch completed orders'
+                    );
+                }
+            } catch (error) {
+                ApiError(error);
+            } finally {
+                setIsLoadingOrders(false);
+            }
+        };
+
+        fetchOrders();
+    }, [authToken, userID, role]);
+
     useEffect(() => {
         const fetchCompletedOrders = async () => {
             try {
@@ -83,10 +242,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     }
                 );
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const result = await response.json();
 
                 if (result.success) {
@@ -97,7 +252,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     );
                 }
             } catch (error) {
-                console.error('Error fetching completed orders:', error);
                 ApiError(error);
             } finally {
                 setIsCompletedOrdersLoading(false);
@@ -119,10 +273,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     }
                 );
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const result = await response.json();
 
                 if (result.success) {
@@ -131,7 +281,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     toast.error(result.message || 'Failed to fetch payments');
                 }
             } catch (error) {
-                console.error('Error fetching payments:', error);
                 ApiError(error);
             } finally {
                 setIsPaymentLoading(false);
@@ -153,10 +302,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     }
                 );
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const result = await response.json();
 
                 if (result.success) {
@@ -167,7 +312,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     );
                 }
             } catch (error) {
-                console.error('Error fetching pending payments:', error);
                 ApiError(error);
             } finally {
                 setIsPendingLoading(false);
@@ -186,10 +330,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                         headers: { Authorization: `Bearer ${authToken}` },
                     }
                 );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
 
                 const result = await response.json();
 
@@ -221,7 +361,7 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
     }: {
         title: string;
         value: string | number;
-        icon: any;
+        icon: LucideIcon;
         trend?: number;
         prefix?: string;
         suffix?: string;
@@ -273,28 +413,13 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
 
     return (
         <div className="container mx-auto p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Orders Report
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Track your sales performance and order metrics
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger className="w-32">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="7">7 Days</SelectItem>
-                            <SelectItem value="30">30 Days</SelectItem>
-                            <SelectItem value="90">3 Months</SelectItem>
-                            <SelectItem value="365">1 Year</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                    Orders Report
+                </h1>
+                <p className="text-muted-foreground">
+                    Track your sales performance and order metrics
+                </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -342,317 +467,75 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                         <div>
                             <CardTitle>Overview</CardTitle>
                             <CardDescription>
-                                Sales performance over the last {timeRange} days
+                                Sales performance over the last{' '}
+                                {chartDateRange === '15'
+                                    ? '15 days'
+                                    : chartDateRange === '30'
+                                    ? '30 days'
+                                    : chartDateRange === '365'
+                                    ? '1 year'
+                                    : '30 days'}
                             </CardDescription>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Select
-                                value={chartType}
-                                onValueChange={setChartType}
-                            >
-                                <SelectTrigger className="w-24">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="line">Line</SelectItem>
-                                    <SelectItem value="bar">Bar</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select
+                            value={chartDateRange}
+                            onValueChange={setChartDateRange}
+                        >
+                            <SelectTrigger className="w-32">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="15">15 Days</SelectItem>
+                                <SelectItem value="30">1 Month</SelectItem>
+                                <SelectItem value="365">1 Year</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue="revenue" className="space-y-4">
-                        <TabsList>
-                            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                            <TabsTrigger value="orders">Orders</TabsTrigger>
-                            <TabsTrigger value="price">
-                                Price Trends
-                            </TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="revenue" className="space-y-4">
-                            <div className="h-80">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    {chartType === 'line' ? (
-                                        <LineChart data={data}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="dateFormatted"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip
-                                                formatter={(value, name) => [
-                                                    `$${value}`,
-                                                    name,
-                                                ]}
-                                                labelFormatter={(label) =>
-                                                    `Date: ${label}`
-                                                }
-                                            />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="revenue"
-                                                stroke="#8884d8"
-                                                strokeWidth={2}
-                                                name="Revenue"
-                                            />
-                                        </LineChart>
-                                    ) : (
-                                        <BarChart data={data}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="dateFormatted"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip
-                                                formatter={(value, name) => [
-                                                    `$${value}`,
-                                                    name,
-                                                ]}
-                                                labelFormatter={(label) =>
-                                                    `Date: ${label}`
-                                                }
-                                            />
-                                            <Legend />
-                                            <Bar
-                                                dataKey="revenue"
-                                                fill="#8884d8"
-                                                name="Revenue"
-                                            />
-                                        </BarChart>
-                                    )}
-                                </ResponsiveContainer>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="orders" className="space-y-4">
-                            <div className="h-80">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    {chartType === 'line' ? (
-                                        <LineChart data={data}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="dateFormatted"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="newOrders"
-                                                stroke="#82ca9d"
-                                                strokeWidth={2}
-                                                name="New Orders"
-                                            />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="completedOrders"
-                                                stroke="#8884d8"
-                                                strokeWidth={2}
-                                                name="Completed Orders"
-                                            />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="canceledOrders"
-                                                stroke="#ff7c7c"
-                                                strokeWidth={2}
-                                                name="Canceled Orders"
-                                            />
-                                        </LineChart>
-                                    ) : (
-                                        <BarChart data={data}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="dateFormatted"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Bar
-                                                dataKey="newOrders"
-                                                fill="#82ca9d"
-                                                name="New Orders"
-                                            />
-                                            <Bar
-                                                dataKey="completedOrders"
-                                                fill="#8884d8"
-                                                name="Completed Orders"
-                                            />
-                                            <Bar
-                                                dataKey="canceledOrders"
-                                                fill="#ff7c7c"
-                                                name="Canceled Orders"
-                                            />
-                                        </BarChart>
-                                    )}
-                                </ResponsiveContainer>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="price" className="space-y-4">
-                            <div className="h-80">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    {chartType === 'line' ? (
-                                        <LineChart data={data}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="dateFormatted"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip
-                                                formatter={(value, name) => [
-                                                    `$${value}`,
-                                                    name,
-                                                ]}
-                                                labelFormatter={(label) =>
-                                                    `Date: ${label}`
-                                                }
-                                            />
-                                            <Legend />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="salesPrice"
-                                                stroke="#ffc658"
-                                                strokeWidth={2}
-                                                name="Sales Price"
-                                            />
-                                        </LineChart>
-                                    ) : (
-                                        <BarChart data={data}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis
-                                                dataKey="dateFormatted"
-                                                tick={{ fontSize: 12 }}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip
-                                                formatter={(value, name) => [
-                                                    `$${value}`,
-                                                    name,
-                                                ]}
-                                                labelFormatter={(label) =>
-                                                    `Date: ${label}`
-                                                }
-                                            />
-                                            <Legend />
-                                            <Bar
-                                                dataKey="salesPrice"
-                                                fill="#ffc658"
-                                                name="Sales Price"
-                                            />
-                                        </BarChart>
-                                    )}
-                                </ResponsiveContainer>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
+                    {isLoadingOrders ? (
+                        <Skeleton className="h-80 w-full" />
+                    ) : (
+                        <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                                {
+                                    <LineChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis
+                                            dataKey="dateFormatted"
+                                            tick={{ fontSize: 12 }}
+                                        />
+                                        <YAxis tick={{ fontSize: 12 }} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="newOrders"
+                                            stroke="#82ca9d"
+                                            strokeWidth={2}
+                                            name="New Orders"
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="completedOrders"
+                                            stroke="#8884d8"
+                                            strokeWidth={2}
+                                            name="Completed Orders"
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="canceledOrders"
+                                            stroke="#ff7c7c"
+                                            strokeWidth={2}
+                                            name="Canceled Orders"
+                                        />
+                                    </LineChart>
+                                }
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
     );
-}
-
-{
-    /* <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Summary Statistics</CardTitle>
-                        <CardDescription>
-                            Key metrics for the selected period
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">
-                                Total Orders:
-                            </span>
-                            <Badge variant="secondary">
-                                {data.reduce(
-                                    (sum, item) => sum + item.newOrders,
-                                    0
-                                )}
-                            </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">
-                                Completion Rate:
-                            </span>
-                            <Badge variant="secondary">
-                                {(
-                                    (stats.totalCompleted /
-                                        data.reduce(
-                                            (sum, item) => sum + item.newOrders,
-                                            0
-                                        )) *
-                                    100
-                                ).toFixed(1)}
-                                %
-                            </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">
-                                Total Canceled:
-                            </span>
-                            <Badge variant="destructive">
-                                {data.reduce(
-                                    (sum, item) => sum + item.canceledOrders,
-                                    0
-                                )}
-                            </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">
-                                Daily Avg Revenue:
-                            </span>
-                            <Badge variant="secondary">
-                                ${(stats.totalRevenue / data.length).toFixed(2)}
-                            </Badge>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Performance Insights</CardTitle>
-                        <CardDescription>
-                            Analysis of your sales trends
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                            {stats.revenueTrend > 0 ? (
-                                <TrendingUp className="h-4 w-4 text-green-500" />
-                            ) : (
-                                <TrendingDown className="h-4 w-4 text-red-500" />
-                            )}
-                            <span className="text-sm">
-                                Revenue is{' '}
-                                {stats.revenueTrend > 0
-                                    ? 'trending up'
-                                    : 'trending down'}{' '}
-                                by{' '}
-                                <span
-                                    className={
-                                        stats.revenueTrend > 0
-                                            ? 'text-green-500'
-                                            : 'text-red-500'
-                                    }
-                                >
-                                    {Math.abs(stats.revenueTrend).toFixed(1)}%
-                                </span>
-                            </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                            Compared to the previous period of the same duration
-                        </div>
-                    </CardContent>
-                </Card>
-            </div> */
 }
