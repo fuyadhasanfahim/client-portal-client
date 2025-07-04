@@ -155,10 +155,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
         },
     ];
 
-    const currentMonth = new Date().toLocaleDateString('en-US', {
-        month: 'long',
-    });
-
     const transformOrdersToChartData = (orders: IOrder[], range: string) => {
         const now = new Date();
         const startDate =
