@@ -28,7 +28,7 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
             </Button>
 
             <div className="print-only">
-                <Card className="rounded-none w-[595px] h-[842px] mx-auto p-8 flex flex-col">
+                <Card className="rounded-none w-[595px] print:w-full h-[842px] mx-auto p-8 flex flex-col">
                     <CardHeader className="flex items-center justify-between p-0 mb-8">
                         <figure className="flex items-center">
                             <Image
