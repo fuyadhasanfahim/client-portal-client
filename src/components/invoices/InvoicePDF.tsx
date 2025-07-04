@@ -19,7 +19,16 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
             <Button
                 onClick={() => {
                     if (typeof window !== 'undefined') {
+                        const filename = `Invoice-${invoice.invoiceID}-${format(
+                            invoice.date.to,
+                            'yyyyMMddHHmm'
+                        )}.pdf`;
+                        const prevTitle = document.title;
+                        document.title = filename;
                         window.print();
+                        setTimeout(() => {
+                            document.title = prevTitle;
+                        }, 1000);
                     }
                 }}
                 className="mb-5 print:hidden"
@@ -28,7 +37,7 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
             </Button>
 
             <div className="print-only">
-                <Card className="rounded-none w-[595px] print:w-full h-[842px] mx-auto p-8 flex flex-col">
+                <Card className="rounded-none w-[595px] print:w-full h-[842px] print:h-[calc(100vh-40px)] mx-auto p-8 flex flex-col print:!p-0 print:border-0">
                     <CardHeader className="flex items-center justify-between p-0 mb-8">
                         <figure className="flex items-center">
                             <Image
@@ -44,7 +53,7 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                         </figure>
 
                         <div className="text-right">
-                            <h2 className="text-2xl font-bold uppercase text-primary mb-1">
+                            <h2 className="text-2xl font-bold uppercase text-amber-500 mb-1">
                                 Invoice
                             </h2>
                             <h4 className="text-sm font-medium text-gray-600">
@@ -57,8 +66,8 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                     </CardHeader>
 
                     <CardContent className="p-0 flex-1 flex flex-col">
-                        <div className="flex items-start justify-between mb-8">
-                            <div className="space-y-1">
+                        <div className="grid grid-cols-2 items-start justify-between w-full gap-32 mb-8">
+                            <div className="space-y-1 text-left">
                                 <h3 className="text-sm font-medium text-gray-500 uppercase">
                                     Bill To
                                 </h3>
@@ -67,23 +76,17 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                                         invoice.client.name}
                                 </h4>
                                 <p className="text-sm text-gray-600">
-                                    {invoice.client.phone || 'N/A'}
-                                </p>
-                                <p className="text-sm text-gray-600">
                                     {invoice.client.address || 'N/A'}
                                 </p>
                             </div>
 
-                            <div className="w-50 space-y-1 text-right">
+                            <div className="space-y-1 text-right">
                                 <h3 className="text-sm font-medium text-gray-500 uppercase">
                                     Bill From
                                 </h3>
                                 <h4 className="text-base font-semibold">
                                     {invoice.company.name}
                                 </h4>
-                                <p className="text-sm text-gray-600">
-                                    {invoice.company.phone}
-                                </p>
                                 <p className="text-sm text-gray-600">
                                     {invoice.company.address}
                                 </p>
@@ -145,7 +148,7 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                                     >
                                         Total
                                     </TableCell>
-                                    <TableCell className="text-right font-bold text-lg text-primary">
+                                    <TableCell className="text-right font-bold text-lg text-amber-500">
                                         ${invoice.total?.toFixed(2)}
                                     </TableCell>
                                 </TableRow>
@@ -155,7 +158,7 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                         {/* Thank You Message */}
                     </CardContent>
 
-                    <CardFooter>
+                    <CardFooter className="flex items-center justify-center flex-col">
                         <div className="text-center mt-6">
                             <p className="text-sm text-gray-500 italic">
                                 Thank you for your business! We appreciate your

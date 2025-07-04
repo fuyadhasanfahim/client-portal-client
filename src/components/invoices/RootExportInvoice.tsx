@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import IUser from '@/types/user.interface';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { nanoid } from 'nanoid';
+import numbers from 'nanoid-generator/numbers';
 
 export default function RootExportInvoice({
     authToken,
@@ -164,7 +164,7 @@ export default function RootExportInvoice({
             );
             const total = subTotal + subTotal * taxRate;
 
-            const invoiceID = nanoid(6).toUpperCase();
+            const invoiceID = numbers(6).toUpperCase();
 
             const response = await fetch(
                 `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/new-invoice`,
