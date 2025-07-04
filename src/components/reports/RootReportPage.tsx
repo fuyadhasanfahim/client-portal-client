@@ -76,11 +76,10 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 : range === '30'
                 ? subDays(now, 30)
                 : range === '365'
-                ? subMonths(now, 12) // Changed from subDays(365) to subMonths(12)
+                ? subMonths(now, 12)
                 : subDays(now, 30);
 
         if (range === '365') {
-            // Handle year range - group by month
             const monthlyData: Record<
                 string,
                 {
@@ -92,7 +91,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 }
             > = {};
 
-            // Initialize all months in the range
             const date = new Date(startDate);
             while (date <= now) {
                 const monthKey = format(date, 'yyyy-MM');
@@ -106,7 +104,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 date.setMonth(date.getMonth() + 1);
             }
 
-            // Process orders and group by month
             orders.forEach((order) => {
                 const orderDate = new Date(order.createdAt ?? '');
                 if (orderDate < startDate) return;
@@ -130,15 +127,13 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 monthlyData[monthKey].newOrders += 1;
             });
 
-            // Convert to array and format for chart
             return Object.values(monthlyData)
                 .sort((a, b) => a.date.getTime() - b.date.getTime())
                 .map((item) => ({
                     ...item,
-                    dateFormatted: format(item.date, 'MMM yyyy'), // Format as "Jan 2023" etc.
+                    dateFormatted: format(item.date, 'MMM yyyy'),
                 }));
         } else {
-            // Handle day ranges (15, 30 days) - same as before
             const dailyData: Record<
                 string,
                 {
@@ -149,7 +144,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 }
             > = {};
 
-            // Initialize all dates in the range with zero values
             const date = new Date(startDate);
             while (date <= now) {
                 const dateKey = date.toISOString().split('T')[0];
@@ -162,7 +156,6 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 date.setDate(date.getDate() + 1);
             }
 
-            // Process each order and count by status and date
             orders.forEach((order) => {
                 const orderDate = new Date(order.createdAt ?? '');
                 if (orderDate < startDate) return;
@@ -185,12 +178,11 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 dailyData[dateKey].newOrders += 1;
             });
 
-            // Convert to array and format for chart
             return Object.values(dailyData)
                 .sort((a, b) => a.date.getTime() - b.date.getTime())
                 .map((item) => ({
                     ...item,
-                    dateFormatted: format(item.date, 'MMM dd'), // Format as "Jan 01" etc.
+                    dateFormatted: format(item.date, 'MMM dd'),
                 }));
         }
     };

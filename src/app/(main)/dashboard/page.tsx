@@ -1,3 +1,5 @@
+import RootDashboard from '@/components/dashboard/RootDashboard';
+import getAuthToken from '@/utils/getAuthToken';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,5 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Dashboard() {
-    return <div>This is dashboard page.</div>;
+    const token = await getAuthToken();
+
+    return <RootDashboard authToken={token as string} />;
 }
