@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         // Role-based access control
         if (user_role === 'User') {
             query.userID = userID;
-        } else if (!['Admin', 'SuperAdmin', 'Developer'].includes(user_role)) {
+        } else if (!['admin'].includes(user_role)) {
             return NextResponse.json(
                 {
                     success: false,

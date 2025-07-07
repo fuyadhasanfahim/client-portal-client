@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
         let conversations = [];
 
-        if (user.role === 'SuperAdmin' || user.role === 'Admin') {
+        if (user.role === 'admin') {
             conversations = await ConversationModel.find().sort({
                 createdAt: -1,
             });

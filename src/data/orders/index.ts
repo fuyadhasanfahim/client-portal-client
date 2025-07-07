@@ -16,7 +16,7 @@ export const statusData = [
         text: '!text-yellow-500',
         border: '!border-yellow-500',
         bg: '!bg-yellow-50',
-        accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
+        accessibleTo: ['admin'],
     },
     {
         id: 2,
@@ -25,7 +25,7 @@ export const statusData = [
         text: '!text-blue-500',
         border: '!border-blue-500',
         bg: '!bg-blue-50',
-        accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
+        accessibleTo: ['admin'],
     },
     {
         id: 3,
@@ -34,7 +34,7 @@ export const statusData = [
         text: '!text-teal-500',
         border: '!border-teal-500',
         bg: '!bg-teal-50',
-        accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
+        accessibleTo: ['admin'],
     },
     {
         id: 4,
@@ -43,7 +43,7 @@ export const statusData = [
         text: '!text-amber-500',
         border: '!border-amber-500',
         bg: '!bg-amber-50',
-        accessibleTo: ['User'],
+        accessibleTo: ['user'],
     },
     {
         id: 5,
@@ -52,7 +52,7 @@ export const statusData = [
         text: '!text-green-500',
         border: '!border-green-500',
         bg: '!bg-green-50',
-        accessibleTo: ['User'],
+        accessibleTo: ['user'],
     },
     {
         id: 6,
@@ -61,7 +61,7 @@ export const statusData = [
         text: '!text-destructive',
         border: '!border-destructive',
         bg: '!bg-red-50',
-        accessibleTo: ['Admin', 'SuperAdmin', 'Developer'],
+        accessibleTo: ['admin'],
     },
 ];
 

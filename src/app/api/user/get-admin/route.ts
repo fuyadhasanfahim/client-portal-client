@@ -8,7 +8,7 @@ export async function GET() {
     try {
         await dbConfig();
 
-        const admin = await UserModel.findOne({ role: 'SuperAdmin' });
+        const admin = await UserModel.findOne({ role: 'admin' });
 
         return NextResponse.json(
             {

@@ -1,57 +1,43 @@
-import IUser from '@/types/user.interface';
+import { IUser } from '@/types/user.interface';
 import { model, models, Schema } from 'mongoose';
 
-const UserSchema: Schema = new Schema<IUser>(
+const userSchema = new Schema<IUser>(
     {
-        userID: {
-            type: String,
-            required: true,
-            unique: true,
-            index: true,
-        },
+        userID: { type: String, required: true, unique: true },
         name: { type: String, required: true },
         username: { type: String, required: true, unique: true },
         email: { type: String, required: true, unique: true },
         phone: { type: String },
-        role: {
+        address: String,
+        company: String,
+
+        role: { type: String, enum: ['user', 'admin'], default: 'user' },
+        provider: {
             type: String,
-            enum: ['User', 'Admin', 'SuperAdmin', 'Developer'],
-            default: 'User',
+            enum: ['credentials', 'google'],
+            required: true,
         },
-        address: {
-            type: String,
-            required: false,
-        },
-        company: {
-            type: String,
-            required: false,
-        },
-        stripeCustomerId: {
-            type: String,
-            required: false,
-        },
-        isEmailVerified: { type: Boolean, default: false },
+        googleId: String,
+
         password: {
             type: String,
             required: function () {
                 return this.provider !== 'google';
             },
         },
-        oldPasswords: { type: [String], default: [] },
-        provider: {
-            type: String,
-            enum: ['credentials', 'google'],
-            required: true,
-        },
-        googleId: { type: String, default: '' },
-        emailVerificationToken: { type: String, default: '' },
-        emailVerificationTokenExpiry: { type: Date, default: null },
-        forgetPasswordToken: { type: String, default: '' },
-        forgetPasswordTokenExpiry: { type: Date, default: null },
+        oldPasswords: [String],
+
+        isEmailVerified: { type: Boolean, default: false },
+        emailVerificationToken: String,
+        emailVerificationTokenExpiry: Date,
+        forgetPasswordToken: String,
+        forgetPasswordTokenExpiry: Date,
         isPasswordChanged: { type: Boolean, default: false },
-        lastPasswordChange: { type: Date, default: null },
-        lastLogin: { type: Date, default: null },
-        profileImage: { type: String, default: '' },
+        lastPasswordChange: Date,
+
+        lastLogin: Date,
+        image: String,
+
         isActive: { type: Boolean, default: true },
         isDeleted: { type: Boolean, default: false },
         isBlocked: { type: Boolean, default: false },
@@ -61,5 +47,5 @@ const UserSchema: Schema = new Schema<IUser>(
     }
 );
 
-const UserModel = models?.User || model<IUser>('User', UserSchema);
+const UserModel = models?.User || model<IUser>('User', userSchema);
 export default UserModel;

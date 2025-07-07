@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const newUser = await UserModel.create({
-            userID: `USER-${nanoid(10).toUpperCase()}`,
+            userID: `WBU${nanoid(10).toUpperCase()}`,
             name,
             email,
             phone,

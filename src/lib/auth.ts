@@ -127,7 +127,7 @@ export const authOptions: NextAuthOptions = {
                     );
                 } else if (!existingUser) {
                     const newUser = await UserModel.create({
-                        userID: `USER-${nanoid(10).toUpperCase()}`,
+                        userID: `WBU${nanoid(10).toUpperCase()}`,
                         name: user?.name,
                         email: user?.email,
                         username: user?.email?.split('@')[0],

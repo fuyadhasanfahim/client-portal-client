@@ -80,7 +80,7 @@ export async function PUT(req: NextRequest) {
         `;
 
         const admin = await UserModel.findOne({
-            role: { $in: ['SuperAdmin', 'Admin', 'Developer'] },
+            role: { $in: ['admin'] },
         });
 
         if (!admin) {
@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest) {
             );
         }
         await sendEmail({
-            from:user.email!,
+            from: user.email!,
             to: process.env.EMAIL_USER!,
             subject,
             html,

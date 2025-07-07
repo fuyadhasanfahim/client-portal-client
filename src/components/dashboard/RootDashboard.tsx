@@ -51,81 +51,44 @@ import Link from 'next/link';
 import OrderPaymentStatus from '../orders/OrderPaymentStatus';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
 import { statusData } from '@/data/orders';
+import { useGetOrdersByUserIDQuery } from '@/redux/features/users/userApi';
+import { useGetPaymentsByStatusQuery } from '@/redux/features/payments/paymentApi';
 
-export default function RootDashboard({ authToken }: { authToken: string }) {
-    const user = useLoggedInUser();
-    const { id: userID, role } = user || {};
-
-    const [isLoading, setIsLoading] = useState(true);
-    const [orders, setOrders] = useState<IOrder[] | []>([]);
-    const [isPendingLoading, setIsPendingLoading] = useState(true);
-    const [pending, setPending] = useState({ totalAmount: 0, revenueTrend: 0 });
+export default function RootDashboard({
+    user,
+}: {
+    user: {
+        userID: string;
+        role: string;
+    };
+}) {
+    const { userID, role } = user;
     const [chartDateRange, setChartDateRange] = useState('30');
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-all-orders-by-user-id?userID=${userID}&role=${role}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
-                    }
-                );
+    const { data, isLoading } = useGetOrdersByUserIDQuery(userID, {
+        skip: !userID,
+    });
 
-                const result = await response.json();
-
-                if (result.success) {
-                    setOrders(result.data);
-                } else {
-                    toast.error('Something went wrong! Please try again.');
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchOrders();
-    }, [authToken, userID, role]);
-
-    useEffect(() => {
-        const fetchPending = async () => {
-            try {
-                const response = await fetch(
-                    `${
-                        process.env.NEXT_PUBLIC_BACKEND_URL
-                    }/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay Later&userID=${userID!}&role=${role!}`,
-                    {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setPending(result.data);
-                } else {
-                    toast.error(
-                        result.message || 'Failed to fetch pending payments'
-                    );
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsPendingLoading(false);
-            }
-        };
-
-        fetchPending();
-    }, [authToken, userID, role]);
+    const {
+        data: paymentData,
+        isLoading: isPaymentLoading,
+        error,
+    } = useGetPaymentsByStatusQuery(
+        {
+            status: 'succeeded',
+            paymentOption: 'Pay Later',
+            userID,
+            role,
+        },
+        {
+            skip: !userID || !role,
+        }
+    );
 
     const stats = [
         {
             title: 'All Orders',
-            value: !isLoading && orders.length,
+            value: !isLoading && data.data.total,
             icon: Package2,
             color: 'from-sky-500 to-blue-600',
         },
@@ -133,8 +96,9 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
             title: 'Completed Orders',
             value:
                 !isLoading &&
-                orders.filter((order) => ['Completed'].includes(order.status))
-                    .length,
+                data.data.orders.filter((order: IOrder) =>
+                    ['Completed'].includes(order.status)
+                ).length,
             icon: Clock,
             color: 'from-green-500 to-teal-600',
         },
@@ -142,14 +106,15 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
             title: 'Pending Orders',
             value:
                 !isLoading &&
-                orders.filter((order) => ['Pending'].includes(order.status))
-                    .length,
+                data.data.orders.filter((order: IOrder) =>
+                    ['Completed'].includes(order.status)
+                ).length,
             icon: CircleCheck,
             color: 'from-yellow-500 to-orange-500',
         },
         {
             title: 'Pending Payments',
-            value: !isPendingLoading && pending.totalAmount,
+            value: !isPaymentLoading && paymentData.data.amount,
             icon: DollarSign,
             color: 'from-orange-500 to-red-600',
         },
@@ -167,7 +132,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 : subDays(now, 30);
 
         if (range === '365') {
-            // Handle year range - group by month
             const monthlyData: Record<
                 string,
                 {
@@ -179,7 +143,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 }
             > = {};
 
-            // Initialize all months in the range
             const date = new Date(startDate);
             while (date <= now) {
                 const monthKey = format(date, 'yyyy-MM');
@@ -193,7 +156,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 date.setMonth(date.getMonth() + 1);
             }
 
-            // Process orders and group by month
             orders.forEach((order) => {
                 const orderDate = new Date(order.createdAt ?? '');
                 if (orderDate < startDate) return;
@@ -217,15 +179,13 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 monthlyData[monthKey].newOrders += 1;
             });
 
-            // Convert to array and format for chart
             return Object.values(monthlyData)
                 .sort((a, b) => a.date.getTime() - b.date.getTime())
                 .map((item) => ({
                     ...item,
-                    dateFormatted: format(item.date, 'MMM yyyy'), // Format as "Jan 2023" etc.
+                    dateFormatted: format(item.date, 'MMM yyyy'),
                 }));
         } else {
-            // Handle day ranges (15, 30 days) - same as before
             const dailyData: Record<
                 string,
                 {
@@ -236,7 +196,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 }
             > = {};
 
-            // Initialize all dates in the range with zero values
             const date = new Date(startDate);
             while (date <= now) {
                 const dateKey = date.toISOString().split('T')[0];
@@ -249,7 +208,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 date.setDate(date.getDate() + 1);
             }
 
-            // Process each order and count by status and date
             orders.forEach((order) => {
                 const orderDate = new Date(order.createdAt ?? '');
                 if (orderDate < startDate) return;
@@ -272,7 +230,6 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 dailyData[dateKey].newOrders += 1;
             });
 
-            // Convert to array and format for chart
             return Object.values(dailyData)
                 .sort((a, b) => a.date.getTime() - b.date.getTime())
                 .map((item) => ({
@@ -283,8 +240,11 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
     };
 
     const chartData = useMemo(() => {
-        return transformOrdersToChartData(orders, chartDateRange);
-    }, [orders, chartDateRange]);
+        return transformOrdersToChartData(
+            (!isLoading && data && data.data && data.data.orders) || [],
+            chartDateRange
+        );
+    }, [isLoading, data, chartDateRange]);
 
     return (
         <section className="space-y-6">
@@ -292,12 +252,12 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                 {stats.map((s, i) => (
                     <Card key={i}>
                         <CardContent className="flex items-center justify-between">
-                            <div>
+                            <div className='space-y-1'>
                                 <p className="text-sm text-muted-foreground">
                                     {s.title}
                                 </p>
-                                {isLoading ? (
-                                    <Skeleton className="w-8 h-6" />
+                                {isLoading || isPaymentLoading ? (
+                                    <Skeleton className="w-10 h-[30px]" />
                                 ) : (
                                     <p className="text-3xl font-bold text-gray-900">
                                         {s.value}
@@ -430,7 +390,7 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                                     ))}
                                 </TableRow>
                             ))
-                        ) : orders.length === 0 ? (
+                        ) : !isLoading && data.data.orders.length === 0 ? (
                             <TableRow>
                                 <TableCell
                                     colSpan={8}
@@ -442,7 +402,8 @@ export default function RootDashboard({ authToken }: { authToken: string }) {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            orders
+                            !isLoading &&
+                            data.data.orders
                                 .slice(0, 5)
                                 .map((order: IOrder, index: number) => {
                                     const item = statusData.find(

@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import {
     Dialog,
     DialogClose,
@@ -11,164 +12,196 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Edit2, Loader2, Save } from 'lucide-react';
-import React from 'react';
+import { toast } from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useUpdateUserInfoMutation } from '@/redux/features/users/userApi';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import ApiError from './ApiError';
-import toast from 'react-hot-toast';
-import useLoggedInUser from '@/utils/getLoggedInUser';
 import { useRouter } from 'next/navigation';
 
+const formSchema = z.object({
+    address: z.string().nonempty('Address is required'),
+    phone: z.string().nonempty('Phone is required'),
+    company: z.string().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
 export default function AdditionalInformationAlert({
-    authToken,
+    userID,
     userPhone,
     userAddress,
     userCompany,
 }: {
     authToken: string;
+    userID: string;
     userPhone: string | null | undefined;
     userCompany: string | null | undefined;
     userAddress: string | null | undefined;
 }) {
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [address, setAddress] = React.useState(userAddress || '');
-    const [phone, setPhone] = React.useState(userPhone || '');
-    const [company, setCompany] = React.useState(userCompany || '');
+    const form = useForm<FormData>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            address: userAddress || '',
+            phone: userPhone || '',
+            company: userCompany || '',
+        },
+    });
 
-    const user = useLoggedInUser();
+    const [updateUserInfo, { isLoading }] = useUpdateUserInfoMutation();
+
     const router = useRouter();
 
-    const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const onSubmit = async (data: FormData) => {
+        if (
+            data.address === (userAddress || '') &&
+            data.phone === (userPhone || '') &&
+            data.company === (userCompany || '')
+        ) {
+            toast('No changes detected.');
+            return;
+        }
 
         try {
-            const data: Record<string, string> = {};
+            const response = await updateUserInfo({
+                userID,
+                data,
+            }).unwrap();
 
-            if (address && address !== userAddress) data.address = address;
-            if (phone && phone !== userPhone) data.phone = phone;
-            if (company && company !== userCompany) data.company = company;
-
-            if (Object.keys(data).length === 0) {
-                toast.error('No changes to save');
-                return;
-            }
-
-            setIsLoading(true);
-
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/update-user-info`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${authToken}`,
-                    },
-                    body: JSON.stringify({
-                        userID: user?.id as string,
-                        data,
-                    }),
-                }
-            );
-
-            if (response.ok) {
-                toast.success('Profile updated successfully.');
+            if (response.success) {
+                toast.success(response.message);
+                form.reset();
                 router.refresh();
             } else {
-                toast.error('Failed to update profile.');
+                toast.error('Something went wrong! Please try again later.');
             }
         } catch (error) {
             ApiError(error);
-        } finally {
-            setIsLoading(false);
         }
     };
 
     return (
         <div className="w-full h-[calc(100vh-200px)]">
             <div className="flex flex-col gap-3 items-center justify-center h-full">
-                <p className="text-destructive">
+                <p className="text-destructive text-center text-sm max-w-sm">
                     You haven&apos;t set up your address yet. Please update it
                     to access your orders and invoices.
                 </p>
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button variant="outline">
-                            <Edit2 />
+                            <Edit2 className="mr-2 h-4 w-4" />
                             Update
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>Edit profile</DialogTitle>
+                            <DialogTitle>Edit Profile</DialogTitle>
                             <DialogDescription>
                                 Make changes to your profile here. Click save
                                 when you&apos;re done.
                             </DialogDescription>
                         </DialogHeader>
-                        <form onSubmit={onSubmit}>
-                            <div className="grid gap-4">
-                                <div className="grid gap-3">
-                                    <Label htmlFor="address">Address</Label>
-                                    <Input
-                                        id="address"
-                                        name="address"
-                                        value={address}
-                                        onChange={(e) =>
-                                            setAddress(e.target.value)
-                                        }
-                                        disabled={!!userAddress}
-                                        placeholder="Enter your address here"
-                                        required={!userAddress}
-                                    />
-                                </div>
-                                <div className="grid gap-3">
-                                    <Label htmlFor="phone">Phone</Label>
-                                    <Input
-                                        id="phone"
-                                        name="phone"
-                                        type="tel"
-                                        value={phone}
-                                        disabled={!!userPhone}
-                                        onChange={(e) =>
-                                            setPhone(e.target.value)
-                                        }
-                                        placeholder="Enter your phone number here"
-                                        required={!userPhone}
-                                    />
-                                </div>
-                                <div className="grid gap-3">
-                                    <Label htmlFor="company">
-                                        Company Name (Optional)
-                                    </Label>
-                                    <Input
-                                        id="company"
-                                        name="company"
-                                        value={company}
-                                        disabled={!!userCompany}
-                                        onChange={(e) =>
-                                            setCompany(e.target.value)
-                                        }
-                                        placeholder="Enter your company name here"
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter className="mt-5">
-                                <DialogClose asChild>
-                                    <Button variant="outline" type="button">
-                                        Cancel
-                                    </Button>
-                                </DialogClose>
-                                <Button type="submit" disabled={isLoading}>
-                                    {isLoading ? (
-                                        <Loader2 className="animate-spin" />
-                                    ) : (
-                                        <Save />
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(onSubmit)}
+                                className="space-y-4"
+                            >
+                                <FormField
+                                    control={form.control}
+                                    name="address"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Address</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter your address"
+                                                    disabled={
+                                                        !!userAddress ||
+                                                        isLoading
+                                                    }
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
-                                    {isLoading ? 'Saving...' : 'Save Changes'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Phone</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter your phone"
+                                                    type="tel"
+                                                    disabled={
+                                                        !!userPhone || isLoading
+                                                    }
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="company"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Company Name (optional)
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter your company name"
+                                                    disabled={
+                                                        !!userCompany ||
+                                                        isLoading
+                                                    }
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <DialogFooter className="pt-4">
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="outline">
+                                            Cancel
+                                        </Button>
+                                    </DialogClose>
+                                    <Button type="submit" disabled={isLoading}>
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="mr-2 h-4 w-4" />
+                                                Save Changes
+                                            </>
+                                        )}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
                     </DialogContent>
                 </Dialog>
             </div>
