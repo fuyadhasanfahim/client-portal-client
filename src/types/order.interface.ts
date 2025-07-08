@@ -1,72 +1,77 @@
-export interface IOrderComplexity {
+import { Document } from 'mongoose';
+
+export interface IOrderUser {
+    userID: string;
+    name: string;
+    email: string;
+    image: string;
+    company?: string;
+    address?: string;
+}
+
+export interface IOrderServiceComplexity {
     _id: string;
     name: string;
     price: number;
 }
 
-export interface IOrderType {
+export interface IOrderServiceType {
     _id: string;
     name: string;
     price?: number;
-    complexity?: IOrderComplexity;
+    complexity?: IOrderServiceComplexity;
 }
 
-export interface IOrderService {
+export interface IOrderServiceSelection {
     _id: string;
     name: string;
     price?: number;
-    inputs?: boolean;
     colorCodes?: string[];
     options?: string[];
-    types?: IOrderType[];
-    complexity?: IOrderComplexity;
+    types?: IOrderServiceType[];
+    complexity?: IOrderServiceComplexity;
+    disabledOptions?: string[]
 }
 
-export type OrderPaymentStatus =
-    | 'Pending'
-    | 'Pay Later'
-    | 'Paid'
-    | 'Payment Failed'
-    | 'Refunded';
-
-export type OrderStatus =
-    | 'Pending'
-    | 'In Progress'
-    | 'Delivered'
-    | 'In Revision'
-    | 'Completed'
-    | 'Canceled';
-
-export type OrderOrderStatus =
-    | 'Awaiting For Details'
-    | 'Awaiting For Payment Details'
-    | 'Waiting For Approval'
-    | 'Accepted'
-    | 'Canceled';
-
-export interface IOrder {
-    _id?: string;
-    orderID: string;
-    userID: string;
-    services: IOrderService[];
+export interface IOrderDetails {
+    deliveryDate?: Date;
     downloadLink?: string;
+    sourceFileLink?: string;
     images?: number;
-    returnFileFormat?: string;
-    backgroundOption?: string;
-    imageResizing?: 'Yes' | 'No';
+    returnFileFormat?: string[];
+    backgroundOption?: string[];
+    backgroundColor?: string[];
+    imageResizing?: boolean;
     width?: number;
     height?: number;
     instructions?: string;
-    supportingFileDownloadLink?: string;
-    total?: number;
-    paymentOption?: string;
-    paymentMethod?: string;
-    paymentId?: string;
-    isPaid?: boolean;
-    status: OrderStatus;
-    paymentStatus: OrderPaymentStatus;
-    orderStatus: OrderOrderStatus;
-    deliveryDate?: Date;
-    createdAt?: string;
-    updatedAt?: string;
+}
+
+export interface IOrder extends Document {
+    orderID: string;
+    user: IOrderUser;
+    services: IOrderServiceSelection[];
+    details?: IOrderDetails;
+    status:
+        | 'pending'
+        | 'in-progress'
+        | 'delivered'
+        | 'in-revision'
+        | 'completed'
+        | 'canceled';
+    paymentID?: string;
+    paymentStatus:
+        | 'pending'
+        | 'pay-later'
+        | 'paid'
+        | 'payment-failed'
+        | 'refunded';
+    refundID?: string;
+    orderStage:
+        | 'draft'
+        | 'services-selected'
+        | 'details-provided'
+        | 'payment-completed';
+    createdAt: Date;
+    updatedAt: Date;
 }

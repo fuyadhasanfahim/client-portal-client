@@ -10,9 +10,12 @@ export default function SetUser() {
     const { data: session, status } = useSession();
     const dispatch = useDispatch();
 
-    const { data: userData, isSuccess } = useGetLoggedInUserQuery(undefined, {
-        skip: status !== 'authenticated',
-    });
+    const { data: userData, isSuccess } = useGetLoggedInUserQuery(
+        session?.user.id,
+        {
+            skip: status !== 'authenticated',
+        }
+    );
 
     useEffect(() => {
         if (session?.user && isSuccess && userData?.success) {

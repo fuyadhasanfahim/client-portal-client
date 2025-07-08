@@ -53,7 +53,7 @@ export const userApi = apiSlice.injectEndpoints({
             providesTags: ['Users'],
         }),
         getLoggedInUser: builder.query({
-            query: () => 'user/get-loggedin-user',
+            query: () => 'user/get-info',
             providesTags: ['Users'],
         }),
     }),

@@ -17,7 +17,7 @@ export default function OrderDetailsCard({
         name: string;
         email: string;
         role: string;
-        profileImage: string;
+        image: string;
     };
 }) {
     const {

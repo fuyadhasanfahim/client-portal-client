@@ -1,111 +1,120 @@
-import { Schema, model, models } from 'mongoose';
+import { Schema, model } from "mongoose";
+import {
+    IOrderUser,
+    IOrder,
+    IOrderDetails,
+    IOrderServiceComplexity,
+    IOrderServiceSelection,
+    IOrderServiceType,
+} from "../types/order.interface";
+import { models } from "mongoose";
 
-const complexitySchema = new Schema(
+const OrderUserSchema = new Schema<IOrderUser>(
     {
-        _id: { type: String, required: true },
+        userID: { type: String, required: true },
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+        image: { type: String, required: true },
+        company: { type: String },
+        address: { type: String },
+    },
+    { timestamps: true }
+);
+
+const OrderServiceComplexitySchema = new Schema<IOrderServiceComplexity>(
+    {
         name: { type: String, required: true },
         price: { type: Number, required: true },
     },
-    { _id: false }
+    { timestamps: true }
 );
 
-const typeSchema = new Schema(
+const OrderServiceTypeSchema = new Schema<IOrderServiceType>(
     {
-        _id: { type: String, required: true },
         name: { type: String, required: true },
         price: { type: Number },
-        complexity: { type: complexitySchema, required: false },
+        complexity: { type: OrderServiceComplexitySchema },
     },
-    { _id: false }
+    { timestamps: true }
 );
 
-const serviceSchema = new Schema(
+const OrderServiceSelectionSchema = new Schema<IOrderServiceSelection>(
     {
-        _id: { type: String, required: true },
         name: { type: String, required: true },
         price: { type: Number },
-        inputs: { type: Boolean },
         colorCodes: [{ type: String }],
         options: [{ type: String }],
-        types: [typeSchema],
-        complexity: { type: complexitySchema },
+        types: [OrderServiceTypeSchema],
+        complexity: { type: OrderServiceComplexitySchema },
+    },
+    { timestamps: true }
+);
+
+const OrderDetailsSchema = new Schema<IOrderDetails>(
+    {
+        deliveryDate: { type: Date },
+        downloadLink: { type: String },
+        sourceFileLink: { type: String },
+        images: { type: Number },
+        returnFileFormat: [{ type: String }],
+        backgroundOption: [{ type: String }],
+        backgroundColor: [{ type: String }],
+        imageResizing: { type: Boolean },
+        width: { type: Number },
+        height: { type: Number },
+        instructions: { type: String },
+    },
+    { timestamps: true }
+);
+
+export const OrderSchema = new Schema<IOrder>(
+    {
+        orderID: { type: String, required: true, unique: true },
+        user: { type: OrderUserSchema, required: true },
+        services: { type: [OrderServiceSelectionSchema], required: true },
+        details: { type: OrderDetailsSchema },
+        status: {
+            type: String,
+            enum: [
+                "pending",
+                "in-progress",
+                "delivered",
+                "in-revision",
+                "completed",
+                "canceled",
+            ],
+            default: "pending",
+        },
+        paymentID: { type: String },
+        paymentStatus: {
+            type: String,
+            enum: [
+                "pending",
+                "pay-later",
+                "paid",
+                "payment-failed",
+                "refunded",
+            ],
+            default: "pending",
+        },
+        refundID: {
+            type: String,
+        },
+        orderStage: {
+            type: String,
+            enum: [
+                "draft",
+                "services-selected",
+                "details-provided",
+                "payment-completed",
+            ],
+            default: "draft",
+        },
     },
     {
         timestamps: true,
     }
 );
 
-const orderSchema = new Schema(
-    {
-        orderID: {
-            type: String,
-            required: true,
-            unique: true,
-            index: true,
-        },
-        userID: { type: String, required: true },
-        services: { type: [serviceSchema], required: true },
-        downloadLink: { type: String, default: '', trim: true },
-        images: { type: Number, default: 0 },
-        returnFileFormat: { type: String, default: '', trim: true },
-        backgroundOption: { type: String, default: '', trim: true },
-        imageResizing: {
-            type: String,
-            enum: ['Yes', 'No'],
-            default: 'No',
-        },
-        width: { type: Number, default: 0 },
-        height: { type: Number, default: 0 },
-        instructions: { type: String, default: '', trim: true },
-        supportingFileDownloadLink: { type: String, default: '', trim: true },
-        total: { type: Number, default: 0 },
-        paymentOption: { type: String, default: '', trim: true },
-        paymentMethod: { type: String, default: '', trim: true },
-        paymentId: { type: String, default: '', trim: true },
-        isPaid: { type: Boolean, default: false },
-        status: {
-            type: String,
-            enum: [
-                'Pending',
-                'In Progress',
-                'Delivered',
-                'In Revision',
-                'Completed',
-                'Canceled',
-            ],
-            required: true,
-            default: 'Pending',
-        },
-        paymentStatus: {
-            type: String,
-            enum: [
-                'Pending',
-                'Pay Later',
-                'Paid',
-                'Payment Failed',
-                'Refunded',
-            ],
-            required: true,
-            default: 'Pending',
-        },
-        deliveryDate: {
-            type: Date,
-        },
-        orderStatus: {
-            type: String,
-            enum: [
-                'Awaiting For Details',
-                'Awaiting For Payment Details',
-                'Waiting For Approval',
-                'Accepted',
-                'Canceled',
-            ],
-            required: true,
-            default: 'Awaiting For Details',
-        },
-    },
-    { timestamps: true }
-);
-
-const OrderModel = models?.Order || model('Order', orderSchema);
+const OrderModel = models?.Order || model('Order', OrderSchema);
 export default OrderModel;

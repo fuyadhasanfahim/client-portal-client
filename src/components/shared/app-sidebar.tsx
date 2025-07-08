@@ -19,7 +19,7 @@ export function AppSidebar(
         user: {
             name: string;
             email: string;
-            profileImage?: string;
+            image?: string;
             role: string;
         };
     }

@@ -129,7 +129,7 @@ export default async function ProfilePage() {
                         <div className="flex-shrink-0 flex justify-center">
                             <Avatar className="h-32 w-32 border-4 border-background ring-2 ring-primary/20">
                                 <AvatarImage
-                                    src={user.profileImage || ''}
+                                    src={user.image || ''}
                                     alt={user.name}
                                     className="object-cover"
                                 />

@@ -1,6 +1,5 @@
 'use client';
 
-import ApiError from '@/components/shared/ApiError';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -10,9 +9,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 function formatCurrency(value: number) {
     return `$${value.toLocaleString(undefined, {
@@ -22,8 +20,7 @@ function formatCurrency(value: number) {
 }
 
 export default function NewOrderPricingCard({ order }: { order: IOrder }) {
-    const { images, services, imageResizing } = order;
-    const router = useRouter();
+    const { details, services, orderID } = order;
 
     let total = 0;
 
@@ -32,23 +29,25 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
             [];
 
         if (service.price) {
-            const amount = service.price * (images || 0);
+            const amount = service.price * (details?.images || 0);
             total += amount;
             lineItems.push({
                 label: `${service.name} (flat price)`,
-                formula: `${formatCurrency(service.price)} × ${images}`,
+                formula: `${formatCurrency(service.price)} × ${
+                    details?.images
+                }`,
                 amount,
             });
         }
 
         if (service.complexity) {
-            const amount = service.complexity.price * (images || 0);
+            const amount = service.complexity.price * (details?.images || 0);
             total += amount;
             lineItems.push({
                 label: `${service.name} → ${service.complexity.name}`,
-                formula: `${formatCurrency(
-                    service.complexity.price
-                )} × ${images}`,
+                formula: `${formatCurrency(service.complexity.price)} × ${
+                    details?.images
+                }`,
                 amount,
             });
         }
@@ -56,13 +55,14 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
         if (service.types?.length) {
             service.types.forEach((type) => {
                 if (type.complexity) {
-                    const amount = type.complexity.price * (images || 0);
+                    const amount =
+                        type.complexity.price * (details?.images || 0);
                     total += amount;
                     lineItems.push({
                         label: `${service.name} → ${type.name} → ${type.complexity.name}`,
-                        formula: `${formatCurrency(
-                            type.complexity.price
-                        )} × ${images}`,
+                        formula: `${formatCurrency(type.complexity.price)} × ${
+                            details?.images
+                        }`,
                         amount,
                     });
                 }
@@ -71,11 +71,12 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
 
         if (service.options?.length) {
             const optionFee = 0.25;
-            const amount = service.options.length * optionFee * (images || 0);
+            const amount =
+                service.options.length * optionFee * (details?.images || 0);
             total += amount;
             lineItems.push({
                 label: `${service.name} → ${service.options.length} option(s)`,
-                formula: `$0.25 × ${service.options.length} × ${images}`,
+                formula: `$0.25 × ${service.options.length} × ${details?.images}`,
                 amount,
             });
         }
@@ -84,36 +85,18 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
     });
 
     let resizingFee = 0;
-    if (imageResizing === 'Yes') {
-        resizingFee = 0.25 * (images || 0);
+    if (details?.imageResizing) {
+        resizingFee = 0.25 * (details?.images || 0);
         total += resizingFee;
     }
-
-    const [newOrder, { isLoading }] = useNewOrderMutation();
-
-    const handleTotal = async () => {
-        try {
-            const response = await newOrder({
-                data: {
-                    orderID: order.orderID,
-                    total,
-                },
-            });
-
-            if (response?.data?.success) {
-                router.push(`/orders/new-order/${order.orderID}/payment`);
-            }
-        } catch (error) {
-            ApiError(error);
-        }
-    };
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="text-2xl">Pricing Breakdown</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                    Based on selected services and image count ({images})
+                    Based on selected services and image count (
+                    {details?.images})
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -148,7 +131,7 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
                         <span>Image Resizing</span>
                         <div className="text-right">
                             <span className="text-xs italic">
-                                $0.25 × {images}
+                                $0.25 × {details?.images}
                             </span>
                             <div className="text-base font-medium text-foreground">
                                 {formatCurrency(resizingFee)}
@@ -163,12 +146,10 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
                 </div>
             </CardContent>
             <CardFooter>
-                <Button
-                    className="w-full"
-                    onClick={handleTotal}
-                    disabled={isLoading}
-                >
-                    Proceed to Payment
+                <Button className="w-full" asChild>
+                    <Link href={`/orders/new-order/payment/${orderID}`}>
+                        Proceed to Payment
+                    </Link>
                 </Button>
             </CardFooter>
         </Card>

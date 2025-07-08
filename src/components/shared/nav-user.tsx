@@ -25,7 +25,7 @@ export function NavUser({
     user: {
         name: string;
         email: string;
-        profileImage?: string;
+        image?: string;
     };
 }) {
     const router = useRouter();
@@ -39,13 +39,13 @@ export function NavUser({
                             size="lg"
                             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer rounded-full p-1 pl-3"
                         >
-                            <div className='-space-y-1'>
+                            <div className="-space-y-1">
                                 <h3 className="text-lg">{user?.name}</h3>
-                                <p className='text-xs'>{user?.email}</p>
+                                <p className="text-xs">{user?.email}</p>
                             </div>
                             <Avatar className="size-10 rounded-full">
                                 <AvatarImage
-                                    src={user?.profileImage}
+                                    src={user?.image}
                                     alt={user?.name}
                                 />
                                 <AvatarFallback className="rounded-lg">
@@ -63,7 +63,7 @@ export function NavUser({
                             <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                                 <Avatar className="h-8 w-8 rounded-lg">
                                     <AvatarImage
-                                        src={user?.profileImage}
+                                        src={user?.image}
                                         alt={user?.name}
                                     />
                                     <AvatarFallback className="rounded-lg">

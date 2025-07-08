@@ -13,7 +13,7 @@ export default function RootOrderDetails({
         name: string;
         email: string;
         role: string;
-        profileImage: string;
+        image: string;
     };
 }) {
     const { data, isLoading, isError } = useGetOrderQuery({

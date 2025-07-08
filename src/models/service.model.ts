@@ -1,71 +1,61 @@
-import IService, { IComplexity, IType } from '@/types/service.interface';
 import { model, models, Schema } from 'mongoose';
+import { IComplexity, IService, IType } from '../types/service.interface';
 
-const complexitySchema = new Schema<IComplexity>(
-    {
-        label: {
-            type: String,
-            required: true,
-        },
-        price: {
-            type: Number,
-            required: true,
-        },
+const complexitySchema = new Schema<IComplexity>({
+    name: {
+        type: String,
+        required: true,
     },
-    {
-        timestamps: true,
-    }
-);
-
-const typeSchema = new Schema<IType>(
-    {
-        title: {
-            type: String,
-            required: true,
-        },
+    price: {
+        type: Number,
+        required: true,
     },
-    {
-        timestamps: true,
-    }
-);
+});
 
-const serviceSchema = new Schema<IService>(
-    {
-        name: {
-            type: String,
-            required: true,
-        },
-        price: {
-            type: Number,
-            required: false,
-        },
-        accessibleTo: {
-            type: String,
-            enum: ['All', 'Custom'],
-            required: true,
-        },
-        accessList: {
-            type: [{ type: String, ref: 'User' }],
-        },
-        complexities: {
-            type: [complexitySchema],
-            default: [],
-        },
-        types: {
-            type: [typeSchema],
-            default: [],
-        },
-        status: {
-            type: String,
-            enum: ['Active', 'Inactive', 'Pending'],
-            default: 'Pending',
-        },
+const typeSchema = new Schema<IType>({
+    name: {
+        type: String,
+        required: true,
     },
-    {
-        timestamps: true,
-    }
-);
+    price: {
+        type: Number,
+    },
+    complexities: {
+        type: [complexitySchema],
+    },
+});
 
+const serviceSchema = new Schema<IService>({
+    name: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    price: {
+        type: Number,
+    },
+    complexities: {
+        type: [complexitySchema],
+    },
+    types: {
+        type: [typeSchema],
+    },
+    options: {
+        type: Boolean,
+        default: false,
+    },
+    inputs: {
+        type: Boolean,
+        default: false,
+    },
+    instruction: {
+        type: String,
+    },
+    disabledOptions: {
+        type: [String],
+        default: [],
+    },
+});
 const ServiceModel =
     models?.Service || model<IService>('Service', serviceSchema);
 export default ServiceModel;

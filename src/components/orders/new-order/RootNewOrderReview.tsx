@@ -9,23 +9,18 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
+import {
+    useGetOrderByIDQuery,
+} from '@/redux/features/orders/ordersApi';
 import { AlertTriangle, InfoIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
 import NewOrderPricingCard from './NewOrderPricingCard';
 
-export default function RootNewOrderReview({
-    params,
-}: {
-    params: Promise<{ id: string }>;
-}) {
-    const { id } = use(params);
-    const router = useRouter();
-    const { data, isLoading, isError } = useGetOrderQuery({
-        order_id: id,
-        order_status: 'Awaiting For Payment Details',
+export default function RootNewOrderReview({ orderID }: { orderID: string }) {
+    const { data, isLoading, isError } = useGetOrderByIDQuery(orderID, {
+        skip: !orderID,
     });
+    const router = useRouter();
 
     let content;
 

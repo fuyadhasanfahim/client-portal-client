@@ -72,15 +72,12 @@ export default function OrderDetailsSummary({
     }
 
     if (!isLoading && !isError && data) {
-        const { profileImage, name } = data.data;
+        const { image, name } = data.data;
 
         content = (
             <CardContent className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">
-                    <AvatarImage
-                        src={profileImage}
-                        alt={`${name}'s profile image`}
-                    />
+                    <AvatarImage src={image} alt={`${name}'s profile image`} />
                     <AvatarFallback>
                         {name?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>

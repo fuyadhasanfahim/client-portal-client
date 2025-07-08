@@ -135,7 +135,7 @@ export const authOptions: NextAuthOptions = {
                         provider: 'google',
                         googleId: user?.id?.toString(),
                         isEmailVerified: true,
-                        profileImage: user?.image,
+                        image: user?.image,
                     });
 
                     user.id = newUser.userID;

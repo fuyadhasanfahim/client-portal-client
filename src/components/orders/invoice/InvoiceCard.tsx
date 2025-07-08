@@ -132,7 +132,7 @@ export default function InvoiceCard({
                     <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg">
                         <Avatar className="size-14 ring-2 ring-primary/50">
                             <AvatarImage
-                                src={user?.profileImage || undefined}
+                                src={user?.image || undefined}
                                 alt={`${
                                     user?.name ?? 'Client'
                                 }'s profile image.`}

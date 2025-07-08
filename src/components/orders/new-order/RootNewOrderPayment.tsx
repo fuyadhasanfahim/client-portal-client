@@ -23,13 +23,13 @@ import SaveCardForm from './SaveCardForm';
 
 const paymentOptions = [
     {
-        value: 'Pay Later',
+        value: 'pay-later',
         title: 'Pay Later (Monthly)',
         description:
             'Spread your payments across months. Ideal for businesses and long-term projects.',
     },
     {
-        value: 'Pay Now',
+        value: 'pay-now',
         title: 'Pay Now',
         description:
             'Pay upfront and get priority processing for faster delivery.',
@@ -49,14 +49,9 @@ const stripePromise = loadStripe(
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-export default function RootNewOrderPayment({
-    params,
-}: {
-    params: Promise<{ id: string }>;
-}) {
+export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
     const user = getLoggedInUser();
     const { id: userID } = user ?? {};
-    const { id } = use(params);
 
     const [paymentOption, setPaymentOption] = useState<
         'Pay Now' | 'Pay Later' | ''
@@ -74,7 +69,7 @@ export default function RootNewOrderPayment({
                 const res = await fetch('/api/stripe/new-order-checkout', {
                     method: 'POST',
                     body: JSON.stringify({
-                        orderID: id,
+                        orderID,
                         paymentOption,
                         paymentMethod,
                     }),
@@ -87,7 +82,7 @@ export default function RootNewOrderPayment({
         };
 
         createSession();
-    }, [paymentOption, paymentMethod, id]);
+    }, [paymentOption, paymentMethod, orderID]);
 
     useEffect(() => {
         console.log('Payment option changed:', paymentOption);
@@ -100,7 +95,7 @@ export default function RootNewOrderPayment({
                             {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userID, orderID: id }),
+                                body: JSON.stringify({ userID, orderID }),
                             }
                         );
 
@@ -124,7 +119,7 @@ export default function RootNewOrderPayment({
 
             createSetupIntent();
         }
-    }, [paymentOption, userID, id]);
+    }, [paymentOption, userID, orderID]);
 
     console.log(clientSecret);
 
@@ -266,7 +261,7 @@ export default function RootNewOrderPayment({
                         >
                             <SaveCardForm
                                 userID={userID!}
-                                orderID={id}
+                                orderID={orderID}
                                 customerId={customerId}
                             />
                         </Elements>

@@ -21,7 +21,7 @@ const MessageUserSchema = new Schema<IMessageUser>(
         userID: { type: String, required: true },
         name: { type: String, required: true },
         email: { type: String, required: true },
-        profileImage: { type: String, required: true },
+        image: { type: String, required: true },
         role: { type: String },
         isOnline: { type: Boolean, default: false },
     },

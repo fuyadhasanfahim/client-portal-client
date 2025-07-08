@@ -13,16 +13,15 @@ export const NewOrderDetailsSchema = z
             })
             .min(1, 'Image count must be at least 1'),
         returnFileFormat: z
-            .string({
-                required_error: 'Return file format is required',
-            })
+            .array(z.string())
             .min(1, 'Return file format is required'),
         backgroundOption: z
-            .string({
-                required_error: 'Background option is required',
-            })
+            .array(z.string())
             .min(1, 'Background option is required'),
-        imageResizing: z.enum(['Yes', 'No']).optional(),
+        backgroundColor: z
+            .array(z.string())
+            .min(1, 'Background color is required'),
+        imageResizing: z.boolean().optional(),
         width: z.coerce.number().optional(),
         height: z.coerce.number().optional(),
         instructions: z
@@ -30,11 +29,12 @@ export const NewOrderDetailsSchema = z
                 required_error: 'Instructions are required',
             })
             .min(1, 'Instructions are required'),
-        supportingFileDownloadLink: z.string().optional(),
+        sourceFileLink: z.string().optional(),
         deliveryDate: z.date(),
     })
     .superRefine((data, ctx) => {
-        if (data.imageResizing === 'Yes') {
+        if (data.imageResizing) {
+            // Now checking the boolean directly
             if (!data.width || data.width <= 0) {
                 ctx.addIssue({
                     path: ['width'],

@@ -5,10 +5,11 @@ export const metadata: Metadata = {
     title: 'Review Order | Client Portal',
 };
 
-export default function NewOrderPaymentPage({
+export default async function NewOrderPaymentPage({
     params,
 }: {
-    params: Promise<{ id: string }>;
+    params: Promise<{ orderID: string }>;
 }) {
-    return <RootNewOrderPayment params={params} />;
+    const { orderID } = await params;
+    return <RootNewOrderPayment orderID={orderID} />;
 }

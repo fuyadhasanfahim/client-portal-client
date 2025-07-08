@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { boolean, z } from 'zod';
 import {
     Card,
     CardContent,
@@ -27,10 +27,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Trash2 } from 'lucide-react';
 import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
@@ -47,24 +46,30 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { MultiSelect } from '@/components/shared/multi-select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { IOrderDetails } from '@/types/order.interface';
+import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
 
 type OrderDetailsProps = {
-    id: string;
+    orderID: string;
+    userID: string;
 };
 
-export default function OrderDetails({ id }: OrderDetailsProps) {
+export default function OrderDetails({ orderID, userID }: OrderDetailsProps) {
     const form = useForm<z.infer<typeof NewOrderDetailsSchema>>({
         resolver: zodResolver(NewOrderDetailsSchema),
         defaultValues: {
             downloadLink: '',
+            sourceFileLink: '',
             images: 0,
-            returnFileFormat: '',
-            backgroundOption: '',
-            imageResizing: 'No',
+            returnFileFormat: [],
+            backgroundOption: [],
+            backgroundColor: [],
+            imageResizing: false,
             width: 0,
             height: 0,
             instructions: '',
-            supportingFileDownloadLink: '',
             deliveryDate: new Date(),
         },
     });
@@ -76,22 +81,23 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
     const onSubmit = async (data: z.infer<typeof NewOrderDetailsSchema>) => {
         try {
             const response = await newOrder({
-                data: {
-                    orderID: id,
-                    ...data,
-                },
+                orderStage: 'details-provided',
+                userID,
+                orderID,
+                details: data as IOrderDetails,
             });
 
             if (response?.data?.success) {
                 toast.success('Details saved. Redirecting...');
-                router.push(`/orders/new-order/${id}/review`);
+                router.push(`/orders/new-order/review/${orderID}`);
             }
         } catch (error) {
             ApiError(error);
         }
     };
 
-    const resizingEnabled = form.watch('imageResizing') === 'Yes';
+    const resizingEnabled = form.watch('imageResizing');
+    const backgroundOption = form.watch('backgroundOption');
 
     return (
         <Form {...form}>
@@ -163,115 +169,10 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                             )}
                         />
 
-                        <FormField
+                        <DateAndTimePicker
                             control={form.control}
                             name="deliveryDate"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col gap-2">
-                                    <FormLabel>Delivery Date & Time</FormLabel>
-
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'pl-3 text-left font-normal',
-                                                        !field.value &&
-                                                            'text-muted-foreground'
-                                                    )}
-                                                >
-                                                    {field.value ? (
-                                                        format(
-                                                            field.value,
-                                                            'PPPp'
-                                                        )
-                                                    ) : (
-                                                        <span>
-                                                            Pick a date & time
-                                                        </span>
-                                                    )}
-                                                    <IconCalendar className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-
-                                        <PopoverContent
-                                            className="space-y-2"
-                                        >
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={(date) => {
-                                                    const current =
-                                                        field.value ||
-                                                        new Date();
-                                                    const newDate = new Date(
-                                                        date!
-                                                    );
-                                                    newDate.setHours(
-                                                        current.getHours()
-                                                    );
-                                                    newDate.setMinutes(
-                                                        current.getMinutes()
-                                                    );
-                                                    field.onChange(newDate);
-                                                }}
-                                                disabled={(date) =>
-                                                    date <
-                                                    new Date(
-                                                        new Date().setHours(
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0
-                                                        )
-                                                    )
-                                                }
-                                                initialFocus
-                                            />
-                                            <Separator />
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-sm">
-                                                    Time:
-                                                </Label>
-                                                <Input
-                                                    type="time"
-                                                    className="text-sm"
-                                                    value={
-                                                        field.value
-                                                            ? format(
-                                                                  field.value,
-                                                                  'HH:mm'
-                                                              )
-                                                            : ''
-                                                    }
-                                                    onChange={(e) => {
-                                                        const [hours, minutes] =
-                                                            e.target.value.split(
-                                                                ':'
-                                                            );
-                                                        const updated =
-                                                            new Date(
-                                                                field.value ||
-                                                                    new Date()
-                                                            );
-                                                        updated.setHours(
-                                                            +hours
-                                                        );
-                                                        updated.setMinutes(
-                                                            +minutes
-                                                        );
-                                                        field.onChange(updated);
-                                                    }}
-                                                />
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            label="Delivery date and time"
                         />
 
                         <FormField
@@ -286,32 +187,23 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                         </span>
                                     </FormLabel>
                                     <FormControl>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value}
-                                        >
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select a file format" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {[
-                                                    'JPEG',
-                                                    'PNG',
-                                                    'PSD',
-                                                    'EPS',
-                                                    'AI',
-                                                    'GIF',
-                                                    'PDF',
-                                                ].map((format) => (
-                                                    <SelectItem
-                                                        key={format}
-                                                        value={format}
-                                                    >
-                                                        {format}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <MultiSelect
+                                            selected={field.value}
+                                            options={[
+                                                'JPEG',
+                                                'PNG',
+                                                'PSD',
+                                                'EPS',
+                                                'AI',
+                                                'GIF',
+                                                'PDF',
+                                            ].map((format) => ({
+                                                label: format,
+                                                value: format,
+                                            }))}
+                                            {...field}
+                                            className="sm:w-[510px]"
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -330,33 +222,129 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                         </span>
                                     </FormLabel>
                                     <FormControl>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value}
-                                        >
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select a background option" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {[
-                                                    'Transparent',
-                                                    'White',
-                                                    'Colored',
-                                                ].map((option) => (
-                                                    <SelectItem
-                                                        key={option}
-                                                        value={option}
-                                                    >
-                                                        {option}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <MultiSelect
+                                            selected={field.value}
+                                            options={[
+                                                'Transparent',
+                                                'White',
+                                                'Colored',
+                                            ].map((option) => ({
+                                                label: option,
+                                                value: option,
+                                            }))}
+                                            {...field}
+                                            className="sm:w-[510px]"
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+
+                        {backgroundOption?.includes('Colored') && (
+                            <FormField
+                                control={form.control}
+                                name="backgroundColor"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            Background Colors (Hex codes){' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
+                                        </FormLabel>
+                                        <FormControl>
+                                            <div className="space-y-2">
+                                                {field.value?.map(
+                                                    (color, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <input
+                                                                type="color"
+                                                                value={color}
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    const newColors =
+                                                                        [
+                                                                            ...field.value,
+                                                                        ];
+                                                                    newColors[
+                                                                        index
+                                                                    ] =
+                                                                        e.target.value;
+                                                                    field.onChange(
+                                                                        newColors
+                                                                    );
+                                                                }}
+                                                                className="h-10 w-10 !rounded-full p-0 border-none"
+                                                            />
+                                                            <Input
+                                                                type="text"
+                                                                value={color}
+                                                                placeholder="#FFFFFF"
+                                                                onChange={(
+                                                                    e
+                                                                ) => {
+                                                                    const newColors =
+                                                                        [
+                                                                            ...field.value,
+                                                                        ];
+                                                                    newColors[
+                                                                        index
+                                                                    ] =
+                                                                        e.target.value;
+                                                                    field.onChange(
+                                                                        newColors
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className="bg-red-50 text-destructive border-destructive"
+                                                                onClick={() => {
+                                                                    const newColors =
+                                                                        [
+                                                                            ...field.value,
+                                                                        ];
+                                                                    newColors.splice(
+                                                                        index,
+                                                                        1
+                                                                    );
+                                                                    field.onChange(
+                                                                        newColors
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Trash2 />
+                                                                Remove
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                )}
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        field.onChange([
+                                                            ...(field.value ||
+                                                                []),
+                                                            '#FFFFFF',
+                                                        ]);
+                                                    }}
+                                                >
+                                                    Add Color
+                                                </Button>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
 
                         <FormField
                             control={form.control}
@@ -365,28 +353,16 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                                 <FormItem>
                                     <FormLabel>Image Resizing</FormLabel>
                                     <FormControl>
-                                        <RadioGroup
-                                            onValueChange={field.onChange}
-                                            value={field.value}
-                                            className="flex gap-8"
-                                        >
-                                            <FormItem className="flex items-center space-x-2">
-                                                <FormControl>
-                                                    <RadioGroupItem value="Yes" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">
-                                                    Yes
-                                                </FormLabel>
-                                            </FormItem>
-                                            <FormItem className="flex items-center space-x-2">
-                                                <FormControl>
-                                                    <RadioGroupItem value="No" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">
-                                                    No
-                                                </FormLabel>
-                                            </FormItem>
-                                        </RadioGroup>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="resizing-yes"
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                            <Label htmlFor="resizing-yes">
+                                                Yes
+                                            </Label>
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -394,7 +370,7 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
                         />
 
                         {resizingEnabled && (
-                            <div className="flex gap-6">
+                            <div className="grid grid-cols-2 items-center gap-6">
                                 <FormField
                                     control={form.control}
                                     name="width"
@@ -462,15 +438,13 @@ export default function OrderDetails({ id }: OrderDetailsProps) {
 
                         <FormField
                             control={form.control}
-                            name="supportingFileDownloadLink"
+                            name="sourceFileLink"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>
-                                        Supporting File Download Link
-                                    </FormLabel>
+                                    <FormLabel>Source File Link</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder="Enter the supporting file link"
+                                            placeholder="Enter the source file link"
                                             required={false}
                                             {...field}
                                         />

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { use } from 'react';
 import {
     Card,
     CardContent,
@@ -8,7 +8,10 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
+import {
+    useGetOrderByIDQuery,
+    useGetOrderQuery,
+} from '@/redux/features/orders/ordersApi';
 import OrderDetails from '@/components/orders/new-order/OrderDetails';
 import SelectedServicesCard from '@/components/orders/new-order/SelectedServicesCard';
 import SelectedServiceLoadingCard from './SelectedServiceLoadingCard';
@@ -17,16 +20,16 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 export default function RootNewOrderDetails({
-    params,
+    orderID,
+    userID,
 }: {
-    params: Promise<{ id: string }>;
+    orderID: string;
+    userID: string;
 }) {
-    const { id } = React.use(params);
-    const route = useRouter();
-    const { data, isLoading, isError } = useGetOrderQuery({
-        order_id: id,
-        orderStatus: 'Awaiting For Details',
+    const { data, isLoading, isError } = useGetOrderByIDQuery(orderID, {
+        skip: !orderID,
     });
+    const route = useRouter();
 
     let content;
 
@@ -50,11 +53,11 @@ export default function RootNewOrderDetails({
                 </CardContent>
             </Card>
         );
-    } else if (!isLoading && !isError && !data) {
+    } else if (!isLoading && !isError && data?.data.length === 0) {
         content = (
             <Card className="max-w-2xl">
                 <CardContent className="flex items-center justify-center h-full">
-                    <p className="text-destructive">No draft order found.</p>
+                    <p className="text-destructive">No order found.</p>
                 </CardContent>
             </Card>
         );
@@ -71,7 +74,9 @@ export default function RootNewOrderDetails({
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <SelectedServicesCard services={data.data?.services} />
+                    <SelectedServicesCard
+                        services={!isLoading && data.data.services}
+                    />
                 </CardContent>
             </Card>
         );
@@ -79,7 +84,7 @@ export default function RootNewOrderDetails({
 
     return (
         <section className="grid grid-cols-2 gap-6 items-start">
-            <OrderDetails id={id} />
+            <OrderDetails orderID={orderID} userID={userID} />
             {content}
         </section>
     );

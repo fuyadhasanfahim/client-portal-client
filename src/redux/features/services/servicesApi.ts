@@ -3,6 +3,14 @@ import { apiSlice } from '@/redux/api/apiSlice';
 export const servicesApi = apiSlice.injectEndpoints({
     endpoints(build) {
         return {
+            getServices: build.query({
+                query: () => ({
+                    url: 'services/get-services',
+                    method: 'GET',
+                }),
+                providesTags: ['Services'],
+            }),
+
             addService: build.mutation({
                 query: (data) => ({
                     url: 'services/add-service',
@@ -11,15 +19,7 @@ export const servicesApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Services'],
             }),
-            getServices: build.query({
-                query: ({
-                    params: { page, quantity, searchQuery: query },
-                }) => ({
-                    url: 'services/get-all-services',
-                    params: { page, quantity, searchQuery: query },
-                }),
-                providesTags: ['Services'],
-            }),
+
             getSingleService: build.query({
                 query: (id) => ({
                     url: 'services/get-service',
@@ -63,8 +63,10 @@ export const servicesApi = apiSlice.injectEndpoints({
 });
 
 export const {
-    useAddServiceMutation,
     useGetServicesQuery,
+
+    // kasdjfbgashkd
+    useAddServiceMutation,
     useGetSingleServiceQuery,
     useGetServicesForUserQuery,
     useDeleteServiceMutation,

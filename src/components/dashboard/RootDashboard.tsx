@@ -49,10 +49,10 @@ import {
 import { format, subDays, subMonths } from 'date-fns';
 import Link from 'next/link';
 import OrderPaymentStatus from '../orders/OrderPaymentStatus';
-import SelectOrderStatus from '../orders/SelectOrderStatus';
 import { statusData } from '@/data/orders';
 import { useGetOrdersByUserIDQuery } from '@/redux/features/users/userApi';
 import { useGetPaymentsByStatusQuery } from '@/redux/features/payments/paymentApi';
+import SelectOrderStatus from '../orders/SelectOrderStatus';
 
 export default function RootDashboard({
     user,
@@ -69,21 +69,18 @@ export default function RootDashboard({
         skip: !userID,
     });
 
-    const {
-        data: paymentData,
-        isLoading: isPaymentLoading,
-        error,
-    } = useGetPaymentsByStatusQuery(
-        {
-            status: 'succeeded',
-            paymentOption: 'Pay Later',
-            userID,
-            role,
-        },
-        {
-            skip: !userID || !role,
-        }
-    );
+    const { data: paymentData, isLoading: isPaymentLoading } =
+        useGetPaymentsByStatusQuery(
+            {
+                status: 'succeeded',
+                paymentOption: 'Pay Later',
+                userID,
+                role,
+            },
+            {
+                skip: !userID || !role,
+            }
+        );
 
     const stats = [
         {
@@ -107,7 +104,9 @@ export default function RootDashboard({
             value:
                 !isLoading &&
                 data.data.orders.filter((order: IOrder) =>
-                    ['Completed'].includes(order.status)
+                    ['In Progress', 'Pending', 'Revision'].includes(
+                        order.status
+                    )
                 ).length,
             icon: CircleCheck,
             color: 'from-yellow-500 to-orange-500',
@@ -171,9 +170,9 @@ export default function RootDashboard({
                     };
                 }
 
-                if (order.status === 'Completed') {
+                if (order.status === 'completed') {
                     monthlyData[monthKey].completedOrders += 1;
-                } else if (order.status === 'Canceled') {
+                } else if (order.status === 'canceled') {
                     monthlyData[monthKey].canceledOrders += 1;
                 }
                 monthlyData[monthKey].newOrders += 1;
@@ -222,9 +221,9 @@ export default function RootDashboard({
                     };
                 }
 
-                if (order.status === 'Completed') {
+                if (order.status === 'completed') {
                     dailyData[dateKey].completedOrders += 1;
-                } else if (order.status === 'Canceled') {
+                } else if (order.status === 'canceled') {
                     dailyData[dateKey].canceledOrders += 1;
                 }
                 dailyData[dateKey].newOrders += 1;
@@ -252,7 +251,7 @@ export default function RootDashboard({
                 {stats.map((s, i) => (
                     <Card key={i}>
                         <CardContent className="flex items-center justify-between">
-                            <div className='space-y-1'>
+                            <div className="space-y-1">
                                 <p className="text-sm text-muted-foreground">
                                     {s.title}
                                 </p>
@@ -420,8 +419,8 @@ export default function RootDashboard({
                                                     href={`/orders/details/${order.orderID!}`}
                                                     className={cn(
                                                         'text-primary underline',
-                                                        order.orderStatus ===
-                                                            'Canceled' &&
+                                                        order.status ===
+                                                            'canceled' &&
                                                             'text-destructive'
                                                     )}
                                                 >
@@ -431,18 +430,18 @@ export default function RootDashboard({
                                             <TableCell
                                                 className={cn(
                                                     'text-center text-sm border-r',
-                                                    order.orderStatus ===
-                                                        'Canceled' &&
+                                                    order.status ===
+                                                        'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
-                                                {order.userID}
+                                                {order.user.userID}
                                             </TableCell>
                                             <TableCell
                                                 className={cn(
                                                     'text-start text-sm border-r',
-                                                    order.orderStatus ===
-                                                        'Canceled' &&
+                                                    order.status ===
+                                                        'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
@@ -463,18 +462,21 @@ export default function RootDashboard({
                                             <TableCell
                                                 className={cn(
                                                     'text-center text-sm border-r',
-                                                    order.orderStatus ===
-                                                        'Canceled' &&
+                                                    order.status ===
+                                                        'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
-                                                ${order.total?.toFixed(2) || 0}
+                                                $
+                                                {paymentData.data?.totalAmount.toFixed(
+                                                    2
+                                                )}
                                             </TableCell>
                                             <TableCell
                                                 className={cn(
                                                     'text-center text-sm border-r',
-                                                    order.orderStatus ===
-                                                        'Canceled' &&
+                                                    order.status ===
+                                                        'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
@@ -506,8 +508,8 @@ export default function RootDashboard({
                                                 className={cn(
                                                     'text-center text-sm border-r',
                                                     role === 'User' &&
-                                                        order.orderStatus ===
-                                                            'Canceled' &&
+                                                        order.status ===
+                                                            'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >

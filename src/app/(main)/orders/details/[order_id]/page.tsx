@@ -25,7 +25,7 @@ export default async function OrderDetailsPage({
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                profileImage: user.profileImage,
+                image: user.image,
             }}
         />
     );

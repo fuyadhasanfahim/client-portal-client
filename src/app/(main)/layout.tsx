@@ -24,7 +24,7 @@ export default async function Layout({
     const userData = {
         name: user.name,
         email: user.email,
-        profileImage: user.profileImage || '',
+        image: user.image || '',
         role: user.role,
     };
 

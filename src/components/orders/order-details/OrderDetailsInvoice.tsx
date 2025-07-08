@@ -20,7 +20,7 @@ export default function OrderDetailsInvoice({
         name: string;
         email: string;
         role: string;
-        profileImage: string;
+        image: string;
     };
 }) {
     const isUser = user.role === 'User';

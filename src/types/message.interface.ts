@@ -2,7 +2,7 @@ export interface IMessageUser {
     userID: string;
     name: string;
     email: string;
-    profileImage: string;
+    image: string;
     role: string;
     isOnline?: boolean;
 }

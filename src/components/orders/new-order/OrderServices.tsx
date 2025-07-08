@@ -16,27 +16,53 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ArrowRightIcon, CircleAlert, Loader2, Trash2 } from 'lucide-react';
-import services from '@/data/services';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import ApiError from '@/components/shared/ApiError';
 import toast from 'react-hot-toast';
-import { IOrderService, IOrderType } from '@/types/order.interface';
+import {
+    IOrderServiceSelection,
+    IOrderServiceType,
+} from '@/types/order.interface';
+import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
+import { IService } from '@/types/service.interface';
 
 export default function OrderServices({ userID }: { userID: string }) {
-    const [newOrder, { isLoading }] = useNewOrderMutation();
-    const [selectedServices, setSelectedServices] = useState<IOrderService[]>(
-        []
-    );
+    const [selectedServices, setSelectedServices] = useState<
+        IOrderServiceSelection[]
+    >([]);
     const [errors, setErrors] = useState<string[]>([]);
     const router = useRouter();
 
-    const toggleService = (service: {
-        _id: string;
-        name: string;
-        price?: number;
-        inputs?: boolean;
-        options?: boolean;
-    }) => {
+    const { data, isLoading: isServiceLoading } = useGetServicesQuery([]);
+    const [newOrder, { isLoading }] = useNewOrderMutation();
+
+    const services: IService[] = data?.data || [];
+
+    if (isServiceLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                Loading services...
+            </div>
+        );
+    }
+
+    if (!services || services.length === 0) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                No services available
+            </div>
+        );
+    }
+
+    const toggleService = (service: IService) => {
+        const isDisabled = selectedServices.some(
+            (s) =>
+                Array.isArray(s.disabledOptions) &&
+                s.disabledOptions.includes(service.name)
+        );
+
+        if (isDisabled) return;
+
         const exists = selectedServices.find((s) => s._id === service._id);
         if (exists) {
             setSelectedServices((prev) =>
@@ -49,17 +75,20 @@ export default function OrderServices({ userID }: { userID: string }) {
                     _id: service._id,
                     name: service.name,
                     price: service.price,
-                    inputs: service.inputs || false,
                     colorCodes: service.inputs ? [''] : [],
+                    options: service.options ? [''] : undefined,
                     types: [],
                     complexity: undefined,
-                    options: service.options !== undefined ? [''] : undefined,
+                    disabledOptions: service.disabledOptions,
                 },
             ]);
         }
     };
 
-    const updateService = (index: number, updated: Partial<IOrderService>) => {
+    const updateService = (
+        index: number,
+        updated: Partial<IOrderServiceSelection>
+    ) => {
         const copy = [...selectedServices];
         copy[index] = { ...copy[index], ...updated };
         setSelectedServices(copy);
@@ -86,7 +115,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                     );
                 }
 
-                service.types?.forEach((type: IOrderType) => {
+                service.types?.forEach((type: IOrderServiceType) => {
                     const defType = definition.types?.find(
                         (t) => t._id === type._id
                     );
@@ -102,7 +131,6 @@ export default function OrderServices({ userID }: { userID: string }) {
                 _id: service._id,
                 name: service.name,
                 ...(service.price && { price: service.price }),
-                ...(service.inputs && { inputs: true }),
                 ...(service.colorCodes?.length && {
                     colorCodes: service.colorCodes.filter(
                         (c: string) => c.trim() !== ''
@@ -125,24 +153,22 @@ export default function OrderServices({ userID }: { userID: string }) {
 
         try {
             const response = await newOrder({
-                data: {
-                    userID,
-                    services: validServices,
-                },
+                orderStage: 'services-selected',
+                userID,
+                services: validServices as IOrderServiceSelection[],
             });
 
-            if (response?.data?.success && response.data.draftOrderId) {
+            if (response?.data?.success && response.data.orderID) {
                 toast.success(
                     'Draft order created successfully. Redirecting to details page...'
                 );
-
                 setSelectedServices([]);
                 router.push(
-                    `/orders/new-order/${response.data.draftOrderId}/details`
+                    `/orders/new-order/details/${response.data.orderID}`
                 );
             }
-        } catch (err) {
-            ApiError(err);
+        } catch (error) {
+            ApiError(error);
         }
     };
 
@@ -169,58 +195,81 @@ export default function OrderServices({ userID }: { userID: string }) {
                         const selectedIndex = selectedServices.findIndex(
                             (s) => s._id === service._id
                         );
+                        const isDisabled = selectedServices.some(
+                            (s) =>
+                                Array.isArray(s.disabledOptions) &&
+                                s.disabledOptions.includes(service.name)
+                        );
 
                         return (
                             <Card key={service._id}>
                                 <CardContent className="space-y-4">
-                                    {/* Service Select */}
                                     <div className="flex items-center gap-3">
                                         <Checkbox
-                                            id={service.name}
+                                            id={service._id}
                                             checked={!!selected}
                                             onCheckedChange={() =>
                                                 toggleService(service)
                                             }
+                                            disabled={isDisabled}
                                         />
-                                        <Label htmlFor={service.name}>
+                                        <Label
+                                            htmlFor={service._id}
+                                            className="capitalize"
+                                        >
                                             {service.name}
+                                            {isDisabled && (
+                                                <span className="ml-2 text-xs text-muted-foreground">
+                                                    (disabled by another
+                                                    selection)
+                                                </span>
+                                            )}
                                         </Label>
                                     </div>
 
-                                    {/* Flat complexity */}
-                                    {selected && service.complexities && (
-                                        <RadioGroup
-                                            value={
-                                                selected?.complexity?.name || ''
-                                            }
-                                            onValueChange={(val) => {
-                                                const found =
-                                                    service.complexities.find(
-                                                        (c) => c.name === val
+                                    {selected &&
+                                        (service.complexities ?? []).length >
+                                            0 &&
+                                        service.complexities && (
+                                            <RadioGroup
+                                                value={
+                                                    selected?.complexity?._id ||
+                                                    ''
+                                                }
+                                                onValueChange={(val) => {
+                                                    const found =
+                                                        service.complexities?.find(
+                                                            (c) => c._id === val
+                                                        );
+                                                    updateService(
+                                                        selectedIndex,
+                                                        {
+                                                            complexity: found,
+                                                        }
                                                     );
-                                                updateService(selectedIndex, {
-                                                    complexity: found,
-                                                });
-                                            }}
-                                        >
-                                            {service.complexities.map((c) => (
-                                                <div
-                                                    key={c._id}
-                                                    className="flex items-center gap-3 pl-4"
-                                                >
-                                                    <RadioGroupItem
-                                                        id={c.name}
-                                                        value={c.name}
-                                                    />
-                                                    <Label htmlFor={c.name}>
-                                                        {c.name}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </RadioGroup>
-                                    )}
+                                                }}
+                                            >
+                                                {service.complexities.map(
+                                                    (c) => (
+                                                        <div
+                                                            key={c._id}
+                                                            className="flex items-center gap-3 pl-4"
+                                                        >
+                                                            <RadioGroupItem
+                                                                id={`${service._id}-${c._id}`}
+                                                                value={c._id}
+                                                            />
+                                                            <Label
+                                                                htmlFor={`${service._id}-${c._id}`}
+                                                            >
+                                                                {c.name}
+                                                            </Label>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </RadioGroup>
+                                        )}
 
-                                    {/* Multi path options */}
                                     {selected &&
                                         service.options &&
                                         selected?.complexity?.name ===
@@ -311,8 +360,8 @@ export default function OrderServices({ userID }: { userID: string }) {
                                             </div>
                                         )}
 
-                                    {/* Types + complexity */}
                                     {selected &&
+                                        (service.types ?? []).length > 0 &&
                                         service.types?.map((type) => {
                                             const typeSelected =
                                                 selected.types?.find(
@@ -326,7 +375,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <Checkbox
-                                                            id={type.name}
+                                                            id={`${service._id}-${type._id}`}
                                                             checked={
                                                                 !!typeSelected
                                                             }
@@ -374,7 +423,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                             }}
                                                         />
                                                         <Label
-                                                            htmlFor={type.name}
+                                                            htmlFor={`${service._id}-${type._id}`}
                                                         >
                                                             {type.name}
                                                         </Label>
@@ -390,7 +439,7 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                                 value={
                                                                     typeSelected
                                                                         ?.complexity
-                                                                        ?.name ||
+                                                                        ?._id ||
                                                                     ''
                                                                 }
                                                                 onValueChange={(
@@ -401,13 +450,13 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                                             (
                                                                                 c
                                                                             ) =>
-                                                                                c.name ===
+                                                                                c._id ===
                                                                                 val
                                                                         );
                                                                     const updated =
                                                                         selected.types?.map(
                                                                             (
-                                                                                t: IOrderType
+                                                                                t: IOrderServiceType
                                                                             ) =>
                                                                                 t._id ===
                                                                                 type._id
@@ -435,17 +484,13 @@ export default function OrderServices({ userID }: { userID: string }) {
                                                                             className="flex items-center gap-2 pl-10"
                                                                         >
                                                                             <RadioGroupItem
-                                                                                id={
-                                                                                    c.name
-                                                                                }
+                                                                                id={`${type._id}-${c._id}`}
                                                                                 value={
-                                                                                    c.name
+                                                                                    c._id
                                                                                 }
                                                                             />
                                                                             <Label
-                                                                                htmlFor={
-                                                                                    c.name
-                                                                                }
+                                                                                htmlFor={`${type._id}-${c._id}`}
                                                                             >
                                                                                 {
                                                                                     c.name
@@ -460,7 +505,6 @@ export default function OrderServices({ userID }: { userID: string }) {
                                             );
                                         })}
 
-                                    {/* Input Fields (color codes) */}
                                     {selected && service.inputs && (
                                         <div className="space-y-4">
                                             <p className="text-sm text-muted-foreground">
@@ -546,7 +590,6 @@ export default function OrderServices({ userID }: { userID: string }) {
                         );
                     })}
 
-                    {/* Error Messages */}
                     {errors.length > 0 && (
                         <div className="text-red-500 text-sm space-y-1">
                             {errors.map((err, i) => (

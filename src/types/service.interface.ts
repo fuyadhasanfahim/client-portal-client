@@ -1,21 +1,24 @@
 export interface IComplexity {
-    _id?: string;
-    label: string;
+    _id: string;
+    name: string;
     price: number;
 }
 
 export interface IType {
-    _id?: string;
-    title: string;
-}
-
-export default interface IService {
-    _id?: string;
+    _id: string;
     name: string;
     price?: number;
-    accessibleTo: 'All' | 'Custom';
-    accessList?: string[];
+    complexities?: IComplexity[];
+}
+
+export interface IService {
+    _id: string;
+    name: string;
+    price?: number;
     complexities?: IComplexity[];
     types?: IType[];
-    status: 'Active' | 'Inactive' | 'Pending';
+    options?: boolean;
+    inputs?: boolean;
+    instruction?: string;
+    disabledOptions?: string[];
 }
