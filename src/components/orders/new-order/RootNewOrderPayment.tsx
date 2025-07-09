@@ -10,7 +10,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout,
@@ -18,8 +18,8 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import ApiError from '@/components/shared/ApiError';
-import getLoggedInUser from '@/utils/getLoggedInUser';
 import SaveCardForm from './SaveCardForm';
+import { useCreateSetupIntentMutation, useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
 
 const paymentOptions = [
     {
@@ -38,7 +38,7 @@ const paymentOptions = [
 
 const paymentMethods = [
     {
-        value: 'Card Payment',
+        value: 'card-payment',
         title: 'Card Payment',
         description:
             'Pay upfront and get priority processing for faster delivery.',
@@ -49,67 +49,64 @@ const stripePromise = loadStripe(
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
-    const user = getLoggedInUser();
-    const { id: userID } = user ?? {};
-
+export default function RootNewOrderPayment({
+    orderID,
+    userID,
+}: {
+    orderID: string;
+    userID: string;
+}) {
     const [paymentOption, setPaymentOption] = useState<
-        'Pay Now' | 'Pay Later' | ''
+        'pay-now' | 'pay-later' | ''
     >('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clientSecret, setClientSecret] = useState('');
-    const [customerId, setCustomerId] = useState('');
+    const [customerID, setCustomerID] = useState('');
+
+    const [newOrderCheckout] = useNewOrderCheckoutMutation();
+    const [createSetupIntent] = useCreateSetupIntentMutation();
+
+    if (paymentOption === 'pay-now') {
+        newOrderCheckout({
+            orderID,
+            paymentOption,
+            paymentMethod,
+        }).unwrap();
+    }
 
     useEffect(() => {
         const createSession = async () => {
             if (
-                paymentOption === 'Pay Now' &&
-                paymentMethod === 'Card Payment'
+                paymentOption === 'pay-now' &&
+                paymentMethod === 'card-payment'
             ) {
-                const res = await fetch('/api/stripe/new-order-checkout', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        orderID,
-                        paymentOption,
-                        paymentMethod,
-                    }),
-                    headers: { 'Content-Type': 'application/json' },
+                const res = await newOrderCheckout({
+                    orderID,
+                    paymentOption,
+                    paymentMethod,
                 });
 
-                const data = await res.json();
-                setClientSecret(data.client_secret);
+                if (res.data && res.data.success) {
+                    setClientSecret(res.data.data!);
+                }
             }
         };
-
         createSession();
     }, [paymentOption, paymentMethod, orderID]);
 
     useEffect(() => {
-        console.log('Payment option changed:', paymentOption);
-        if (paymentOption === 'Pay Later') {
-            const createSetupIntent = async () => {
-                if (paymentOption === 'Pay Later' && userID) {
+        if (paymentOption === 'pay-later') {
+            const fetchSetupIntent = async () => {
+                if (paymentOption === 'pay-later' && userID) {
                     try {
-                        const res = await fetch(
-                            '/api/stripe/create-setup-intent',
-                            {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userID, orderID }),
-                            }
-                        );
+                        const res = await createSetupIntent({
+                            userID,
+                            orderID,
+                        });
 
-                        if (!res.ok) {
-                            throw new Error('Failed to create setup intent');
-                        }
-
-                        const result = await res.json();
-
-                        if (result && result.data.client_secret) {
-                            setClientSecret(result.data.client_secret);
-                            setCustomerId(result.data.customer_id);
-                        } else {
-                            console.error('No client secret received');
+                        if (res.data && res.data.success) {
+                            setClientSecret(res.data.data.client_secret!);
+                            setCustomerID(res.data.data.customer_id!);
                         }
                     } catch (error) {
                         ApiError(error);
@@ -117,11 +114,9 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                 }
             };
 
-            createSetupIntent();
+            fetchSetupIntent();
         }
     }, [paymentOption, userID, orderID]);
-
-    console.log(clientSecret);
 
     return (
         <section className="grid grid-cols-2 gap-6 items-start">
@@ -144,9 +139,9 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                             value={paymentOption}
                             onValueChange={(val) => {
                                 setPaymentOption(
-                                    val as 'Pay Now' | 'Pay Later'
+                                    val as 'pay-now' | 'pay-later'
                                 );
-                                if (val === 'Pay Later') setPaymentMethod('');
+                                if (val === 'pay-later') setPaymentMethod('');
                             }}
                             className="grid gap-4"
                         >
@@ -188,14 +183,14 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                             value={paymentMethod}
                             onValueChange={setPaymentMethod}
                             className="grid gap-4"
-                            disabled={paymentOption === 'Pay Later'}
+                            disabled={paymentOption === 'pay-later'}
                         >
                             {paymentMethods.map(
                                 ({ value, title, description }) => (
                                     <Card
                                         key={value}
                                         className={`border-2 transition-all ${
-                                            paymentOption === 'Pay Later'
+                                            paymentOption === 'pay-later'
                                                 ? 'opacity-50 cursor-not-allowed'
                                                 : 'hover:border-primary border-muted'
                                         }`}
@@ -212,7 +207,7 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                                                     className={cn(
                                                         'text-base font-medium cursor-pointer',
                                                         paymentOption ===
-                                                            'Pay Later' &&
+                                                            'pay-later' &&
                                                             'cursor-not-allowed'
                                                     )}
                                                 >
@@ -243,8 +238,8 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                 </CardHeader>
 
                 <CardContent>
-                    {paymentOption === 'Pay Now' &&
-                        paymentMethod === 'Card Payment' &&
+                    {paymentOption === 'pay-now' &&
+                        paymentMethod === 'card-payment' &&
                         clientSecret && (
                             <EmbeddedCheckoutProvider
                                 stripe={stripePromise}
@@ -254,7 +249,7 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                             </EmbeddedCheckoutProvider>
                         )}
 
-                    {paymentOption === 'Pay Later' && clientSecret ? (
+                    {paymentOption === 'pay-later' && clientSecret ? (
                         <Elements
                             stripe={stripePromise}
                             options={{ clientSecret }}
@@ -262,10 +257,10 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                             <SaveCardForm
                                 userID={userID!}
                                 orderID={orderID}
-                                customerId={customerId}
+                                customerID={customerID}
                             />
                         </Elements>
-                    ) : paymentOption === 'Pay Later' ? (
+                    ) : paymentOption === 'pay-later' ? (
                         <p>Loading payment form...</p>
                     ) : null}
                 </CardContent>

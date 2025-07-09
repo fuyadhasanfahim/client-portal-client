@@ -1,4 +1,4 @@
-import { Document } from "mongoose";
+import { Document } from 'mongoose';
 
 export interface IPayment extends Document {
     paymentID: string;
@@ -11,7 +11,7 @@ export interface IPayment extends Document {
     currency: string;
     tax: number;
     totalAmount: number;
-    status: "pending" | "succeeded" | "failed" | "refunded";
+    status: 'pending' | 'succeeded' | 'failed' | 'refunded';
     createdAt: Date;
     updatedAt: Date;
 }

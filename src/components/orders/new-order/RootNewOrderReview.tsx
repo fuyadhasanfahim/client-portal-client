@@ -9,14 +9,16 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    useGetOrderByIDQuery,
-} from '@/redux/features/orders/ordersApi';
+import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import { AlertTriangle, InfoIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NewOrderPricingCard from './NewOrderPricingCard';
 
-export default function RootNewOrderReview({ orderID }: { orderID: string }) {
+export default function RootNewOrderReview({
+    orderID,
+}: {
+    orderID: string;
+}) {
     const { data, isLoading, isError } = useGetOrderByIDQuery(orderID, {
         skip: !orderID,
     });

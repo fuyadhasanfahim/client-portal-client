@@ -7,65 +7,95 @@ import {
 } from '@stripe/react-stripe-js';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import ApiError from '@/components/shared/ApiError';
+import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
+import { Loader, Save } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 export default function SaveCardForm({
     userID,
     orderID,
-    customerId,
+    customerID,
 }: {
     userID: string;
     orderID: string;
-    customerId: string;
+    customerID: string;
 }) {
     const stripe = useStripe();
     const elements = useElements();
     const router = useRouter();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const [newPayment] = useNewPaymentMutation();
 
     const handleSaveCard = async () => {
-        if (!stripe || !elements) return;
-
-        const result = await stripe.confirmSetup({
-            elements,
-            confirmParams: {
-                return_url: window.location.href,
-            },
-            redirect: 'if_required',
-        });
-
-        if (result.error) {
-            ApiError(result.error.message);
+        if (!stripe || !elements) {
+            toast.error('Stripe not initialized');
             return;
         }
 
-        const setupIntent = result.setupIntent;
+        setIsProcessing(true);
 
-        const res = await fetch('/api/payments/new-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        try {
+            // First validate the card details
+            const { error: validationError } = await elements.submit();
+            if (validationError) {
+                throw validationError;
+            }
+
+            // Then confirm the SetupIntent
+            const { error, setupIntent } = await stripe.confirmSetup({
+                elements,
+                confirmParams: {
+                    return_url: `${window.location.origin}/orders/order-payment/complete?order_id=${orderID}`,
+                },
+                redirect: 'if_required',
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            if (!setupIntent) {
+                throw new Error('No setup intent returned from Stripe');
+            }
+
+            // Handle successful setup
+            const res = await newPayment({
                 userID,
                 orderID,
-                paymentOption: 'Pay Later',
-                paymentIntentId: setupIntent.id,
-                customerId,
+                paymentOption: 'pay-later',
+                paymentIntentID: setupIntent.id,
+                customerID: customerID,
                 status: setupIntent.status,
-            }),
-        });
+            });
 
-        const dbResult = await res.json();
-        if (dbResult.success) {
+            if ('error' in res) {
+                throw res.error;
+            }
+
             router.push('/orders');
-        } else {
-            ApiError(dbResult.message);
+        } catch (err) {
+            toast.error('Payment failed');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     return (
         <div className="space-y-4">
             <PaymentElement />
-            <Button onClick={handleSaveCard} className="w-full">
-                Save Card & Continue
+            <Button
+                onClick={handleSaveCard}
+                className="w-full"
+                disabled={!stripe || isProcessing}
+            >
+                {isProcessing ? (
+                    <Loader className="animate-spin mr-2" size={18} />
+                ) : (
+                    <Save className="mr-2" size={18} />
+                )}
+                {isProcessing ? 'Processing...' : 'Save Card & Continue'}
             </Button>
         </div>
     );

@@ -12,13 +12,15 @@ export const ordersApi = apiSlice.injectEndpoints({
                     services,
                     orderID,
                     details,
+                    total,
                     payment,
                 }: {
                     orderStage: string;
-                    userID: string;
+                    userID?: string;
                     services?: IOrderServiceSelection[];
                     orderID?: string;
                     details?: IOrderDetails;
+                    total?: number;
                     payment?: IPayment;
                 }) => ({
                     url: `orders/new-order/${orderStage}`,
@@ -28,6 +30,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                         services,
                         orderID,
                         details,
+                        total,
                         payment,
                     },
                 }),

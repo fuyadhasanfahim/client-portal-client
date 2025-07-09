@@ -1,5 +1,6 @@
 'use client';
 
+import ApiError from '@/components/shared/ApiError';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -9,8 +10,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
+import { User } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 function formatCurrency(value: number) {
     return `$${value.toLocaleString(undefined, {
@@ -20,7 +25,9 @@ function formatCurrency(value: number) {
 }
 
 export default function NewOrderPricingCard({ order }: { order: IOrder }) {
-    const { details, services, orderID } = order;
+    const [newOrder, { isLoading }] = useNewOrderMutation();
+    const { details, services, orderID, user } = order;
+    const router = useRouter();
 
     let total = 0;
 
@@ -90,6 +97,23 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
         total += resizingFee;
     }
 
+    const handleTotal = async () => {
+        try {
+            const response = await newOrder({
+                orderStage: 'details-provided',
+                orderID,
+                total,
+            });
+
+            if (response?.data?.success) {
+                toast.success('Details saved. Redirecting...');
+                router.push(`/orders/new-order/payment/${orderID}`);
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -146,10 +170,12 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
                 </div>
             </CardContent>
             <CardFooter>
-                <Button className="w-full" asChild>
-                    <Link href={`/orders/new-order/payment/${orderID}`}>
-                        Proceed to Payment
-                    </Link>
+                <Button
+                    className="w-full"
+                    disabled={isLoading}
+                    onClick={handleTotal}
+                >
+                    Proceed to Payment
                 </Button>
             </CardFooter>
         </Card>

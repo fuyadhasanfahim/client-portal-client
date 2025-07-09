@@ -84,7 +84,7 @@ export default function RootNewOrderDetails({
 
     return (
         <section className="grid grid-cols-2 gap-6 items-start">
-            <OrderDetails orderID={orderID} userID={userID} />
+            <OrderDetails orderID={orderID} />
             {content}
         </section>
     );

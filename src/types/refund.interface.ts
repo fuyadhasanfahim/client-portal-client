@@ -1,4 +1,4 @@
-import { Document } from "mongoose";
+import { Document } from 'mongoose';
 
 export interface IRefund extends Document {
     refundID: string;
@@ -6,7 +6,7 @@ export interface IRefund extends Document {
     orderID: string;
     amount: number;
     reason: string;
-    status: "processing" | "completed" | "failed";
+    status: 'processing' | 'completed' | 'failed';
     createdAt: Date;
     updatedAt: Date;
 }

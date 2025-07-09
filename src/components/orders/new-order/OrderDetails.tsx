@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { boolean, z } from 'zod';
+import { z } from 'zod';
 import {
     Card,
     CardContent,
@@ -20,13 +20,6 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Trash2 } from 'lucide-react';
@@ -35,28 +28,13 @@ import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
 import { useRouter } from 'next/navigation';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { IconCalendar } from '@tabler/icons-react';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { MultiSelect } from '@/components/shared/multi-select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IOrderDetails } from '@/types/order.interface';
 import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
 
-type OrderDetailsProps = {
-    orderID: string;
-    userID: string;
-};
-
-export default function OrderDetails({ orderID, userID }: OrderDetailsProps) {
+export default function OrderDetails({ orderID }: { orderID: string }) {
     const form = useForm<z.infer<typeof NewOrderDetailsSchema>>({
         resolver: zodResolver(NewOrderDetailsSchema),
         defaultValues: {
@@ -82,7 +60,6 @@ export default function OrderDetails({ orderID, userID }: OrderDetailsProps) {
         try {
             const response = await newOrder({
                 orderStage: 'details-provided',
-                userID,
                 orderID,
                 details: data as IOrderDetails,
             });
