@@ -3,6 +3,15 @@ import { ISanitizedUser } from '@/types/user.interface';
 
 export const userApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        getMe: builder.query({
+            query: (token) => ({
+                url: 'users/me',
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }),
+        }),
         getUserInfo: builder.query({
             query: (userID) => ({
                 url: 'users/get-info',
@@ -60,6 +69,7 @@ export const userApi = apiSlice.injectEndpoints({
 });
 
 export const {
+    useGetMeQuery,
     useGetUserInfoQuery,
     useGetOrdersByUserIDQuery,
     useUpdateUserInfoMutation,

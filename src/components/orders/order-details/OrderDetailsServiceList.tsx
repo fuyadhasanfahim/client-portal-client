@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import {
     Card,
     CardContent,
@@ -6,21 +7,22 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { IOrderService } from '@/types/order.interface';
+import { IOrderServiceSelection } from '@/types/order.interface';
 import { IconBriefcaseFilled } from '@tabler/icons-react';
 import Link from 'next/link';
 
 interface OrderDetailsServiceListProps {
-    services: IOrderService[];
+    services: IOrderServiceSelection[];
     images?: number;
-    imageResizing?: 'Yes' | 'No';
+    imageResizing?: 'yes' | 'no';
     width?: number;
     height?: number;
-    backgroundOption?: string;
-    returnFileFormat?: string;
+    backgroundOption?: string[];
+    returnFileFormat?: string[];
+    backgroundColor?: string[];
     instructions?: string;
     downloadLink?: string;
-    supportingFileDownloadLink?: string;
+    sourceFileLink?: string;
 }
 
 export default function OrderDetailsServiceList({
@@ -32,8 +34,9 @@ export default function OrderDetailsServiceList({
     backgroundOption,
     returnFileFormat,
     instructions,
+    backgroundColor,
     downloadLink,
-    supportingFileDownloadLink,
+    sourceFileLink,
 }: OrderDetailsServiceListProps) {
     return (
         <Card>
@@ -101,16 +104,28 @@ export default function OrderDetailsServiceList({
                                 </li>
                                 <li>
                                     <strong>Return Format:</strong>{' '}
-                                    {returnFileFormat || 'N/A'}
+                                    {returnFileFormat
+                                        ?.map((rf) => rf)
+                                        .join(', ') || 'N/A'}
                                 </li>
                                 <li>
                                     <strong>Background Option:</strong>{' '}
-                                    {backgroundOption || 'N/A'}
+                                    {backgroundOption
+                                        ?.map((bg) => bg)
+                                        .join(', ') || 'N/A'}
                                 </li>
+                                {backgroundColor && (
+                                    <li>
+                                        <strong>Background Colors:</strong>{' '}
+                                        {backgroundColor
+                                            ?.map((bgc) => bgc)
+                                            .join(', ') || 'N/A'}
+                                    </li>
+                                )}
                                 <li>
                                     <strong>Resize:</strong>{' '}
-                                    {imageResizing === 'Yes'
-                                        ? `${width}x${height}px`
+                                    {imageResizing === 'yes'
+                                        ? `${width}px x ${height}px`
                                         : 'Not requested'}
                                 </li>
                                 {(service.colorCodes ?? []).length > 0 && (
@@ -142,14 +157,14 @@ export default function OrderDetailsServiceList({
                     </div>
                     <div>
                         <strong>Supporting File:</strong>{' '}
-                        {supportingFileDownloadLink ? (
+                        {sourceFileLink ? (
                             <Link
-                                href={supportingFileDownloadLink}
+                                href={sourceFileLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline"
                             >
-                                Download Supporting File
+                                Download source file
                             </Link>
                         ) : (
                             'N/A'

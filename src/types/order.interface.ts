@@ -30,7 +30,7 @@ export interface IOrderServiceSelection {
     options?: string[];
     types?: IOrderServiceType[];
     complexity?: IOrderServiceComplexity;
-    disabledOptions?: string[]
+    disabledOptions?: string[];
 }
 
 export interface IOrderDetails {
@@ -72,6 +72,7 @@ export interface IOrder extends Document {
         | 'services-selected'
         | 'details-provided'
         | 'payment-completed';
+    total?: number;
     createdAt: Date;
     updatedAt: Date;
 }

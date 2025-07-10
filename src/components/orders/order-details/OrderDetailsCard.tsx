@@ -6,79 +6,41 @@ import OrderDetailsSummary from './OrderDetailsSummary';
 import OrderDetailsServiceList from './OrderDetailsServiceList';
 import OrderDetailsPaymentAndDetails from './OrderDetailsPaymentAndDetails';
 import OrderDetailsInvoice from './OrderDetailsInvoice';
+import getLoggedInUser from '@/utils/getLoggedInUser';
 
-export default function OrderDetailsCard({
-    order,
-    user,
-}: {
-    order: IOrder;
-    user: {
-        userID: string;
-        name: string;
-        email: string;
-        role: string;
-        image: string;
-    };
-}) {
-    const {
-        orderID,
-        services,
-        images,
-        imageResizing,
-        width,
-        height,
-        backgroundOption,
-        returnFileFormat,
-        instructions,
-        status,
-        createdAt,
-        isPaid,
-        paymentId,
-        paymentMethod,
-        paymentOption,
-        supportingFileDownloadLink,
-        total,
-        deliveryDate,
-        downloadLink,
-        userID,
-    } = order;
-
+export default function OrderDetailsCard({ order }: { order: IOrder }) {
+    const { user } = getLoggedInUser();
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto p-6">
             <div className="col-span-2 space-y-6">
-                <OrderDetailsStatus status={status} role={user.role} />
-                <OrderDetailsSummary
-                    createdAt={createdAt}
-                    deliveryDate={deliveryDate}
-                    isPaid={isPaid}
-                    orderID={orderID}
-                    status={status}
-                    userID={userID}
-                />
+                <OrderDetailsStatus status={order.status} role={user.role} />
+                <OrderDetailsSummary order={order} />
                 <OrderDetailsServiceList
-                    backgroundOption={backgroundOption}
-                    height={height}
-                    imageResizing={imageResizing}
-                    images={images}
-                    instructions={instructions}
-                    returnFileFormat={returnFileFormat}
-                    services={services}
-                    width={width}
-                    supportingFileDownloadLink={supportingFileDownloadLink}
-                    downloadLink={downloadLink}
+                    backgroundOption={order.details?.backgroundOption}
+                    height={order.details?.height}
+                    imageResizing={
+                        order.details?.imageResizing === true ? 'yes' : 'no'
+                    }
+                    images={order.details?.images}
+                    instructions={order.details?.instructions}
+                    backgroundColor={order.details?.backgroundColor}
+                    returnFileFormat={order.details?.returnFileFormat}
+                    services={order.services}
+                    width={order.details?.width}
+                    sourceFileLink={order.details?.sourceFileLink}
+                    downloadLink={order.details?.downloadLink}
                 />
             </div>
 
             <div className="space-y-6">
                 <OrderDetailsPaymentAndDetails
-                    paymentId={paymentId}
-                    paymentMethod={paymentMethod}
-                    paymentOption={paymentOption}
-                    status={status}
-                    total={total}
+                    paymentId={order.paymentID}
+                    status={order.status}
+                    total={order.total}
                     role={user.role}
-                    orderID={orderID}
-                    userID={userID}
+                    paymentStatus={order.paymentStatus}
+                    orderID={order.orderID}
+                    userID={order.user.userID}
                 />
                 <OrderDetailsInvoice order={order} user={user} />
             </div>

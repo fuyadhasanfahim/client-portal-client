@@ -10,15 +10,15 @@ export default function OrderPaymentStatus({
         <div
             className={cn(
                 'capitalize flex items-center gap-2 justify-center',
-                paymentStatus === 'Paid' && 'text-green-500 border-green-500',
-                paymentStatus === 'Refunded' && 'text-blue-500 border-blue-500',
-                paymentStatus === 'Pending' &&
+                paymentStatus === 'paid' && 'text-green-500 border-green-500',
+                paymentStatus === 'refunded' && 'text-blue-500 border-blue-500',
+                paymentStatus === 'pending' &&
                     'text-orange-500 border-orange-500',
-                paymentStatus === 'Pay Later' &&
+                paymentStatus === 'pay-later' &&
                     'text-yellow-500 border-yellow-500'
             )}
         >
-            {paymentStatus === 'Paid' ? (
+            {paymentStatus === 'paid' ? (
                 <CircleCheckBig size={16} />
             ) : (
                 <Loader size={16} />

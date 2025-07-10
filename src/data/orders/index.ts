@@ -1,18 +1,17 @@
 import {
-    IconCancel,
-    IconCircleCheck,
-    IconLoader,
-    IconPointFilled,
-    IconProgress,
-    IconProgressCheck,
-    IconUserQuestion,
-} from '@tabler/icons-react';
+    CircleCheckBig,
+    CircleDashed,
+    CircleQuestionMark,
+    CircleX,
+    Loader,
+    PackageCheck,
+} from 'lucide-react';
 
 export const statusData = [
     {
         id: 1,
-        value: 'Pending',
-        icon: IconLoader,
+        value: 'pending',
+        icon: Loader,
         text: '!text-yellow-500',
         border: '!border-yellow-500',
         bg: '!bg-yellow-50',
@@ -20,8 +19,8 @@ export const statusData = [
     },
     {
         id: 2,
-        value: 'In Progress',
-        icon: IconProgress,
+        value: 'in-progress',
+        icon: CircleDashed,
         text: '!text-blue-500',
         border: '!border-blue-500',
         bg: '!bg-blue-50',
@@ -29,8 +28,8 @@ export const statusData = [
     },
     {
         id: 3,
-        value: 'Delivered',
-        icon: IconCircleCheck,
+        value: 'delivered',
+        icon: PackageCheck,
         text: '!text-teal-500',
         border: '!border-teal-500',
         bg: '!bg-teal-50',
@@ -38,8 +37,8 @@ export const statusData = [
     },
     {
         id: 4,
-        value: 'In Revision',
-        icon: IconUserQuestion,
+        value: 'in-revision',
+        icon: CircleQuestionMark,
         text: '!text-amber-500',
         border: '!border-amber-500',
         bg: '!bg-amber-50',
@@ -47,8 +46,8 @@ export const statusData = [
     },
     {
         id: 5,
-        value: 'Completed',
-        icon: IconProgressCheck,
+        value: 'completed',
+        icon: CircleCheckBig,
         text: '!text-green-500',
         border: '!border-green-500',
         bg: '!bg-green-50',
@@ -56,8 +55,8 @@ export const statusData = [
     },
     {
         id: 6,
-        value: 'Canceled',
-        icon: IconCancel,
+        value: 'canceled',
+        icon: CircleX,
         text: '!text-destructive',
         border: '!border-destructive',
         bg: '!bg-red-50',
@@ -68,16 +67,16 @@ export const statusData = [
 export const OrderStatusData = [
     {
         id: 'accepted',
-        value: 'Accepted',
-        icon: IconPointFilled,
+        value: 'accepted',
+        icon: CircleCheckBig,
         text: '!text-green-500',
         border: '!border-green-500',
         bg: '!bg-green-50',
     },
     {
-        id: 'Canceled',
-        value: 'Canceled',
-        icon: IconPointFilled,
+        id: 'canceled',
+        value: 'canceled',
+        icon: CircleX,
         text: '!text-destructive',
         border: '!border-destructive',
         bg: '!bg-red-50',

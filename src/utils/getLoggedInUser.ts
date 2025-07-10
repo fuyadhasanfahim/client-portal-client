@@ -1,7 +1,11 @@
-import { useAppSelector } from '@/hooks/redux-hooks';
-import { RootState } from '@/redux/store';
+import { useGetMeQuery } from '@/redux/features/users/userApi';
 
 export default function useLoggedInUser() {
-    const user = useAppSelector((state: RootState) => state.auth.user);
-    return user ?? null;
+    const { data, isLoading, error } = useGetMeQuery({});
+
+    return {
+        user: isLoading ? {} : data?.data ?? {},
+        isLoading,
+        error,
+    };
 }

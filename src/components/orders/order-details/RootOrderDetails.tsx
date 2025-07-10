@@ -1,23 +1,11 @@
 'use client';
 
-import { useGetOrderQuery } from '@/redux/features/orders/ordersApi';
+import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import OrderDetailsCard from './OrderDetailsCard';
 
-export default function RootOrderDetails({
-    orderID,
-    user,
-}: {
-    orderID: string;
-    user: {
-        userID: string;
-        name: string;
-        email: string;
-        role: string;
-        image: string;
-    };
-}) {
-    const { data, isLoading, isError } = useGetOrderQuery({
-        order_id: orderID,
+export default function RootOrderDetails({ orderID }: { orderID: string }) {
+    const { data, isLoading, isError } = useGetOrderByIDQuery(orderID, {
+        skip: !orderID,
     });
 
     let content;
@@ -29,7 +17,7 @@ export default function RootOrderDetails({
         content = <p>Order not found.</p>;
     }
     if (!isLoading && !isError && data) {
-        content = <OrderDetailsCard order={data.data} user={user} />;
+        content = <OrderDetailsCard order={data.data} />;
     }
 
     return content;

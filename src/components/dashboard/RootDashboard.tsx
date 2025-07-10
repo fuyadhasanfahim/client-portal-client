@@ -15,10 +15,8 @@ import {
     CardHeader,
     CardTitle,
 } from '../ui/card';
-import useLoggedInUser from '@/utils/getLoggedInUser';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { IOrder } from '@/types/order.interface';
-import ApiError from '../shared/ApiError';
 import {
     CircleCheck,
     Clock,
@@ -28,7 +26,6 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
 import {
     Select,
     SelectContent,
@@ -50,9 +47,9 @@ import { format, subDays, subMonths } from 'date-fns';
 import Link from 'next/link';
 import OrderPaymentStatus from '../orders/OrderPaymentStatus';
 import { statusData } from '@/data/orders';
-import { useGetOrdersByUserIDQuery } from '@/redux/features/users/userApi';
 import { useGetPaymentsByStatusQuery } from '@/redux/features/payments/paymentApi';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
+import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
 
 export default function RootDashboard({
     user,
@@ -65,15 +62,21 @@ export default function RootDashboard({
     const { userID, role } = user;
     const [chartDateRange, setChartDateRange] = useState('30');
 
-    const { data, isLoading } = useGetOrdersByUserIDQuery(userID, {
-        skip: !userID,
-    });
+    const { data, isLoading } = useGetOrdersQuery(
+        {
+            userID,
+            role,
+        },
+        {
+            skip: !userID || !role,
+        }
+    );
 
     const { data: paymentData, isLoading: isPaymentLoading } =
         useGetPaymentsByStatusQuery(
             {
                 status: 'succeeded',
-                paymentOption: 'Pay Later',
+                paymentOption: 'pay-later',
                 userID,
                 role,
             },
@@ -85,7 +88,7 @@ export default function RootDashboard({
     const stats = [
         {
             title: 'All Orders',
-            value: !isLoading && data.data.total,
+            value: !isLoading && data?.pagination.total,
             icon: Package2,
             color: 'from-sky-500 to-blue-600',
         },
@@ -93,8 +96,8 @@ export default function RootDashboard({
             title: 'Completed Orders',
             value:
                 !isLoading &&
-                data.data.orders.filter((order: IOrder) =>
-                    ['Completed'].includes(order.status)
+                data?.orders.filter((order: IOrder) =>
+                    ['completed'].includes(order.status)
                 ).length,
             icon: Clock,
             color: 'from-green-500 to-teal-600',
@@ -103,8 +106,8 @@ export default function RootDashboard({
             title: 'Pending Orders',
             value:
                 !isLoading &&
-                data.data.orders.filter((order: IOrder) =>
-                    ['In Progress', 'Pending', 'Revision'].includes(
+                data?.orders.filter((order: IOrder) =>
+                    ['in-progress', 'pending', 'in-revision'].includes(
                         order.status
                     )
                 ).length,
@@ -113,7 +116,7 @@ export default function RootDashboard({
         },
         {
             title: 'Pending Payments',
-            value: !isPaymentLoading && paymentData.data.amount,
+            value: !isPaymentLoading && paymentData?.data.amount,
             icon: DollarSign,
             color: 'from-orange-500 to-red-600',
         },
@@ -240,7 +243,7 @@ export default function RootDashboard({
 
     const chartData = useMemo(() => {
         return transformOrdersToChartData(
-            (!isLoading && data && data.data && data.data.orders) || [],
+            (!isLoading && data && data.orders) || [],
             chartDateRange
         );
     }, [isLoading, data, chartDateRange]);
@@ -389,7 +392,7 @@ export default function RootDashboard({
                                     ))}
                                 </TableRow>
                             ))
-                        ) : !isLoading && data.data.orders.length === 0 ? (
+                        ) : !isLoading && data?.orders.length === 0 ? (
                             <TableRow>
                                 <TableCell
                                     colSpan={8}
@@ -402,7 +405,11 @@ export default function RootDashboard({
                             </TableRow>
                         ) : (
                             !isLoading &&
-                            data.data.orders
+                            data?.orders
+                                .filter(
+                                    (order: IOrder) =>
+                                        order.orderStage !== 'payment-completed'
+                                )
                                 .slice(0, 5)
                                 .map((order: IOrder, index: number) => {
                                     const item = statusData.find(
@@ -467,10 +474,7 @@ export default function RootDashboard({
                                                         'text-destructive'
                                                 )}
                                             >
-                                                $
-                                                {paymentData.data?.totalAmount.toFixed(
-                                                    2
-                                                )}
+                                                {order.total?.toFixed(2)}
                                             </TableCell>
                                             <TableCell
                                                 className={cn(

@@ -35,11 +35,39 @@ export const ordersApi = apiSlice.injectEndpoints({
                     },
                 }),
             }),
+            getOrders: builder.query({
+                query: (params) => ({
+                    url: 'orders/get-orders',
+                    params: {
+                        ...params,
+                        page: params.page || 1,
+                        limit: params.limit || 10,
+                    },
+                }),
+                providesTags: ['Orders'],
+                transformResponse: (response) => {
+                    if (!response.success) {
+                        throw new Error('Failed to fetch orders');
+                    }
+                    return {
+                        orders: response.data.orders,
+                        pagination: response.data.pagination,
+                    };
+                },
+            }),
             getOrderByID: builder.query({
                 query: (orderID) => ({
                     url: `orders/get-orders/${orderID}`,
                     method: 'GET',
                 }),
+            }),
+            updateOrder: builder.mutation({
+                query: ({ orderID, data }) => ({
+                    url: `orders/update-order/${orderID}`,
+                    method: 'PUT',
+                    body: data,
+                }),
+                invalidatesTags: ['Orders'],
             }),
 
             addOrder: builder.mutation({
@@ -66,37 +94,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Orders'],
             }),
-            getOrders: builder.query({
-                query: ({
-                    params: {
-                        page,
-                        quantity,
-                        searchQuery,
-                        user_id,
-                        user_role,
-                        filter,
-                    },
-                }) => ({
-                    url: 'orders/get-orders',
-                    params: {
-                        page,
-                        quantity,
-                        searchQuery,
-                        user_id,
-                        user_role,
-                        filter,
-                    },
-                }),
-                providesTags: ['Orders'],
-            }),
-            updateOrder: builder.mutation({
-                query: ({ orderID, data }) => ({
-                    url: `orders/update-order`,
-                    method: 'PUT',
-                    body: { orderID, data },
-                }),
-                invalidatesTags: ['Orders'],
-            }),
+
             deliverOrder: builder.mutation({
                 query: ({
                     order_id,
@@ -132,12 +130,12 @@ export const ordersApi = apiSlice.injectEndpoints({
 
 export const {
     useNewOrderMutation,
+    useGetOrdersQuery,
     useGetOrderByIDQuery,
+    useUpdateOrderMutation,
     // fjkdgbsdfg
     useAddOrderMutation,
     useGetOrderQuery,
-    useGetOrdersQuery,
-    useUpdateOrderMutation,
     useDeliverOrderMutation,
     useReviewOrderMutation,
     useCompleteOrderMutation,

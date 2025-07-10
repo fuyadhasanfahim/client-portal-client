@@ -10,24 +10,18 @@ import {
 } from '@tabler/icons-react';
 
 export default function OrderStats({
-    data,
+    orders,
     isLoading,
 }: {
-    data: {
-        data: IOrder[];
-        pagination: {
-            total: number;
-        };
-    };
+    orders: IOrder[];
     isLoading: boolean;
 }) {
-
     const stats = [
         {
             title: 'Active Orders',
             value:
                 !isLoading &&
-                data.data.filter((order) =>
+                orders.filter((order) =>
                     ['In Progress', 'In Revision', 'Delivered'].includes(
                         order.status
                     )
@@ -40,9 +34,8 @@ export default function OrderStats({
             title: 'Completed Orders',
             value:
                 !isLoading &&
-                data.data.filter((order) =>
-                    ['Completed'].includes(order.status)
-                ).length,
+                orders.filter((order) => ['Completed'].includes(order.status))
+                    .length,
             icon: IconClock,
             color: 'from-green-500 to-teal-600',
             change: '+8%',
@@ -51,7 +44,7 @@ export default function OrderStats({
             title: 'Pending Orders',
             value:
                 !isLoading &&
-                data.data.filter((order) => ['Pending'].includes(order.status))
+                orders.filter((order) => ['Pending'].includes(order.status))
                     .length,
             icon: IconCheckbox,
             color: 'from-yellow-500 to-orange-500',
@@ -61,14 +54,14 @@ export default function OrderStats({
             title: 'Canceled Orders',
             value:
                 !isLoading &&
-                data.data.filter((order) => ['Canceled'].includes(order.status))
+                orders.filter((order) => ['Canceled'].includes(order.status))
                     .length,
             icon: IconPackageOff,
             color: 'from-orange-500 to-red-600',
             change: '+23%',
         },
     ];
-    
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((s, i) => (

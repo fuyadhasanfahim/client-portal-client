@@ -21,81 +21,13 @@ import {
 } from '@tabler/icons-react';
 import { statusData } from '@/data/orders';
 import { cn } from '@/lib/utils';
-import { useGetUserQuery } from '@/redux/features/users/userApi';
-import { Skeleton } from '@/components/ui/skeleton';
+import { IOrder, IOrderUser } from '@/types/order.interface';
 
-interface OrderDetailsSummaryProps {
-    userID: string;
-    createdAt?: string;
-    orderID: string;
-    status: string;
-    isPaid?: boolean;
-    deliveryDate?: Date;
-}
+export default function OrderDetailsSummary({ order }: { order: IOrder }) {
+    const user = order.user as IOrderUser;
+    const item = statusData.find((item) => item.value === order.status);
 
-export default function OrderDetailsSummary({
-    userID,
-    createdAt,
-    orderID,
-    status,
-    isPaid,
-    deliveryDate,
-}: OrderDetailsSummaryProps) {
-    const { data, isLoading, isError } = useGetUserQuery(userID);
-
-    let content;
-
-    if (isLoading && !isError && !data) {
-        content = (
-            <CardContent className="flex items-center gap-4">
-                <Avatar className="w-12 h-12">
-                    <Skeleton className="w-full h-full" />
-                </Avatar>
-                <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                        <Skeleton className="w-28 h-6" />
-                    </div>
-                    <Skeleton className="w-32 h-6" />
-                </div>
-            </CardContent>
-        );
-    }
-
-    if (!isLoading && isError && !data) {
-        content = (
-            <CardContent className="flex items-center justify-center">
-                <div className="text-destructive">
-                    Something went wrong! Try again later.
-                </div>
-            </CardContent>
-        );
-    }
-
-    if (!isLoading && !isError && data) {
-        const { image, name } = data.data;
-
-        content = (
-            <CardContent className="flex items-center gap-4">
-                <Avatar className="w-12 h-12">
-                    <AvatarImage src={image} alt={`${name}'s profile image`} />
-                    <AvatarFallback>
-                        {name?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                        <User size={18} />
-                        <span className="text-sm font-medium">Ordered by</span>
-                    </div>
-                    <p className="font-semibold text-gray-900 text-lg">
-                        {name}
-                    </p>
-                </div>
-            </CardContent>
-        );
-    }
-
-    const item = statusData.find((item) => item.value === status);
+    console.log(order.details);
 
     return (
         <Card>
@@ -111,7 +43,31 @@ export default function OrderDetailsSummary({
 
             <CardContent>
                 <div className="space-y-6">
-                    <Card>{content}</Card>
+                    <Card>
+                        <CardContent className="flex items-center gap-4">
+                            <Avatar className="w-12 h-12">
+                                <AvatarImage
+                                    src={user.image}
+                                    alt={`${name}'s profile image`}
+                                />
+                                <AvatarFallback>
+                                    {user?.name?.charAt(0)?.toUpperCase() ||
+                                        'U'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <User size={18} />
+                                    <span className="text-sm font-medium">
+                                        Ordered by
+                                    </span>
+                                </div>
+                                <p className="font-semibold text-gray-900 text-lg">
+                                    {user?.name}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <div className="grid grid-cols-2 gap-6">
                         <Card className="group">
@@ -128,8 +84,8 @@ export default function OrderDetailsSummary({
                                     </h3>
 
                                     <p className="font-semibold text-gray-900">
-                                        {createdAt
-                                            ? format(createdAt, 'PPPp')
+                                        {order.createdAt
+                                            ? format(order.createdAt, 'PPPp')
                                             : 'N/A'}
                                     </p>
                                 </div>
@@ -150,7 +106,7 @@ export default function OrderDetailsSummary({
                                     </h3>
 
                                     <p className="font-semibold text-gray-900">
-                                        #{orderID}
+                                        #{order.orderID}
                                     </p>
                                 </div>
                             </CardContent>
@@ -170,9 +126,11 @@ export default function OrderDetailsSummary({
                                     </h3>
 
                                     <p className="font-semibold text-gray-900">
-                                        {deliveryDate
-                                            ? format(deliveryDate, 'PPPp')
-                                            : 'Not set'}
+                                        {order.details?.deliveryDate &&
+                                            format(
+                                                order.details.deliveryDate,
+                                                'PPPp'
+                                            )}
                                     </p>
                                 </div>
                             </CardContent>
@@ -193,20 +151,24 @@ export default function OrderDetailsSummary({
 
                                     <Badge
                                         variant={
-                                            isPaid ? 'default' : 'secondary'
+                                            order.paymentStatus === 'paid'
+                                                ? 'default'
+                                                : 'secondary'
                                         }
                                         className={
-                                            isPaid
+                                            order.paymentStatus === 'paid'
                                                 ? 'bg-green-100 text-green-800 hover:bg-green-100'
                                                 : 'bg-red-100 text-red-800 hover:bg-red-100'
                                         }
                                     >
-                                        {isPaid ? (
+                                        {order.paymentStatus === 'paid' ? (
                                             <IconCheck className="w-3 h-3 mr-1" />
                                         ) : (
                                             <IconAlertCircle className="w-3 h-3 mr-1" />
                                         )}
-                                        {isPaid ? 'Paid' : 'Pending'}
+                                        {order.paymentStatus === 'paid'
+                                            ? 'Paid'
+                                            : 'Pending'}
                                     </Badge>
                                 </div>
                             </CardContent>
@@ -239,7 +201,7 @@ export default function OrderDetailsSummary({
                                     className={cn(item.text)}
                                 />
                             ) : null}
-                            {status}
+                            {order.status}
                         </span>
                     </CardContent>
                 </Card>

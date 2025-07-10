@@ -7,8 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { RadioGroup } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import {
@@ -19,29 +18,27 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import ApiError from '@/components/shared/ApiError';
 import SaveCardForm from './SaveCardForm';
-import { useCreateSetupIntentMutation, useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
+import {
+    useCreateSetupIntentMutation,
+    useNewOrderCheckoutMutation,
+} from '@/redux/features/stripe/stripeApi';
+import { Loader2, CreditCard, Calendar } from 'lucide-react';
+import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 const paymentOptions = [
     {
         value: 'pay-later',
         title: 'Pay Later (Monthly)',
-        description:
-            'Spread your payments across months. Ideal for businesses and long-term projects.',
+        description: 'Split your payments monthly.',
+        icon: <Calendar className="w-5 h-5" />,
     },
     {
         value: 'pay-now',
         title: 'Pay Now',
-        description:
-            'Pay upfront and get priority processing for faster delivery.',
-    },
-];
-
-const paymentMethods = [
-    {
-        value: 'card-payment',
-        title: 'Card Payment',
-        description:
-            'Pay upfront and get priority processing for faster delivery.',
+        description: 'One-time full payment.',
+        icon: <CreditCard className="w-5 h-5" />,
     },
 ];
 
@@ -56,215 +53,173 @@ export default function RootNewOrderPayment({
     orderID: string;
     userID: string;
 }) {
+    const { data, isLoading: isOrderLoading } = useGetOrderByIDQuery(orderID);
+    const router = useRouter();
+
+    if (!isOrderLoading && data.data.paymentStatus === 'paid') {
+        toast.error(
+            "The order's payment status is paid. Redirecting to orders page..."
+        );
+
+        setTimeout(() => {
+            router.push('/orders');
+        }, 3000);
+    }
+
     const [paymentOption, setPaymentOption] = useState<
-        'pay-now' | 'pay-later' | ''
+        '' | 'pay-now' | 'pay-later'
     >('');
-    const [paymentMethod, setPaymentMethod] = useState('');
     const [clientSecret, setClientSecret] = useState('');
     const [customerID, setCustomerID] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const [newOrderCheckout] = useNewOrderCheckoutMutation();
     const [createSetupIntent] = useCreateSetupIntentMutation();
 
-    if (paymentOption === 'pay-now') {
-        newOrderCheckout({
-            orderID,
-            paymentOption,
-            paymentMethod,
-        }).unwrap();
-    }
-
     useEffect(() => {
-        const createSession = async () => {
-            if (
-                paymentOption === 'pay-now' &&
-                paymentMethod === 'card-payment'
-            ) {
-                const res = await newOrderCheckout({
-                    orderID,
-                    paymentOption,
-                    paymentMethod,
-                });
+        const fetchPaymentSession = async () => {
+            if (!paymentOption) return;
 
-                if (res.data && res.data.success) {
-                    setClientSecret(res.data.data!);
-                }
-            }
-        };
-        createSession();
-    }, [paymentOption, paymentMethod, orderID]);
+            setIsLoading(true);
+            try {
+                if (paymentOption === 'pay-now') {
+                    const res = await newOrderCheckout({
+                        orderID,
+                        paymentOption,
+                        paymentMethod: 'card-payment',
+                    }).unwrap();
 
-    useEffect(() => {
-        if (paymentOption === 'pay-later') {
-            const fetchSetupIntent = async () => {
-                if (paymentOption === 'pay-later' && userID) {
-                    try {
-                        const res = await createSetupIntent({
-                            userID,
-                            orderID,
-                        });
+                    if (res?.success) {
+                        setClientSecret(res.data);
+                    }
+                } else if (paymentOption === 'pay-later') {
+                    const res = await createSetupIntent({
+                        userID,
+                        orderID,
+                    }).unwrap();
 
-                        if (res.data && res.data.success) {
-                            setClientSecret(res.data.data.client_secret!);
-                            setCustomerID(res.data.data.customer_id!);
-                        }
-                    } catch (error) {
-                        ApiError(error);
+                    if (res?.success) {
+                        setClientSecret(res.data.client_secret);
+                        setCustomerID(res.data.customer_id);
                     }
                 }
-            };
+            } catch (err) {
+                ApiError(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-            fetchSetupIntent();
-        }
-    }, [paymentOption, userID, orderID]);
+        fetchPaymentSession();
+    }, [paymentOption, orderID, userID]);
 
     return (
-        <section className="grid grid-cols-2 gap-6 items-start">
+        <div className="space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl">
-                        Choose a Payment Option
+                        Select Payment Option
                     </CardTitle>
                     <CardDescription>
-                        Select your preferred method to complete the order.
+                        Choose a payment method that fits your needs
                     </CardDescription>
                 </CardHeader>
-
-                <CardContent className="space-y-6">
-                    <div className={'space-y-2'}>
-                        <h3 className="text-lg font-semibold">
-                            Payment Options
-                        </h3>
-                        <RadioGroup
-                            value={paymentOption}
-                            onValueChange={(val) => {
-                                setPaymentOption(
-                                    val as 'pay-now' | 'pay-later'
-                                );
-                                if (val === 'pay-later') setPaymentMethod('');
-                            }}
-                            className="grid gap-4"
-                        >
-                            {paymentOptions.map(
-                                ({ value, title, description }) => (
-                                    <Card
-                                        key={value}
-                                        className="border-2 border-muted hover:border-primary transition-all"
-                                    >
-                                        <CardContent className="flex items-center gap-4">
-                                            <RadioGroupItem
-                                                value={value}
-                                                id={value}
-                                                className="size-7"
-                                            />
-                                            <div>
-                                                <Label
-                                                    htmlFor={value}
-                                                    className="text-base font-medium cursor-pointer"
-                                                >
-                                                    {title}
-                                                </Label>
-                                                <p className="text-sm text-muted-foreground mt-1">
-                                                    {description}
-                                                </p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            )}
-                        </RadioGroup>
-                    </div>
-
-                    <div className={'space-y-2'}>
-                        <h3 className="text-lg font-semibold">
-                            Payment Methods
-                        </h3>
-                        <RadioGroup
-                            value={paymentMethod}
-                            onValueChange={setPaymentMethod}
-                            className="grid gap-4"
-                            disabled={paymentOption === 'pay-later'}
-                        >
-                            {paymentMethods.map(
-                                ({ value, title, description }) => (
-                                    <Card
-                                        key={value}
-                                        className={`border-2 transition-all ${
-                                            paymentOption === 'pay-later'
-                                                ? 'opacity-50 cursor-not-allowed'
-                                                : 'hover:border-primary border-muted'
-                                        }`}
-                                    >
-                                        <CardContent className="flex items-center gap-4">
-                                            <RadioGroupItem
-                                                value={value}
-                                                id={value}
-                                                className="size-7"
-                                            />
-                                            <div>
-                                                <Label
-                                                    htmlFor={value}
-                                                    className={cn(
-                                                        'text-base font-medium cursor-pointer',
-                                                        paymentOption ===
-                                                            'pay-later' &&
-                                                            'cursor-not-allowed'
-                                                    )}
-                                                >
-                                                    {title}
-                                                </Label>
-                                                <p className="text-sm text-muted-foreground mt-1">
-                                                    {description}
-                                                </p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            )}
-                        </RadioGroup>
-                    </div>
+                <CardContent>
+                    <RadioGroup
+                        value={paymentOption}
+                        onValueChange={(val) =>
+                            setPaymentOption(val as 'pay-now' | 'pay-later')
+                        }
+                        className="grid gap-4 sm:grid-cols-2"
+                    >
+                        {paymentOptions.map(
+                            ({ value, title, description, icon }) => (
+                                <Card
+                                    key={value}
+                                    className={cn(
+                                        'border-2 transition-all rounded-xl p-4 cursor-pointer',
+                                        paymentOption === value
+                                            ? 'border-primary bg-primary/5'
+                                            : 'border-muted hover:border-primary/50'
+                                    )}
+                                    onClick={() =>
+                                        setPaymentOption(
+                                            value as 'pay-now' | 'pay-later'
+                                        )
+                                    }
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className="bg-primary/10 text-primary p-3 rounded-md">
+                                            {icon}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-base">
+                                                {title}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )
+                        )}
+                    </RadioGroup>
                 </CardContent>
             </Card>
 
-            <Card className="min-h-[600px]">
+            <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl">
-                        Complete Your Payment
+                        {paymentOption === 'pay-now'
+                            ? 'Complete Your Payment'
+                            : paymentOption === 'pay-later'
+                            ? 'Secure Your Payment'
+                            : 'Choose a Payment Option'}
                     </CardTitle>
                     <CardDescription>
-                        You’ll be redirected here after securely submitting
-                        payment.
+                        {paymentOption
+                            ? 'Securely submit your payment using Stripe'
+                            : 'Select an option to continue'}
                     </CardDescription>
                 </CardHeader>
-
-                <CardContent>
-                    {paymentOption === 'pay-now' &&
-                        paymentMethod === 'card-payment' &&
-                        clientSecret && (
-                            <EmbeddedCheckoutProvider
-                                stripe={stripePromise}
-                                options={{ clientSecret }}
-                            >
-                                <EmbeddedCheckout className="w-full" />
-                            </EmbeddedCheckoutProvider>
-                        )}
-
-                    {paymentOption === 'pay-later' && clientSecret ? (
+                <CardContent className="flex justify-center items-center min-h-[200px]">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                            <p>Preparing payment form...</p>
+                        </div>
+                    ) : paymentOption === 'pay-now' && clientSecret ? (
+                        <EmbeddedCheckoutProvider
+                            stripe={stripePromise}
+                            options={{ clientSecret }}
+                        >
+                            <EmbeddedCheckout className="w-full" />
+                        </EmbeddedCheckoutProvider>
+                    ) : paymentOption === 'pay-later' && clientSecret ? (
                         <Elements
                             stripe={stripePromise}
                             options={{ clientSecret }}
                         >
                             <SaveCardForm
-                                userID={userID!}
+                                userID={userID}
                                 orderID={orderID}
                                 customerID={customerID}
                             />
                         </Elements>
-                    ) : paymentOption === 'pay-later' ? (
-                        <p>Loading payment form...</p>
-                    ) : null}
+                    ) : (
+                        <div className="text-center p-6 text-muted-foreground space-y-2">
+                            <CreditCard className="w-10 h-10 mx-auto" />
+                            <p className="text-lg font-semibold">
+                                Select a payment method to begin
+                            </p>
+                            <p className="text-sm">
+                                You’ll be guided through a secure process
+                            </p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
-        </section>
+        </div>
     );
 }

@@ -8,11 +8,11 @@ export default function OrderDetailsStatus({
     status: string;
     role: string;
 }) {
-    const isCustomer = role === 'User';
+    const isCustomer = role === 'user';
 
     const getStatusCard = () => {
         switch (status) {
-            case 'In Revision':
+            case 'in-revision':
                 return {
                     color: 'yellow',
                     title: isCustomer
@@ -22,7 +22,7 @@ export default function OrderDetailsStatus({
                         ? 'Our team is working on the requested changes.'
                         : `You marked the order for revision. Awaiting updated submission.`,
                 };
-            case 'In Progress':
+            case 'in-progress':
                 return {
                     color: 'blue',
                     title: isCustomer
@@ -32,7 +32,7 @@ export default function OrderDetailsStatus({
                         ? 'Our team is currently working on your order.'
                         : `You marked the order as in progress. It's currently being worked on.`,
                 };
-            case 'Completed':
+            case 'completed':
                 return {
                     color: 'green',
                     title: isCustomer
@@ -42,7 +42,7 @@ export default function OrderDetailsStatus({
                         ? 'The final version has been delivered.'
                         : `You marked this order as completed.`,
                 };
-            case 'Pending':
+            case 'pending':
                 return {
                     color: 'yellow',
                     title: isCustomer

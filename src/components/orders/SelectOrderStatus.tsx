@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { IconCheck, IconLoader, IconX } from '@tabler/icons-react';
 import { OrderStatusData } from '@/data/orders';
 import { IOrder } from '@/types/order.interface';
 import { Button } from '../ui/button';
@@ -13,6 +12,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Check, Loader, X } from 'lucide-react';
 
 interface SelectOrderStatusProps {
     order: IOrder;
@@ -25,22 +25,21 @@ export default function SelectOrderStatus({
     role,
     orderID,
 }: SelectOrderStatusProps) {
-    const item = OrderStatusData.find(
-        (item) => item.value === order.orderStatus
-    );
+    const item = OrderStatusData.find((item) => item.value === order.status);
     const [updateOrder, { isLoading }] = useUpdateOrderMutation();
 
     const handleOrderStatusChange = async ({
         orderID,
-        data,
+        status,
     }: {
         orderID: string;
-        data: { status: string; orderStatus: string };
+        status: string;
     }) => {
         try {
+            console.log(orderID, status);
             const response = await updateOrder({
                 orderID,
-                data,
+                data: { status },
             }).unwrap();
 
             if (response.success)
@@ -51,14 +50,14 @@ export default function SelectOrderStatus({
     };
     return (
         <div className="flex items-center justify-center">
-            {role && role === 'User' ? (
+            {role && role === 'user' ? (
                 <span className="flex items-center justify-center gap-2">
-                    {order.orderStatus === 'Waiting For Approval' ? (
-                        <IconLoader size={16} className="animate-spin" />
+                    {order.status === 'pending' ? (
+                        <Loader size={16} className="animate-spin" />
                     ) : (
                         (() => {
                             const item = OrderStatusData.find(
-                                (item) => item.value === order.orderStatus
+                                (item) => item.value === order.status
                             );
                             return item ? (
                                 <item.icon
@@ -68,9 +67,9 @@ export default function SelectOrderStatus({
                             ) : null;
                         })()
                     )}
-                    {order.orderStatus}
+                    {order.status}
                 </span>
-            ) : order.orderStatus === 'Waiting For Approval' ? (
+            ) : order.status === 'pending' ? (
                 <div className="flex items-center gap-2">
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -81,14 +80,11 @@ export default function SelectOrderStatus({
                                 onClick={() =>
                                     handleOrderStatusChange({
                                         orderID,
-                                        data: {
-                                            status: 'Canceled',
-                                            orderStatus: 'Canceled',
-                                        },
+                                        status: 'canceled',
                                     })
                                 }
                             >
-                                <IconX className="text-destructive" />
+                                <X className="text-destructive" />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>Cancel the order</TooltipContent>
@@ -103,14 +99,11 @@ export default function SelectOrderStatus({
                                 onClick={() =>
                                     handleOrderStatusChange({
                                         orderID,
-                                        data: {
-                                            status: 'In Progress',
-                                            orderStatus: 'Accepted',
-                                        },
+                                        status: 'in-progress',
                                     })
                                 }
                             >
-                                <IconCheck className="text-primary" />
+                                <Check className="text-primary" />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>Accept the order</TooltipContent>
@@ -126,7 +119,7 @@ export default function SelectOrderStatus({
                     {item ? (
                         <item.icon size={16} className={cn(item.text)} />
                     ) : null}
-                    {order.orderStatus}
+                    {order.status}
                 </span>
             )}
         </div>

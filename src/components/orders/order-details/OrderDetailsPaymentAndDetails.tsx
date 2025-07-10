@@ -28,6 +28,7 @@ import {
     useDeliverOrderMutation,
     useReviewOrderMutation,
 } from '@/redux/features/orders/ordersApi';
+import { useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
 import {
     EmbeddedCheckout,
     EmbeddedCheckoutProvider,
@@ -41,8 +42,7 @@ interface OrderDetailsPaymentAndDetailsProps {
     status: string;
     total?: number;
     paymentId?: string;
-    paymentMethod?: string;
-    paymentOption?: string;
+    paymentStatus?: string;
     role: string;
     orderID: string;
     userID: string;
@@ -54,8 +54,7 @@ export default function OrderDetailsPaymentAndDetails({
     userID,
     total,
     paymentId,
-    paymentMethod,
-    paymentOption,
+    paymentStatus,
     role,
 }: OrderDetailsPaymentAndDetailsProps) {
     const [downloadLink, setDownloadLink] = useState<string>('');
@@ -147,26 +146,29 @@ export default function OrderDetailsPaymentAndDetails({
         }
     };
 
-    useEffect(() => {
-        if (paymentOption === 'Pay Later') {
-            const createSession = async () => {
-                const res = await fetch('/api/stripe/new-order-checkout', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        orderID,
-                        paymentOption: 'Pay Now',
-                        paymentMethod: 'Card Payment',
-                    }),
-                    headers: { 'Content-Type': 'application/json' },
-                });
+    const [newOrderCheckout] = useNewOrderCheckoutMutation();
 
-                const data = await res.json();
-                setClientSecret(data.client_secret);
+    useEffect(() => {
+        if (paymentStatus === 'pay-later') {
+            const createSession = async () => {
+                try {
+                    const res = await newOrderCheckout({
+                        orderID,
+                        paymentOption: 'pay-now',
+                        paymentMethod: 'card-payment',
+                    }).unwrap();
+
+                    if (res?.success) {
+                        setClientSecret(res.data);
+                    }
+                } catch (err) {
+                    ApiError(err);
+                }
             };
 
             createSession();
         }
-    }, [paymentOption, paymentMethod, orderID]);
+    }, [paymentStatus, orderID]);
 
     const stripePromise = loadStripe(
         process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -188,17 +190,11 @@ export default function OrderDetailsPaymentAndDetails({
                     <strong>Total Price:</strong> ${total || 'N/A'}
                 </p>
                 <p>
-                    <strong>Payment Method:</strong> {paymentMethod || 'N/A'}
-                </p>
-                <p>
-                    <strong>Payment Option:</strong> {paymentOption || 'N/A'}
-                </p>
-                <p>
                     <strong>Payment ID:</strong> {paymentId || 'N/A'}
                 </p>
             </CardContent>
-            {role !== 'User' &&
-                (status === 'In Progress' || status === 'In Revision') && (
+            {role !== 'user' &&
+                (status === 'in-progress' || status === 'in-revision') && (
                     <CardFooter>
                         <Dialog>
                             <DialogTrigger asChild>
@@ -244,7 +240,7 @@ export default function OrderDetailsPaymentAndDetails({
                     </CardFooter>
                 )}
 
-            {role === 'User' && status === 'Delivered' && (
+            {role === 'user' && status === 'delivered' && (
                 <CardFooter>
                     <Dialog>
                         <DialogTrigger asChild>
@@ -268,10 +264,10 @@ export default function OrderDetailsPaymentAndDetails({
                                     >
                                         <div className="flex items-center gap-3">
                                             <RadioGroupItem
-                                                value="In Revision"
-                                                id="In Revision"
+                                                value="in-revision"
+                                                id="in-revision"
                                             />
-                                            <Label htmlFor="In Revision">
+                                            <Label htmlFor="in-revision">
                                                 Request Revision
                                             </Label>
                                         </div>
@@ -286,7 +282,7 @@ export default function OrderDetailsPaymentAndDetails({
                                         </div>
                                     </RadioGroup>
 
-                                    {reviewOrComplete === 'In Revision' && (
+                                    {reviewOrComplete === 'in-revision' && (
                                         <div className="grid w-full items-center gap-3">
                                             <Label htmlFor="instruction">
                                                 Instruction
@@ -308,7 +304,7 @@ export default function OrderDetailsPaymentAndDetails({
 
                             <DialogFooter>
                                 <DialogClose asChild>
-                                    {reviewOrComplete === 'In Revision' ? (
+                                    {reviewOrComplete === 'in-revision' ? (
                                         <Button
                                             type="submit"
                                             disabled={isReviewDone}
@@ -335,9 +331,9 @@ export default function OrderDetailsPaymentAndDetails({
 
                                                 if (
                                                     reviewOrComplete ===
-                                                        'Complete' &&
-                                                    paymentOption ===
-                                                        'Pay Later' &&
+                                                        'complete' &&
+                                                    paymentStatus ===
+                                                        'pay-later' &&
                                                     !paymentId
                                                 ) {
                                                     setShowPaymentReminder(
@@ -356,9 +352,9 @@ export default function OrderDetailsPaymentAndDetails({
                 </CardFooter>
             )}
 
-            {role === 'User' &&
-                status === 'Completed' &&
-                paymentOption === 'Pay Later' && (
+            {role === 'user' &&
+                status === 'completed' &&
+                paymentStatus === 'pay-later' && (
                     <CardFooter>
                         <Dialog>
                             <DialogTrigger asChild>
