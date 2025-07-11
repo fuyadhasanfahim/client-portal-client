@@ -408,7 +408,7 @@ export default function RootDashboard({
                             data?.orders
                                 .filter(
                                     (order: IOrder) =>
-                                        order.orderStage !== 'payment-completed'
+                                        order.orderStage === 'payment-completed'
                                 )
                                 .slice(0, 5)
                                 .map((order: IOrder, index: number) => {

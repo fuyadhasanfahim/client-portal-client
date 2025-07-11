@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { IOrder, IOrderService } from '@/types/order.interface';
-import IUser from '@/types/user.interface';
+import { IOrder, IOrderServiceSelection } from '@/types/order.interface';
+import { IUser } from '@/types/user.interface';
 import {
     Card,
     CardContent,
@@ -40,7 +40,7 @@ export default function InvoiceCard({
     useEffect(() => {
         const fetchUser = async () => {
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/get-user-by-id?user_id=${order.userID}`,
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/get-user-by-id?user_id=${order.user.userID}`,
                 {
                     headers: {
                         Authorization: `Bearer ${authToken}`,
@@ -52,7 +52,7 @@ export default function InvoiceCard({
         };
 
         fetchUser();
-    }, [order.userID, authToken]);
+    }, [order.user.userID, authToken]);
 
     const handleSendInvoice = async () => {
         try {
@@ -193,7 +193,7 @@ export default function InvoiceCard({
                                         Format:
                                     </strong>
                                     <p className="font-medium">
-                                        {order.returnFileFormat}
+                                        {order.details?.returnFileFormat}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -201,7 +201,7 @@ export default function InvoiceCard({
                                         Resizing:
                                     </strong>
                                     <p className="font-medium">
-                                        {order.imageResizing}
+                                        {order.details?.imageResizing}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -209,7 +209,8 @@ export default function InvoiceCard({
                                         Dimensions:
                                     </strong>
                                     <p className="font-medium">
-                                        {order.width} x {order.height}
+                                        {order.details?.width} x{' '}
+                                        {order.details?.height}
                                     </p>
                                 </div>
                             </div>
@@ -244,11 +245,11 @@ export default function InvoiceCard({
                                 <TableBody>
                                     {order.services.map(
                                         (
-                                            service: IOrderService,
+                                            service: IOrderServiceSelection,
                                             index: number
                                         ) => {
                                             const imageCount =
-                                                order.images || 0;
+                                                order.details?.images || 0;
 
                                             const typeNames =
                                                 service.types &&

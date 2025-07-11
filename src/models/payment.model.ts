@@ -1,4 +1,4 @@
-import IPayment from '@/types/payment.interface';
+import { IPayment } from '@/types/payment.interface';
 import { model, models, Schema } from 'mongoose';
 
 const paymentSchema = new Schema<IPayment>(
@@ -10,8 +10,8 @@ const paymentSchema = new Schema<IPayment>(
         },
         orderID: { type: String, ref: 'Order', required: true, unique: true },
         paymentOption: { type: String, required: true },
-        paymentIntentId: { type: String },
-        customerId: { type: String },
+        paymentIntentID: { type: String },
+        customerID: { type: String },
         amount: { type: Number, required: true },
         currency: { type: String },
         tax: { type: Number },

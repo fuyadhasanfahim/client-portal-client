@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { IOrder } from '@/types/order.interface';
-import IUser from '@/types/user.interface';
+import { IUser } from '@/types/user.interface';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface InvoiceState {
-    selectedOrders: IOrder[];
+    selectedOrders: any;
     dateRange: {
         from: Date | undefined;
         to?: Date | undefined;

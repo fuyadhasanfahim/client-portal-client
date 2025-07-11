@@ -76,7 +76,9 @@ export default function SaveCardForm({
 
             router.push('/orders');
         } catch (err) {
-            toast.error('Payment failed');
+            toast.error(
+                (err instanceof Error && err.message) || 'Payment failed'
+            );
         } finally {
             setIsProcessing(false);
         }

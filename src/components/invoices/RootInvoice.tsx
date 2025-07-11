@@ -35,8 +35,8 @@ import getLoggedInUser from '@/utils/getLoggedInUser';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
 
 export default function RootInvoice({ authToken }: { authToken: string }) {
-    const user = getLoggedInUser();
-    const { id: userID, role } = user ?? {};
+    const { user } = getLoggedInUser();
+    const { userID, role } = user;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [quantity, setQuantity] = useState(10);
@@ -213,8 +213,8 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                                                 href={`/orders/details/${order.orderID!}`}
                                                 className={cn(
                                                     'text-primary underline',
-                                                    order.orderStatus ===
-                                                        'Canceled' &&
+                                                    order.status ===
+                                                        'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
@@ -224,18 +224,16 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                                         <TableCell
                                             className={cn(
                                                 'text-center text-sm border-r',
-                                                order.orderStatus ===
-                                                    'Canceled' &&
+                                                order.status === 'canceled' &&
                                                     'text-destructive'
                                             )}
                                         >
-                                            {order.userID}
+                                            {order.user.userID}
                                         </TableCell>
                                         <TableCell
                                             className={cn(
                                                 'text-start text-sm border-r',
-                                                order.orderStatus ===
-                                                    'Canceled' &&
+                                                order.status === 'canceled' &&
                                                     'text-destructive'
                                             )}
                                         >
@@ -252,8 +250,7 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                                         <TableCell
                                             className={cn(
                                                 'text-center text-sm border-r',
-                                                order.orderStatus ===
-                                                    'Canceled' &&
+                                                order.status === 'canceled' &&
                                                     'text-destructive'
                                             )}
                                         >
@@ -262,8 +259,7 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                                         <TableCell
                                             className={cn(
                                                 'text-center text-sm border-r',
-                                                order.orderStatus ===
-                                                    'Canceled' &&
+                                                order.status === 'canceled' &&
                                                     'text-destructive'
                                             )}
                                         >

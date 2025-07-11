@@ -21,18 +21,18 @@ import { format } from 'date-fns';
 import { Download, FileSearch, Send } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import IUser from '@/types/user.interface';
+import { IUser } from '@/types/user.interface';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import numbers from 'nanoid-generator/numbers';
+import { nanoid } from 'nanoid';
 
 export default function RootExportInvoice({
     authToken,
 }: {
     authToken: string;
 }) {
-    const user = getLoggedInUser();
-    const { id: userID, role } = user ?? {};
+    const { user } = getLoggedInUser();
+    const { userID, role } = user;
 
     const [isLoading, setIsLoading] = useState(false);
     const [isPdfDownloading, setPdfDownloading] = useState(false);
@@ -82,7 +82,7 @@ export default function RootExportInvoice({
     useEffect(() => {
         const fetchClient = async () => {
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/get-user-by-id?user_id=${orders[0]?.userID}`,
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/get-user-by-id?user_id=${orders[0]?.user.userID}`,
                 {
                     headers: {
                         Authorization: `Bearer ${authToken}`,
@@ -148,7 +148,9 @@ export default function RootExportInvoice({
                 return;
             }
 
-            const uniqueClients = new Set(selectedOrders.map((o) => o.userID));
+            const uniqueClients = new Set(
+                selectedOrders.map((o) => o.user.userID)
+            );
             if (uniqueClients.size > 1) {
                 toast.error(
                     'All selected orders must belong to the same client'
@@ -164,7 +166,7 @@ export default function RootExportInvoice({
             );
             const total = subTotal + subTotal * taxRate;
 
-            const invoiceID = numbers(6).toUpperCase();
+            const invoiceID = nanoid(6).toUpperCase();
 
             const response = await fetch(
                 `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/new-invoice`,

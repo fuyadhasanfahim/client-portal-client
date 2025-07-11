@@ -1,15 +1,15 @@
 import { Badge } from '@/components/ui/badge';
-import { IOrderService } from '@/types/order.interface';
+import { IOrderServiceSelection } from '@/types/order.interface';
 
 export default function SelectedServicesCard({
     services,
 }: {
-    services: IOrderService[];
+    services: IOrderServiceSelection[];
 }) {
     return (
         services &&
         services.length > 0 &&
-        services.map((service: IOrderService, index: number) => (
+        services.map((service: IOrderServiceSelection, index: number) => (
             <div
                 key={service._id}
                 className="space-y-2 pb-4 border-b-2 last:border-none"

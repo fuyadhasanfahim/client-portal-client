@@ -111,7 +111,7 @@ export default function RootNewOrderPayment({
         };
 
         fetchPaymentSession();
-    }, [paymentOption, orderID, userID]);
+    }, [createSetupIntent, newOrderCheckout, paymentOption, orderID, userID]);
 
     return (
         <div className="space-y-8">

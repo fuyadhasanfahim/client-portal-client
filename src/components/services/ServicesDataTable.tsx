@@ -5,21 +5,21 @@ import {
     Search,
     ChevronLeft,
     ChevronRight,
-    MoreHorizontal,
-    Pencil,
-    Trash2,
-    CircleDashed,
-    CircleCheckBig,
-    TriangleAlert,
+    // MoreHorizontal,
+    // Pencil,
+    // Trash2,
+    // CircleDashed,
+    // CircleCheckBig,
+    // TriangleAlert,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+// import {
+//     DropdownMenu,
+//     DropdownMenuContent,
+//     DropdownMenuItem,
+//     DropdownMenuTrigger,
+// } from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -27,44 +27,44 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+// import {
+//     Table,
+//     TableBody,
+//     TableCell,
+//     TableHead,
+//     TableHeader,
+//     TableRow,
+// } from '@/components/ui/table';
+// import { Badge } from '@/components/ui/badge';
+// import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import {
-    useDeleteServiceMutation,
+    // useDeleteServiceMutation,
     useGetServicesQuery,
-    useUpdateServiceStatusMutation,
+    // useUpdateServiceStatusMutation,
 } from '@/redux/features/services/servicesApi';
-import IService from '@/types/service.interface';
-import toast from 'react-hot-toast';
-import ApiError from '../shared/ApiError';
-import { useRouter } from 'next/navigation';
+// import { IService } from '@/types/service.interface';
+// import toast from 'react-hot-toast';
+// import ApiError from '../shared/ApiError';
+// import { useRouter } from 'next/navigation';
 
 export default function ServicesDataTable() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
-    const router = useRouter();
+    // const router = useRouter();
 
     const { data, isLoading } = useGetServicesQuery({
         params: { page: currentPage, quantity, searchQuery },
     });
 
-    const [deleteService, { isLoading: isDeleting }] =
-        useDeleteServiceMutation();
+    // const [deleteService] =
+    //     useDeleteServiceMutation();
 
-    const [updateServiceStatus, { isLoading: isStatusUpdating }] =
-        useUpdateServiceStatusMutation();
+    // const [updateServiceStatus] =
+    //     useUpdateServiceStatusMutation();
 
-    const services = data?.data || [];
+    // const services = data?.data || [];
     const pagination = data?.pagination || { totalItems: 0, totalPages: 1 };
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>): void => {
@@ -72,29 +72,29 @@ export default function ServicesDataTable() {
         setCurrentPage(1);
     };
 
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteService(id).unwrap();
-            toast.success('Service deleted successfully');
-        } catch (error) {
-            ApiError(error);
-        }
-    };
+    // const handleDelete = async (id: string) => {
+    //     try {
+    //         await deleteService(id).unwrap();
+    //         toast.success('Service deleted successfully');
+    //     } catch (error) {
+    //         ApiError(error);
+    //     }
+    // };
 
-    const handleUpdateStatus = async ({
-        id,
-        status,
-    }: {
-        id: string;
-        status: string;
-    }) => {
-        try {
-            await updateServiceStatus({ id, status }).unwrap();
-            toast.success('Successfully updated the status.');
-        } catch (error) {
-            ApiError(error);
-        }
-    };
+    // const handleUpdateStatus = async ({
+    //     id,
+    //     status,
+    // }: {
+    //     id: string;
+    //     status: string;
+    // }) => {
+    //     try {
+    //         await updateServiceStatus({ id, status }).unwrap();
+    //         toast.success('Successfully updated the status.');
+    //     } catch (error) {
+    //         ApiError(error);
+    //     }
+    // };
 
     return (
         <div className="space-y-6">
@@ -131,7 +131,7 @@ export default function ServicesDataTable() {
             </div>
 
             <div className="rounded-md border overflow-hidden">
-                <Table>
+                {/* <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="font-medium text-center border-r">
@@ -397,7 +397,7 @@ export default function ServicesDataTable() {
                             ))
                         )}
                     </TableBody>
-                </Table>
+                </Table> */}
             </div>
 
             <div className="flex items-center justify-between">

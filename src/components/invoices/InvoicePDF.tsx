@@ -112,8 +112,12 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                             </TableHeader>
                             <TableBody>
                                 {invoice.orders?.map((order) => {
-                                    const { orderID, services, images, total } =
-                                        order || {};
+                                    const {
+                                        orderID,
+                                        services,
+                                        details,
+                                        total,
+                                    } = order || {};
 
                                     return (
                                         <TableRow
@@ -131,7 +135,7 @@ export default function InvoicePDF({ invoice }: { invoice: IInvoice }) {
                                                 {services.length > 3 && '...'}
                                             </TableCell>
                                             <TableCell className="text-gray-600">
-                                                {images}
+                                                {details?.images}
                                             </TableCell>
                                             <TableCell className="text-right text-gray-800 font-medium">
                                                 ${total?.toFixed(2)}

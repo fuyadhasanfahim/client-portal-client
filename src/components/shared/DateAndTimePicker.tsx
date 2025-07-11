@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import * as React from 'react';
@@ -105,8 +106,8 @@ export function DateAndTimePicker({
                                 step="60"
                                 value={
                                     field.value
-                                        ? format(field.value, 'HH:mm') 
-                                        : format(new Date(), 'HH:mm') 
+                                        ? format(field.value, 'HH:mm')
+                                        : format(new Date(), 'HH:mm')
                                 }
                                 onChange={(e) => {
                                     const [hours, minutes] =

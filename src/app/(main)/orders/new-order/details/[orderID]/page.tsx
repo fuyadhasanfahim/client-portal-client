@@ -1,4 +1,3 @@
-import { getUserData } from '@/actions/user.action';
 import RootNewOrderDetails from '@/components/orders/new-order/RootNewOrderDetails';
 import { Metadata } from 'next';
 
@@ -12,6 +11,5 @@ export default async function NewOrderDetailsPage({
     params: Promise<{ orderID: string }>;
 }) {
     const { orderID } = await params;
-    const user = await getUserData();
-    return <RootNewOrderDetails orderID={orderID} userID={user.userID!} />;
+    return <RootNewOrderDetails orderID={orderID} />;
 }

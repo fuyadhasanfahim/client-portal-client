@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import IUser from '@/types/user.interface';
+import { IUser } from '@/types/user.interface';
 import { addServiceSchema } from '@/validations/add-service.schema';
 import { IconSearch, IconUsers } from '@tabler/icons-react';
 import { X } from 'lucide-react';

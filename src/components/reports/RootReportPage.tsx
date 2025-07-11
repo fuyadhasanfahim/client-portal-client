@@ -41,8 +41,8 @@ import { format, subDays, subMonths } from 'date-fns';
 import { IOrder } from '@/types/order.interface';
 
 export default function RootReportPage({ authToken }: { authToken: string }) {
-    const user = getLoggedInUser();
-    const { id: userID, role } = user ?? {};
+    const { user } = getLoggedInUser();
+    const { userID, role } = user;
 
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
     const [orders, setOrders] = useState([]);
@@ -119,9 +119,9 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     };
                 }
 
-                if (order.status === 'Completed') {
+                if (order.status === 'completed') {
                     monthlyData[monthKey].completedOrders += 1;
-                } else if (order.status === 'Canceled') {
+                } else if (order.status === 'canceled') {
                     monthlyData[monthKey].canceledOrders += 1;
                 }
                 monthlyData[monthKey].newOrders += 1;
@@ -170,9 +170,9 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     };
                 }
 
-                if (order.status === 'Completed') {
+                if (order.status === 'completed') {
                     dailyData[dateKey].completedOrders += 1;
-                } else if (order.status === 'Canceled') {
+                } else if (order.status === 'canceled') {
                     dailyData[dateKey].canceledOrders += 1;
                 }
                 dailyData[dateKey].newOrders += 1;

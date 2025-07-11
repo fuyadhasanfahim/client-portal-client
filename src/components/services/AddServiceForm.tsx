@@ -14,7 +14,7 @@ import { useAddServiceMutation } from '@/redux/features/services/servicesApi';
 import { z } from 'zod';
 import { Save } from 'lucide-react';
 import { useGetUsersWithRoleQuery } from '@/redux/features/users/userApi';
-import IUser from '@/types/user.interface';
+import { IUser } from '@/types/user.interface';
 import ServiceInformation from './add-service-form-components/ServiceInformation';
 import ServiceTypes from './add-service-form-components/ServiceTypes';
 import AccessControl from './add-service-form-components/AccessControl';

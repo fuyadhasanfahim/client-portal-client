@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react';
+import React from 'react';
 import {
     Card,
     CardContent,
@@ -8,10 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import {
-    useGetOrderByIDQuery,
-    useGetOrderQuery,
-} from '@/redux/features/orders/ordersApi';
+import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import OrderDetails from '@/components/orders/new-order/OrderDetails';
 import SelectedServicesCard from '@/components/orders/new-order/SelectedServicesCard';
 import SelectedServiceLoadingCard from './SelectedServiceLoadingCard';
@@ -19,13 +16,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
-export default function RootNewOrderDetails({
-    orderID,
-    userID,
-}: {
-    orderID: string;
-    userID: string;
-}) {
+export default function RootNewOrderDetails({ orderID }: { orderID: string }) {
     const { data, isLoading, isError } = useGetOrderByIDQuery(orderID, {
         skip: !orderID,
     });

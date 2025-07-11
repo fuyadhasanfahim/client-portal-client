@@ -12,8 +12,6 @@ import {
 } from '@/components/ui/card';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
-import { User } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
@@ -26,7 +24,7 @@ function formatCurrency(value: number) {
 
 export default function NewOrderPricingCard({ order }: { order: IOrder }) {
     const [newOrder, { isLoading }] = useNewOrderMutation();
-    const { details, services, orderID, user } = order;
+    const { details, services, orderID } = order;
     const router = useRouter();
 
     let total = 0;

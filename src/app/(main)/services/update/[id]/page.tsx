@@ -43,7 +43,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useGetUsersWithRoleQuery } from '@/redux/features/users/userApi';
-import IUser from '@/types/user.interface';
+import { IUser } from '@/types/user.interface';
 
 export default function EditServicePage() {
     const { id } = useParams<{ id: string }>();
