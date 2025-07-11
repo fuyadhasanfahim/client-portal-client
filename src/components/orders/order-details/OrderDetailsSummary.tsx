@@ -27,8 +27,6 @@ export default function OrderDetailsSummary({ order }: { order: IOrder }) {
     const user = order.user as IOrderUser;
     const item = statusData.find((item) => item.value === order.status);
 
-    console.log(order.details);
-
     return (
         <Card>
             <CardHeader>

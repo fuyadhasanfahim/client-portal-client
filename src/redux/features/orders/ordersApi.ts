@@ -34,6 +34,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                         payment,
                     },
                 }),
+                invalidatesTags: ['Orders'],
             }),
             getOrders: builder.query({
                 query: (params) => ({
@@ -60,12 +61,37 @@ export const ordersApi = apiSlice.injectEndpoints({
                     url: `orders/get-orders/${orderID}`,
                     method: 'GET',
                 }),
+                providesTags: ['Orders'],
             }),
             updateOrder: builder.mutation({
                 query: ({ orderID, data }) => ({
                     url: `orders/update-order/${orderID}`,
                     method: 'PUT',
                     body: data,
+                }),
+                invalidatesTags: ['Orders'],
+            }),
+            deliverOrder: builder.mutation({
+                query: ({ orderID, downloadLink }) => ({
+                    url: 'orders/deliver-order',
+                    method: 'PUT',
+                    body: { orderID, downloadLink },
+                }),
+                invalidatesTags: ['Orders'],
+            }),
+            reviewOrder: builder.mutation({
+                query: ({ orderID, instructions }) => ({
+                    url: `orders/review-order`,
+                    method: 'PUT',
+                    body: { orderID, instructions },
+                }),
+                invalidatesTags: ['Orders'],
+            }),
+            completeOrder: builder.mutation({
+                query: (orderID) => ({
+                    url: `orders/complete-order`,
+                    method: 'PUT',
+                    body: orderID,
                 }),
                 invalidatesTags: ['Orders'],
             }),
@@ -94,36 +120,6 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Orders'],
             }),
-
-            deliverOrder: builder.mutation({
-                query: ({
-                    order_id,
-                    order_status,
-                    user_id,
-                    download_link,
-                }) => ({
-                    url: `orders/deliver-order`,
-                    method: 'PUT',
-                    params: { order_id, order_status, user_id, download_link },
-                }),
-                invalidatesTags: ['Orders'],
-            }),
-            reviewOrder: builder.mutation({
-                query: ({ order_id, sender_id, sender_role, message }) => ({
-                    url: `orders/review-order`,
-                    method: 'PUT',
-                    params: { order_id, sender_id, sender_role, message },
-                }),
-                invalidatesTags: ['Orders'],
-            }),
-            completeOrder: builder.mutation({
-                query: ({ order_id, user_id }) => ({
-                    url: `orders/complete-order`,
-                    method: 'PUT',
-                    params: { order_id, user_id },
-                }),
-                invalidatesTags: ['Orders'],
-            }),
         };
     },
 });
@@ -133,10 +129,10 @@ export const {
     useGetOrdersQuery,
     useGetOrderByIDQuery,
     useUpdateOrderMutation,
-    // fjkdgbsdfg
-    useAddOrderMutation,
-    useGetOrderQuery,
     useDeliverOrderMutation,
     useReviewOrderMutation,
     useCompleteOrderMutation,
+    // fjkdgbsdfg
+    useAddOrderMutation,
+    useGetOrderQuery,
 } = ordersApi;

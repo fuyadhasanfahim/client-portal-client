@@ -35,6 +35,14 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { IconLoader, IconPackage } from '@tabler/icons-react';
+import {
+    CheckCircle,
+    CreditCard,
+    Loader,
+    RefreshCw,
+    Send,
+    Truck,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -68,52 +76,30 @@ export default function OrderDetailsPaymentAndDetails({
     const [completeOrder, { isLoading: isCompleted }] =
         useCompleteOrderMutation();
 
-    const handleDeliverOrder = async ({
-        order_id,
-        order_status,
-        user_id,
-        download_link,
-    }: {
-        order_id: string;
-        order_status: string;
-        user_id: string;
-        download_link: string;
-    }) => {
+    const handleDeliverOrder = async () => {
         try {
             const response = await deliverOrder({
-                order_id,
-                order_status,
-                user_id,
-                download_link,
-            });
+                orderID,
+                downloadLink,
+            }).unwrap();
+            console.log(response);
 
-            if (response.data.success) {
+            if (response.success) {
                 setDownloadLink('');
-                toast.success(response.data.message);
+                toast.success(response.message);
             }
         } catch (error) {
             ApiError(error);
         }
     };
 
-    const handleReviewOrder = async ({
-        order_id,
-        sender_id,
-        sender_role,
-        message,
-    }: {
-        order_id: string;
-        sender_id: string;
-        sender_role: string;
-        message: string;
-    }) => {
+    const handleReviewOrder = async () => {
         try {
             const response = await reviewOrder({
-                order_id,
-                sender_id,
-                sender_role,
-                message,
+                orderID,
+                instructions: instruction,
             });
+            console.log(response);
 
             if (response.data.success) {
                 setInstruction('');
@@ -124,17 +110,10 @@ export default function OrderDetailsPaymentAndDetails({
         }
     };
 
-    const handleCompleteOrder = async ({
-        order_id,
-        user_id,
-    }: {
-        order_id: string;
-        user_id: string;
-    }) => {
+    const handleCompleteOrder = async () => {
         try {
             const response = await completeOrder({
-                order_id,
-                user_id,
+                orderID,
             });
 
             if (response.data.success) {
@@ -195,43 +174,64 @@ export default function OrderDetailsPaymentAndDetails({
             </CardContent>
             {role !== 'user' &&
                 (status === 'in-progress' || status === 'in-revision') && (
-                    <CardFooter>
+                    <CardFooter className="border-t">
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button className="w-full" disabled={isLoading}>
-                                    Deliver Now
+                                <Button
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader className="h-4 w-4 animate-spin" />
+                                            Processing...
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <Truck className="h-4 w-4" />
+                                            Deliver Now
+                                        </div>
+                                    )}
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="sm:max-w-[425px]">
                                 <DialogHeader>
-                                    <DialogTitle>Fill the input</DialogTitle>
+                                    <DialogTitle className="text-lg">
+                                        Add Delivery Details
+                                    </DialogTitle>
                                     <DialogDescription>
+                                        Provide the download link for the
+                                        completed work
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label
+                                            htmlFor="downloadLink"
+                                            className="text-sm font-medium"
+                                        >
+                                            Download Link
+                                        </Label>
                                         <Input
-                                            placeholder="Enter download link"
+                                            id="downloadLink"
+                                            placeholder="https://example.com/download"
                                             value={downloadLink}
                                             onChange={(e) =>
                                                 setDownloadLink(e.target.value)
                                             }
                                             type="url"
-                                            required
+                                            className="w-full"
                                         />
-                                    </DialogDescription>
-                                </DialogHeader>
-
+                                    </div>
+                                </div>
                                 <DialogFooter>
                                     <DialogClose asChild>
                                         <Button
                                             type="submit"
-                                            onClick={() =>
-                                                handleDeliverOrder({
-                                                    order_id: orderID,
-                                                    order_status: 'Delivered',
-                                                    user_id: userID,
-                                                    download_link: downloadLink,
-                                                })
-                                            }
+                                            className="bg-indigo-600 hover:bg-indigo-700"
+                                            onClick={handleDeliverOrder}
                                         >
-                                            Deliver
+                                            Confirm Delivery
                                         </Button>
                                     </DialogClose>
                                 </DialogFooter>
@@ -241,93 +241,114 @@ export default function OrderDetailsPaymentAndDetails({
                 )}
 
             {role === 'user' && status === 'delivered' && (
-                <CardFooter>
+                <CardFooter className="border-t">
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button
-                                className="w-full"
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                                 disabled={isReviewDone || isCompleted}
                             >
-                                Complete/Request Revision
+                                {isReviewDone || isCompleted ? (
+                                    <div className="flex items-center gap-2">
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                        Processing...
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle className="h-4 w-4" />
+                                        Complete/Request Revision
+                                    </div>
+                                )}
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-[425px]">
                             <DialogHeader>
-                                <DialogTitle>Fill the input</DialogTitle>
-                                <DialogDescription className="space-y-6">
-                                    <RadioGroup
-                                        className="mt-4 flex items-center gap-6"
-                                        value={reviewOrComplete}
-                                        onValueChange={(value) =>
-                                            setReviewOrComplete(value)
-                                        }
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <RadioGroupItem
-                                                value="in-revision"
-                                                id="in-revision"
-                                            />
-                                            <Label htmlFor="in-revision">
-                                                Request Revision
-                                            </Label>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <RadioGroupItem
-                                                value="Complete"
-                                                id="Complete"
-                                            />
-                                            <Label htmlFor="Complete">
-                                                Complete Order
-                                            </Label>
-                                        </div>
-                                    </RadioGroup>
-
-                                    {reviewOrComplete === 'in-revision' && (
-                                        <div className="grid w-full items-center gap-3">
-                                            <Label htmlFor="instruction">
-                                                Instruction
-                                            </Label>
-                                            <Textarea
-                                                id="instruction"
-                                                placeholder="Enter the review instructions"
-                                                value={instruction}
-                                                onChange={(e) =>
-                                                    setInstruction(
-                                                        e.target.value
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    )}
+                                <DialogTitle className="text-lg">
+                                    Order Feedback
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {reviewOrComplete === 'in-revision'
+                                        ? 'Provide details for revision'
+                                        : 'Confirm order completion'}
                                 </DialogDescription>
                             </DialogHeader>
+                            <div className="grid gap-6 py-4">
+                                <RadioGroup
+                                    value={reviewOrComplete}
+                                    onValueChange={setReviewOrComplete}
+                                    className="grid grid-cols-2 gap-4"
+                                >
+                                    <div>
+                                        <RadioGroupItem
+                                            value="in-revision"
+                                            id="in-revision"
+                                            className="peer sr-only"
+                                        />
+                                        <Label
+                                            htmlFor="in-revision"
+                                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-emerald-500 [&:has([data-state=checked])]:border-emerald-500"
+                                        >
+                                            <RefreshCw className="mb-2 h-6 w-6 text-yellow-500" />
+                                            Request Revision
+                                        </Label>
+                                    </div>
+                                    <div>
+                                        <RadioGroupItem
+                                            value="complete"
+                                            id="complete"
+                                            className="peer sr-only"
+                                        />
+                                        <Label
+                                            htmlFor="complete"
+                                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-emerald-500 [&:has([data-state=checked])]:border-emerald-500"
+                                        >
+                                            <CheckCircle className="mb-2 h-6 w-6 text-emerald-500" />
+                                            Complete Order
+                                        </Label>
+                                    </div>
+                                </RadioGroup>
 
+                                {reviewOrComplete === 'in-revision' && (
+                                    <div className="space-y-2">
+                                        <Label
+                                            htmlFor="instruction"
+                                            className="text-sm font-medium"
+                                        >
+                                            Revision Instructions
+                                        </Label>
+                                        <Textarea
+                                            id="instruction"
+                                            placeholder="What needs to be changed?"
+                                            value={instruction}
+                                            onChange={(e) =>
+                                                setInstruction(e.target.value)
+                                            }
+                                            className="min-h-[120px]"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                             <DialogFooter>
                                 <DialogClose asChild>
                                     {reviewOrComplete === 'in-revision' ? (
                                         <Button
                                             type="submit"
-                                            disabled={isReviewDone}
-                                            onClick={() => {
-                                                handleReviewOrder({
-                                                    order_id: orderID,
-                                                    sender_id: userID,
-                                                    message: instruction,
-                                                    sender_role: role,
-                                                });
-                                            }}
+                                            className="bg-yellow-500 hover:bg-yellow-600"
+                                            disabled={
+                                                isReviewDone || !instruction
+                                            }
+                                            onClick={handleReviewOrder}
                                         >
-                                            Request for review
+                                            <Send className="h-4 w-4" />
+                                            Submit Revision Request
                                         </Button>
                                     ) : (
                                         <Button
                                             type="submit"
+                                            className="bg-emerald-600 hover:bg-emerald-700"
                                             disabled={isCompleted}
                                             onClick={() => {
-                                                handleCompleteOrder({
-                                                    order_id: orderID,
-                                                    user_id: userID,
-                                                });
+                                                handleCompleteOrder();
 
                                                 if (
                                                     reviewOrComplete ===
@@ -342,7 +363,8 @@ export default function OrderDetailsPaymentAndDetails({
                                                 }
                                             }}
                                         >
-                                            Complete Order
+                                            <CheckCircle className="h-4 w-4" />
+                                            Confirm Completion
                                         </Button>
                                     )}
                                 </DialogClose>
@@ -355,24 +377,30 @@ export default function OrderDetailsPaymentAndDetails({
             {role === 'user' &&
                 status === 'completed' &&
                 paymentStatus === 'pay-later' && (
-                    <CardFooter>
+                    <CardFooter className="border-t px-6 py-4">
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button className="w-full">
-                                    Proceed to Payment
+                                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                                    <div className="flex items-center gap-2">
+                                        <CreditCard className="h-4 w-4" />
+                                        Proceed to Payment
+                                    </div>
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="px-0">
+                            <DialogContent className="max-w-2xl p-0">
                                 <ScrollArea className="h-[75vh]">
-                                    <DialogHeader className="p-6">
-                                        <DialogTitle>Payment</DialogTitle>
-                                        <DialogDescription>
-                                            You&apos;ve marked the order as
-                                            complete, but it seems the payment
-                                            has not been made yet.
-                                        </DialogDescription>
-                                    </DialogHeader>
-
+                                    <div className="p-6">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-xl">
+                                                Complete Payment
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Your order is complete but
+                                                pending payment. Please proceed
+                                                with the payment.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                    </div>
                                     {clientSecret ? (
                                         <EmbeddedCheckoutProvider
                                             stripe={stripePromise}
@@ -381,8 +409,8 @@ export default function OrderDetailsPaymentAndDetails({
                                             <EmbeddedCheckout className="w-full" />
                                         </EmbeddedCheckoutProvider>
                                     ) : (
-                                        <div className="flex items-center justify-center">
-                                            <IconLoader className="animate-spin" />
+                                        <div className="flex h-64 items-center justify-center">
+                                            <Loader className="h-8 w-8 animate-spin text-purple-500" />
                                         </div>
                                     )}
                                 </ScrollArea>
