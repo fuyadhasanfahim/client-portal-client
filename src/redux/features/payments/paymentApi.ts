@@ -30,8 +30,17 @@ export const paymentsApi = apiSlice.injectEndpoints({
                 params: { userID, role, paymentOption },
             }),
         }),
+        getPaymentByOrderID: builder.query({
+            query: (orderID) => ({
+                url: `payments/get-payment/${orderID}`,
+                method: 'GET',
+            }),
+        }),
     }),
 });
 
-export const { useNewPaymentMutation, useGetPaymentsByStatusQuery } =
-    paymentsApi;
+export const {
+    useNewPaymentMutation,
+    useGetPaymentsByStatusQuery,
+    useGetPaymentByOrderIDQuery,
+} = paymentsApi;
