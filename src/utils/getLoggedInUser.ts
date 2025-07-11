@@ -1,6 +1,6 @@
 import { useGetMeQuery } from '@/redux/features/users/userApi';
 
-export default function getLoggedInUser() {
+export default function useLoggedInUser() {
     const { data, isLoading, error } = useGetMeQuery({});
 
     return {

@@ -40,7 +40,6 @@ export default function OrderDetailsCard({ order }: { order: IOrder }) {
                     role={user.role}
                     paymentStatus={order.paymentStatus}
                     orderID={order.orderID}
-                    userID={order.user.userID}
                 />
                 <OrderDetailsInvoice order={order} user={user} />
             </div>

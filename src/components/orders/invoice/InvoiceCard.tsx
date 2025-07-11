@@ -38,6 +38,7 @@ export default function InvoiceCard({ orderID }: { orderID: string }) {
                 `Invoice for order #${orderID} has been sent to ${order.user?.email}`
             );
         } catch (error) {
+            console.log(error)
             toast.error('Failed to send invoice');
         }
     };

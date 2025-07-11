@@ -34,7 +34,7 @@ import {
     EmbeddedCheckoutProvider,
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { IconLoader, IconPackage } from '@tabler/icons-react';
+import { IconPackage } from '@tabler/icons-react';
 import {
     CheckCircle,
     CreditCard,
@@ -53,13 +53,11 @@ interface OrderDetailsPaymentAndDetailsProps {
     paymentStatus?: string;
     role: string;
     orderID: string;
-    userID: string;
 }
 
 export default function OrderDetailsPaymentAndDetails({
     status,
     orderID,
-    userID,
     total,
     paymentId,
     paymentStatus,
