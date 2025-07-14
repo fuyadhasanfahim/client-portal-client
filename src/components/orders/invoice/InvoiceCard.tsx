@@ -33,12 +33,10 @@ export default function InvoiceCard({ orderID }: { orderID: string }) {
         if (!order) return;
         try {
             const result = await sendInvoice(orderID).unwrap();
-            console.log(result);
             toast.success(
                 `Invoice for order #${orderID} has been sent to ${order.user?.email}`
             );
         } catch (error) {
-            console.log(error)
             toast.error('Failed to send invoice');
         }
     };
@@ -149,7 +147,7 @@ export default function InvoiceCard({ orderID }: { orderID: string }) {
                 )}
             </div>
 
-            <InvoiceTemplate order={order} user={user} payment={payment} />
+            <InvoiceTemplate order={order} payment={payment} />
         </section>
     );
 }

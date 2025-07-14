@@ -14,20 +14,18 @@ import Image from 'next/image';
 import { IPayment } from '@/types/payment.interface';
 
 export default function InvoiceTemplate({
-    user,
     order,
     payment,
 }: {
-    user: ISanitizedUser;
     order: IOrder;
     payment: IPayment;
 }) {
     return (
         <div
             id="invoice-content"
-            className="bg-white p-8 border print:border-none border-gray-200 min-h-full"
+            className="bg-white p-8 border print:border-none border-gray-200 min-h-[80vh]"
         >
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start mb-8">
                 <div className="mb-6 md:mb-0">
                     <Image
                         src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1751019279/tygwvniej4dtd9a7g8sx.svg"
@@ -36,9 +34,6 @@ export default function InvoiceTemplate({
                         height={50}
                         className="h-10 w-auto"
                     />
-                    <p className="text-sm text-gray-500 mt-2">
-                        {user.company || 'Your Company'}
-                    </p>
                 </div>
 
                 <div className="text-right">
