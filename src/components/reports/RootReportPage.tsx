@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import {
     Card,
@@ -34,41 +34,87 @@ import {
     TrendingDown,
     LucideIcon,
 } from 'lucide-react';
-import ApiError from '../shared/ApiError';
-import toast from 'react-hot-toast';
 import { Skeleton } from '../ui/skeleton';
 import { format, subDays, subMonths } from 'date-fns';
 import { IOrder } from '@/types/order.interface';
+import { useGetOrdersByStatusQuery } from '@/redux/features/orders/ordersApi';
+import { useGetPaymentsByStatusQuery } from '@/redux/features/payments/paymentApi';
 
-export default function RootReportPage({ authToken }: { authToken: string }) {
+export default function RootReportPage() {
     const { user } = getLoggedInUser();
     const { userID, role } = user;
 
-    const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-    const [orders, setOrders] = useState([]);
-    const [chartDateRange, setChartDateRange] = useState('30');
-    const [isCompletedOrdersLoading, setIsCompletedOrdersLoading] =
-        useState(true);
-    const [completedOrders, setCompletedOrders] = useState(0);
-    const [isPaymentLoading, setIsPaymentLoading] = useState(true);
-    const [payments, setPayments] = useState({
-        totalAmount: 0,
-        revenueTrend: 0,
-    });
-    const [isPendingLoading, setIsPendingLoading] = useState(true);
-    const [pending, setPending] = useState({ totalAmount: 0, revenueTrend: 0 });
-    const [isPaymentToMonthLoading, setIsPaymentToMonthLoading] =
-        useState(true);
-    const [paymentToMonth, setPaymentToMonth] = useState({
-        totalAmount: 0,
-        revenueTrend: 0,
-    });
+    // Fetch all data with loading states
+    const {
+        data: ordersData,
+        isLoading: isOrdersLoading,
+        isError: isOrdersError,
+    } = useGetOrdersByStatusQuery(
+        { userID, role, status: 'completed' },
+        { skip: !userID || !role }
+    );
+
+    const {
+        data: paymentsData,
+        isLoading: isPaymentsLoading,
+        isError: isPaymentsError,
+    } = useGetPaymentsByStatusQuery(
+        { status: 'paid', paymentOption: 'pay-now', userID, role },
+        { skip: !userID || !role }
+    );
+
+    const {
+        data: pendingData,
+        isLoading: isPendingLoading,
+        isError: isPendingError,
+    } = useGetPaymentsByStatusQuery(
+        { status: 'success', paymentOption: 'pay-later', userID, role },
+        { skip: !userID || !role }
+    );
 
     const currentMonth = new Date().toLocaleDateString('en-US', {
         month: 'long',
     });
+    const {
+        data: monthlyPaymentsData,
+        isLoading: isMonthlyPaymentsLoading,
+        isError: isMonthlyPaymentsError,
+    } = useGetPaymentsByStatusQuery(
+        {
+            status: 'paid',
+            paymentOption: 'pay-now',
+            month: currentMonth,
+            userID,
+            role,
+        },
+        { skip: !userID || !role }
+    );
+
+    // Derived data states
+    const orders = isOrdersLoading ? [] : ordersData?.data ?? [];
+    const payments = isPaymentsLoading ? null : paymentsData?.data;
+    const pending = isPendingLoading ? null : pendingData?.data;
+    const paymentToMonth = isMonthlyPaymentsLoading
+        ? null
+        : monthlyPaymentsData?.data;
+
+    const [chartDateRange, setChartDateRange] = useState('30');
+
+    // Check if any data is loading
+    const isLoading =
+        isOrdersLoading ||
+        isPaymentsLoading ||
+        isPendingLoading ||
+        isMonthlyPaymentsLoading;
+    const isError =
+        isOrdersError ||
+        isPaymentsError ||
+        isPendingError ||
+        isMonthlyPaymentsError;
 
     const transformOrdersToChartData = (orders: IOrder[], range: string) => {
+        if (!orders.length) return [];
+
         const now = new Date();
         const startDate =
             range === '15'
@@ -191,165 +237,14 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
         return transformOrdersToChartData(orders, chartDateRange);
     }, [orders, chartDateRange]);
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const response = await fetch(
-                    `${
-                        process.env.NEXT_PUBLIC_BACKEND_URL
-                    }/api/orders/get-orders-for-report-page?userID=${userID!}&role=${role!}`,
-                    {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setOrders(result.data);
-                } else {
-                    toast.error(
-                        result.message || 'Failed to fetch completed orders'
-                    );
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsLoadingOrders(false);
-            }
-        };
-
-        fetchOrders();
-    }, [authToken, userID, role]);
-
-    useEffect(() => {
-        const fetchCompletedOrders = async () => {
-            try {
-                const response = await fetch(
-                    `${
-                        process.env.NEXT_PUBLIC_BACKEND_URL
-                    }/api/orders/get-orders-by-status?status=Completed&userID=${userID!}&role=${role!}`,
-                    {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setCompletedOrders(result.data.length);
-                } else {
-                    toast.error(
-                        result.message || 'Failed to fetch completed orders'
-                    );
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsCompletedOrdersLoading(false);
-            }
-        };
-
-        fetchCompletedOrders();
-    }, [authToken, userID, role]);
-
-    useEffect(() => {
-        const fetchPayments = async () => {
-            try {
-                const response = await fetch(
-                    `${
-                        process.env.NEXT_PUBLIC_BACKEND_URL
-                    }/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay%20Now&userID=${userID!}&role=${role!}`,
-                    {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setPayments(result.data);
-                } else {
-                    toast.error(result.message || 'Failed to fetch payments');
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsPaymentLoading(false);
-            }
-        };
-
-        fetchPayments();
-    }, [authToken, userID, role]);
-
-    useEffect(() => {
-        const fetchPending = async () => {
-            try {
-                const response = await fetch(
-                    `${
-                        process.env.NEXT_PUBLIC_BACKEND_URL
-                    }/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay Later&userID=${userID!}&role=${role!}`,
-                    {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setPending(result.data);
-                } else {
-                    toast.error(
-                        result.message || 'Failed to fetch pending payments'
-                    );
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsPendingLoading(false);
-            }
-        };
-
-        fetchPending();
-    }, [authToken, userID, role]);
-
-    useEffect(() => {
-        const fetchPaymentToMonth = async () => {
-            try {
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payments/get-payments-to-date-by-status?status=paid&paymentOption=Pay%20Now&month=${currentMonth}&userID=${userID}&role=${role}`,
-                    {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setPaymentToMonth(result.data);
-                } else {
-                    toast.error(
-                        result.message || 'Failed to fetch monthly payments'
-                    );
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsPaymentToMonthLoading(false);
-            }
-        };
-
-        fetchPaymentToMonth();
-    }, [authToken, userID, role, currentMonth]);
-
     const StatCard = ({
         title,
         value,
         icon,
-        trend,
-        prefix,
-        suffix,
-        loading,
+        trend = 0,
+        prefix = '',
+        suffix = '',
+        loading = false,
     }: {
         title: string;
         value: string | number;
@@ -361,52 +256,73 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
     }) => (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-medium">{title}</CardTitle>
-                {icon &&
-                    React.createElement(icon, {
-                        className: 'h-4 w-4 text-primary',
-                    })}
+                <CardTitle className="font-medium text-sm md:text-base">
+                    {title}
+                </CardTitle>
+                {React.createElement(icon, {
+                    className: 'h-4 w-4 text-primary',
+                })}
             </CardHeader>
             <CardContent>
                 {loading ? (
-                    <Skeleton className="h-8 w-32 mb-2" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-full rounded-md" />
+                        <Skeleton className="h-4 w-3/4 rounded-md" />
+                    </div>
                 ) : (
-                    <div className="text-2xl font-bold">
-                        {prefix}
-                        {typeof value === 'number'
-                            ? value.toLocaleString()
-                            : value}
-                        {suffix}
-                    </div>
+                    <>
+                        <div className="text-2xl font-bold">
+                            {prefix}
+                            {typeof value === 'number'
+                                ? value.toLocaleString()
+                                : value}
+                            {suffix}
+                        </div>
+                        <div className="flex items-center text-xs text-muted-foreground mt-1">
+                            {trend > 0 ? (
+                                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                            ) : (
+                                <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                            )}
+                            <span
+                                className={
+                                    trend > 0
+                                        ? 'text-green-500'
+                                        : 'text-red-500'
+                                }
+                            >
+                                {Math.abs(trend).toFixed(1)}%
+                            </span>
+                            <span className="ml-1">from last period</span>
+                        </div>
+                    </>
                 )}
-
-                {loading ? (
-                    <Skeleton className="h-4 w-40 rounded-md" />
-                ) : trend !== undefined ? (
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        {trend > 0 ? (
-                            <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                        ) : (
-                            <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-                        )}
-                        <span
-                            className={
-                                trend > 0 ? 'text-green-500' : 'text-red-500'
-                            }
-                        >
-                            {Math.abs(trend).toFixed(1)}%
-                        </span>
-                        <span className="ml-1">from last period</span>
-                    </div>
-                ) : null}
             </CardContent>
         </Card>
     );
 
+    if (isError) {
+        return (
+            <div className="container mx-auto p-6">
+                <Card className="border-red-200 bg-red-50">
+                    <CardHeader>
+                        <CardTitle className="text-red-600">
+                            Error Loading Data
+                        </CardTitle>
+                        <CardDescription>
+                            We couldn't load your report data. Please try again
+                            later.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        );
+    }
+
     return (
-        <div className="container mx-auto p-6 space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">
+        <div className="container mx-auto p-4 md:p-6 space-y-6">
+            <div className="space-y-1">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                     Orders Report
                 </h1>
                 <p className="text-muted-foreground">
@@ -414,30 +330,31 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                 </p>
             </div>
 
+            {/* Stats Grid with Skeleton Loading */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                     title={
-                        role === 'User' ? 'Expense to Date' : 'Earnings to Date'
+                        role === 'user' ? 'Expense to Date' : 'Earnings to Date'
                     }
-                    value={payments.totalAmount}
+                    value={payments?.amount ?? 0}
                     icon={DollarSign}
                     prefix="$"
-                    loading={isPaymentLoading}
-                    trend={payments.revenueTrend}
+                    loading={isPaymentsLoading}
+                    trend={payments?.growthPercentage ?? 0}
                 />
                 <StatCard
                     title="Pending to Date"
-                    value={pending.totalAmount}
+                    value={pending?.amount ?? 0}
                     icon={DollarSign}
                     prefix="$"
                     loading={isPendingLoading}
-                    trend={pending.revenueTrend}
+                    trend={pending?.growthPercentage ?? 0}
                 />
                 <StatCard
                     title="Orders Completed"
-                    value={completedOrders}
+                    value={orders.length}
                     icon={CheckCircle}
-                    loading={isCompletedOrdersLoading}
+                    loading={isOrdersLoading}
                 />
                 <StatCard
                     title={
@@ -445,33 +362,28 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                             ? `Expense in ${currentMonth}`
                             : `Earnings in ${currentMonth}`
                     }
-                    value={paymentToMonth.totalAmount}
+                    value={paymentToMonth?.amount ?? 0}
                     icon={Calendar}
                     prefix="$"
-                    loading={isPaymentToMonthLoading}
-                    trend={paymentToMonth.revenueTrend}
+                    loading={isMonthlyPaymentsLoading}
+                    trend={paymentToMonth?.growthPercentage ?? 0}
                 />
             </div>
 
-            <Card>
+            {/* Chart Section */}
+            <Card className="animate-fade-in">
                 <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <div>
-                            <CardTitle>Overview</CardTitle>
+                            <CardTitle>Performance Overview</CardTitle>
                             <CardDescription>
-                                Sales performance over the last{' '}
-                                {chartDateRange === '15'
-                                    ? '15 days'
-                                    : chartDateRange === '30'
-                                    ? '30 days'
-                                    : chartDateRange === '365'
-                                    ? '1 year'
-                                    : '30 days'}
+                                Visualizing your order trends over time
                             </CardDescription>
                         </div>
                         <Select
                             value={chartDateRange}
                             onValueChange={setChartDateRange}
+                            disabled={isLoading}
                         >
                             <SelectTrigger className="w-32">
                                 <SelectValue />
@@ -485,44 +397,73 @@ export default function RootReportPage({ authToken }: { authToken: string }) {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {isLoadingOrders ? (
-                        <Skeleton className="h-80 w-full" />
+                    {isLoading || !orders.length ? (
+                        <div className="h-80 flex flex-col items-center justify-center space-y-4">
+                            <Skeleton className="h-full w-full rounded-lg" />
+                            <p className="text-muted-foreground text-sm">
+                                {isLoading
+                                    ? 'Loading chart data...'
+                                    : 'No order data available'}
+                            </p>
+                        </div>
                     ) : (
                         <div className="h-80">
                             <ResponsiveContainer width="100%" height="100%">
-                                {
-                                    <LineChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="dateFormatted"
-                                            tick={{ fontSize: 12 }}
-                                        />
-                                        <YAxis tick={{ fontSize: 12 }} />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="newOrders"
-                                            stroke="#82ca9d"
-                                            strokeWidth={2}
-                                            name="New Orders"
-                                        />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="completedOrders"
-                                            stroke="#8884d8"
-                                            strokeWidth={2}
-                                            name="Completed Orders"
-                                        />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="canceledOrders"
-                                            stroke="#ff7c7c"
-                                            strokeWidth={2}
-                                            name="Canceled Orders"
-                                        />
-                                    </LineChart>
-                                }
+                                <LineChart
+                                    data={chartData}
+                                    margin={{
+                                        top: 5,
+                                        right: 30,
+                                        left: 20,
+                                        bottom: 5,
+                                    }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        opacity={0.3}
+                                    />
+                                    <XAxis
+                                        dataKey="dateFormatted"
+                                        tick={{ fontSize: 12 }}
+                                    />
+                                    <YAxis tick={{ fontSize: 12 }} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: '0.5rem',
+                                            boxShadow:
+                                                '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                            border: 'none',
+                                        }}
+                                    />
+                                    <Legend />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="newOrders"
+                                        stroke="#82ca9d"
+                                        strokeWidth={2}
+                                        name="New Orders"
+                                        dot={{ r: 3 }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="completedOrders"
+                                        stroke="#8884d8"
+                                        strokeWidth={2}
+                                        name="Completed Orders"
+                                        dot={{ r: 3 }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="canceledOrders"
+                                        stroke="#ff7c7c"
+                                        strokeWidth={2}
+                                        name="Canceled Orders"
+                                        dot={{ r: 3 }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                </LineChart>
                             </ResponsiveContainer>
                         </div>
                     )}

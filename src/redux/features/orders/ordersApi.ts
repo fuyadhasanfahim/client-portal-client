@@ -104,14 +104,17 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
-            // newOrder: builder.mutation({
-            //     query: (data) => ({
-            //         url: `orders/new-order`,
-            //         method: 'POST',
-            //         body: data,
-            //     }),
-            //     invalidatesTags: ['Orders'],
-            // }),
+            getOrdersByStatus: builder.query({
+                query: ({ userID, role, status }) => ({
+                    url: `orders/get-orders-by-status/${status}`,
+                    method: 'GET',
+                    params: {
+                        userID,
+                        role,
+                    },
+                }),
+                providesTags: ['Orders'],
+            }),
             getOrder: builder.query({
                 query: (params) => ({
                     url: 'orders/get-order',
@@ -132,7 +135,7 @@ export const {
     useDeliverOrderMutation,
     useReviewOrderMutation,
     useCompleteOrderMutation,
+    useGetOrdersByStatusQuery,
     // fjkdgbsdfg
-    useAddOrderMutation,
     useGetOrderQuery,
 } = ordersApi;

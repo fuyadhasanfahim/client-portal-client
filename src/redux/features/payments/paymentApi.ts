@@ -24,10 +24,10 @@ export const paymentsApi = apiSlice.injectEndpoints({
             }),
         }),
         getPaymentsByStatus: builder.query({
-            query: ({ status, paymentOption, userID, role }) => ({
+            query: ({ status, month, paymentOption, userID, role }) => ({
                 url: `payments/get-payments-amount/${status}`,
                 method: 'GET',
-                params: { userID, role, paymentOption },
+                params: { status, month, paymentOption, userID, role },
             }),
         }),
         getPaymentByOrderID: builder.query({

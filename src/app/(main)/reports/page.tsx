@@ -1,5 +1,4 @@
 import RootReportPage from '@/components/reports/RootReportPage';
-import getAuthToken from '@/utils/getAuthToken';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -8,7 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default async function ReportsPage() {
-    const token = await getAuthToken();
-
-    return <RootReportPage authToken={token as string} />;
+    return <RootReportPage />;
 }
