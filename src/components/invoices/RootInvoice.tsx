@@ -1,6 +1,5 @@
 'use client';
 
-import ApiError from '@/components/shared/ApiError';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,62 +24,45 @@ import { IOrder } from '@/types/order.interface';
 import {
     ChevronLeft,
     ChevronRight,
+    EyeIcon,
     FileUp,
     NotebookText,
     Search,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
+import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
 
-export default function RootInvoice({ authToken }: { authToken: string }) {
+export default function RootInvoice() {
     const { user } = getLoggedInUser();
     const { userID, role } = user;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [quantity, setQuantity] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
-    const [orders, setOrders] = useState<IOrder[] | []>([]);
-    const [pagination, setPagination] = useState({
-        total: 0,
-        quantity: 10,
-        page: 1,
-        totalPages: 1,
-    });
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                setIsLoading(true);
-
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-all-orders?userID=${userID}&role=${role}&page=${currentPage}&limit=${quantity}&searchQuery=${searchQuery}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setOrders(result.data);
-                    setPagination(result.pagination);
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (userID && role) {
-            fetchOrders();
+    const { data, isLoading } = useGetOrdersQuery(
+        {
+            userID,
+            role,
+            search: searchQuery,
+            page: currentPage,
+            limit: quantity,
+        },
+        {
+            skip: !userID || !role,
         }
-    }, [userID, role, currentPage, quantity, searchQuery, authToken]);
+    );
+
+    const orders = data?.orders || [];
+    const pagination = data?.pagination || {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+    };
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -157,7 +139,6 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                                 'Services',
                                 'Total ($)',
                                 'Payment ($)',
-                                'Working Status',
                                 'Order Status',
                                 'Actions',
                             ].map((title, idx) => (
@@ -172,9 +153,9 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: 8 }).map((_, i) => (
+                            Array.from({ length: 7 }).map((_, i) => (
                                 <TableRow key={`loading-${i}`}>
-                                    {Array.from({ length: 8 }).map((_, j) => (
+                                    {Array.from({ length: 7 }).map((_, j) => (
                                         <TableCell
                                             key={j}
                                             className="text-center"
@@ -184,126 +165,126 @@ export default function RootInvoice({ authToken }: { authToken: string }) {
                                     ))}
                                 </TableRow>
                             ))
-                        ) : !isLoading && orders && orders.length === 0 ? (
+                        ) : orders.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={8}
+                                    colSpan={7}
                                     className="text-center py-8"
                                 >
                                     <p className="text-gray-500">
-                                        No orders found for invoice
+                                        No orders found
                                     </p>
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            !isLoading &&
-                            orders &&
-                            orders.map((order: IOrder, index: number) => {
-                                const item = statusData.find(
-                                    (item) => item.value === order.status
-                                );
+                            orders
+                                .filter(
+                                    (order: IOrder) =>
+                                        order.orderStage === 'payment-completed'
+                                )
+                                .map((order: IOrder, index: number) => {
+                                    const item = statusData.find(
+                                        (item) => item.value === order.status
+                                    );
 
-                                return (
-                                    <TableRow
-                                        key={index}
-                                        className="hover:bg-muted/50"
-                                    >
-                                        <TableCell className="text-center font-medium border-r">
-                                            <Link
-                                                href={`/orders/details/${order.orderID!}`}
+                                    return (
+                                        <TableRow
+                                            key={index}
+                                            className="hover:bg-muted/50"
+                                        >
+                                            <TableCell className="text-center font-medium border-r">
+                                                <Link
+                                                    href={`/orders/details/${order.orderID!}`}
+                                                    className={cn(
+                                                        'text-primary underline',
+                                                        order.status ===
+                                                            'canceled' &&
+                                                            'text-destructive'
+                                                    )}
+                                                >
+                                                    #{order.orderID}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell
                                                 className={cn(
-                                                    'text-primary underline',
+                                                    'text-center text-sm border-r',
                                                     order.status ===
                                                         'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
-                                                #{order.orderID}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            {order.user.userID}
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-start text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            <ul className="list-decimal list-inside space-y-1">
-                                                {order.services.map(
-                                                    (service) => (
-                                                        <li key={service.name}>
-                                                            {service.name}
-                                                        </li>
-                                                    )
-                                                )}
-                                            </ul>
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            ${order?.total?.toFixed(2) || 0}
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            Nothing
-                                        </TableCell>
-                                        <TableCell className="text-center text-sm border-r">
-                                            <span
+                                                {order.user.userID}
+                                            </TableCell>
+                                            <TableCell
                                                 className={cn(
-                                                    'flex items-center justify-center gap-1',
-                                                    item && item.text
+                                                    'text-start text-sm border-r',
+                                                    order.status ===
+                                                        'canceled' &&
+                                                        'text-destructive'
                                                 )}
                                             >
-                                                {item ? (
-                                                    <item.icon
-                                                        size={16}
-                                                        className={cn(
-                                                            item.text
-                                                        )}
-                                                    />
-                                                ) : null}
-                                                {order.status}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r'
-                                            )}
-                                        >
-                                            <SelectOrderStatus
-                                                order={order}
-                                                role={role!}
-                                                orderID={order.orderID!}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-center hover:underline cursor-pointer">
-                                            <Link
-                                                href={`/orders/invoice/${order.orderID}`}
+                                                <ul className="list-decimal list-inside space-y-1">
+                                                    {order.services.map(
+                                                        (service) => (
+                                                            <li
+                                                                key={
+                                                                    service.name
+                                                                }
+                                                            >
+                                                                {service.name}
+                                                            </li>
+                                                        )
+                                                    )}
+                                                </ul>
+                                            </TableCell>
+                                            <TableCell
+                                                className={cn(
+                                                    'text-center text-sm border-r',
+                                                    order.status ===
+                                                        'canceled' &&
+                                                        'text-destructive'
+                                                )}
                                             >
-                                                Get Invoice
-                                            </Link>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
+                                                ${order.total?.toFixed(2) || 0}
+                                            </TableCell>
+                                            <TableCell
+                                                className={cn(
+                                                    'text-center capitalize text-sm border-r',
+                                                    order.status ===
+                                                        'canceled' &&
+                                                        'text-destructive'
+                                                )}
+                                            >
+                                                {order.paymentStatus}
+                                            </TableCell>
+                                            <TableCell className="text-center text-sm border-r">
+                                                <span
+                                                    className={cn(
+                                                        'flex items-center capitalize justify-center gap-1',
+                                                        item && item.text
+                                                    )}
+                                                >
+                                                    <SelectOrderStatus
+                                                        order={order}
+                                                        role={role}
+                                                        orderID={order.orderID}
+                                                    />
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Link
+                                                    href={`/orders/details/${order.orderID!}`}
+                                                    className="flex items-center justify-center gap-1 group"
+                                                >
+                                                    <EyeIcon size={20} />
+                                                    <span className="group-hover:underline cursor-pointer">
+                                                        Details
+                                                    </span>
+                                                </Link>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
                         )}
                     </TableBody>
                 </Table>

@@ -14,9 +14,8 @@ export const userApi = apiSlice.injectEndpoints({
         }),
         getUserInfo: builder.query({
             query: (userID) => ({
-                url: 'users/get-info',
+                url: `users/get-info/${userID}`,
                 method: 'GET',
-                body: userID,
             }),
         }),
         getOrdersByUserID: builder.query({
@@ -25,7 +24,6 @@ export const userApi = apiSlice.injectEndpoints({
                 method: 'GET',
             }),
         }),
-
         updateUserInfo: builder.mutation({
             query: ({
                 userID,
@@ -40,11 +38,19 @@ export const userApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['Users'],
         }),
+        getUsers: builder.query({
+            query: (role) => ({
+                url: 'users/get-users',
+                method: 'GET',
+                params: { role },
+            }),
+            providesTags: ['Users'],
+        }),
 
         // gbkwjsdfg
         getUsersWithRole: builder.query({
             query: (role) => ({
-                url: 'user/get-user-with-role',
+                url: 'users/get-user-with-role',
                 method: 'GET',
                 params: { role },
             }),
@@ -52,17 +58,17 @@ export const userApi = apiSlice.injectEndpoints({
         }),
         getUser: builder.query({
             query: (user_id) => ({
-                url: `user/get-user`,
+                url: `users/get-user`,
                 params: { user_id },
             }),
             providesTags: ['Users'],
         }),
         getAdmin: builder.query({
-            query: () => ({ url: 'user/get-admin' }),
+            query: () => ({ url: 'users/get-admin' }),
             providesTags: ['Users'],
         }),
         getLoggedInUser: builder.query({
-            query: () => 'user/get-info',
+            query: () => 'users/get-info',
             providesTags: ['Users'],
         }),
     }),
@@ -73,6 +79,7 @@ export const {
     useGetUserInfoQuery,
     useGetOrdersByUserIDQuery,
     useUpdateUserInfoMutation,
+    useGetUsersQuery,
 
     //sdfgbasd
     useGetUsersWithRoleQuery,

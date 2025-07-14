@@ -18,26 +18,32 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { format } from 'date-fns';
-import { Download, FileSearch, Send } from 'lucide-react';
+import { Download, FileSearch, Loader, Send } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { IUser } from '@/types/user.interface';
+import { ISanitizedUser, IUser } from '@/types/user.interface';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { nanoid } from 'nanoid';
+import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
+import { IPayment } from '@/types/payment.interface';
+import { useGetPaymentByOrderIDQuery } from '@/redux/features/payments/paymentApi';
+import { MultiSelect } from '../shared/multi-select';
+import { useGetUsersQuery } from '@/redux/features/users/userApi';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
-export default function RootExportInvoice({
-    authToken,
-}: {
-    authToken: string;
-}) {
+export default function RootExportInvoice() {
     const { user } = getLoggedInUser();
     const { userID, role } = user;
 
-    const [isLoading, setIsLoading] = useState(false);
     const [isPdfDownloading, setPdfDownloading] = useState(false);
-    const [orders, setOrders] = useState<IOrder[] | []>([]);
-    const [client, setClient] = useState<IUser | undefined>(undefined);
     const [dateRange, setDateRange] = useState<{
         from: Date | undefined;
         to?: Date | undefined;
@@ -45,77 +51,59 @@ export default function RootExportInvoice({
     const [filteredOrders, setFilteredOrders] = useState<IOrder[]>([]);
     const [selectedOrderIDs, setSelectedOrderIDs] = useState<string[]>([]);
     const [selectAll, setSelectAll] = useState(false);
+    const [selectedUserID, setSelectedUserID] = useState<string>('');
 
     const router = useRouter();
+    const { data: allUsersData, isLoading: isAllUsersLoading } =
+        useGetUsersQuery(role, {
+            skip: !role || role !== 'admin',
+        });
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                setIsLoading(true);
+    const users = !isAllUsersLoading ? [] : allUsersData?.users ?? [];
+    console.log(allUsersData);
 
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-all-orders-by-user-id?userID=${userID}&role=${role}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setOrders(result.data);
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (userID && role) {
-            fetchOrders();
+    const { data, isLoading } = useGetOrdersQuery(
+        role === 'admin' ? { userID: selectedUserID, role } : { userID, role },
+        {
+            skip:
+                (role === 'admin' && selectedUserID.length === 0) ||
+                !userID ||
+                !role,
         }
-    }, [userID, role, authToken]);
+    );
 
-    useEffect(() => {
-        const fetchClient = async () => {
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/get-user-by-id?user_id=${orders[0]?.user.userID}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                    },
-                }
-            );
+    const orders: IOrder[] =
+        !isLoading &&
+        data &&
+        data.orders.filter(
+            (order: IOrder) => order.orderStage === 'payment-completed'
+        );
 
-            const data = await res.json();
+    const { data: paymentsData, isLoading: isPaymentsLoading } =
+        useGetPaymentByOrderIDQuery(selectedOrderIDs, {
+            skip: selectedOrderIDs.length === 0,
+        });
 
-            if (res.ok) {
-                setClient(data.data);
-            }
-        };
-        fetchClient();
-    }, [orders, authToken]);
+    const payments = !isPaymentsLoading ? paymentsData?.payments || [] : [];
 
     useEffect(() => {
         if (dateRange.from && dateRange.to) {
             const adjustedEndDate = new Date(dateRange.to);
             adjustedEndDate.setHours(23, 59, 59, 999);
 
-            const filtered = orders.filter((order) => {
-                if (!order.createdAt) return false;
-                const createdAt = new Date(order.createdAt);
-                return (
-                    dateRange.from !== undefined &&
-                    createdAt >= dateRange.from &&
-                    createdAt <= adjustedEndDate
-                );
-            });
+            const filtered =
+                orders?.filter((order) => {
+                    if (!order.createdAt) return false;
+                    const createdAt = new Date(order.createdAt);
+                    return (
+                        dateRange.from !== undefined &&
+                        createdAt >= dateRange.from &&
+                        createdAt <= adjustedEndDate
+                    );
+                }) || [];
             setFilteredOrders(filtered);
         } else {
-            setFilteredOrders([]);
+            setFilteredOrders(orders || []);
         }
         setSelectedOrderIDs([]);
         setSelectAll(false);
@@ -132,18 +120,31 @@ export default function RootExportInvoice({
     const getSelectedOrders = () =>
         filteredOrders.filter((o) => selectedOrderIDs.includes(o.orderID!));
 
-    const taxRate = 0.08;
+    const authToken = '';
 
     const handleInvoice = async () => {
         try {
             const selectedOrders = getSelectedOrders();
-            if (isLoading) {
+            if (isLoading || isPaymentsLoading) {
                 return;
             }
 
-            if (!client || selectedOrders.length === 0) {
+            if (selectedOrders.length === 0) {
+                toast.error('Please select orders');
+                return;
+            }
+
+            // Check if all selected orders have payment info
+            const ordersWithoutPayment = selectedOrders.filter(
+                (order) =>
+                    !payments.some(
+                        (payment: IPayment) => payment.orderID === order.orderID
+                    )
+            );
+
+            if (ordersWithoutPayment.length > 0) {
                 toast.error(
-                    'Please select orders and ensure client data is available'
+                    'Some selected orders are missing payment information'
                 );
                 return;
             }
@@ -160,11 +161,19 @@ export default function RootExportInvoice({
 
             setPdfDownloading(true);
 
-            const subTotal = selectedOrders.reduce(
-                (sum, order) => sum + (order.total ?? 0),
+            const client = selectedOrders[0].user;
+
+            const subTotal = payments.reduce(
+                (sum: number, payment: IPayment) => sum + (payment.amount || 0),
                 0
             );
-            const total = subTotal + subTotal * taxRate;
+
+            const taxAmount = payments.reduce(
+                (sum: number, payment: IPayment) => sum + (payment.tax || 0),
+                0
+            );
+
+            const total = subTotal + taxAmount;
 
             const invoiceID = nanoid(6).toUpperCase();
 
@@ -180,8 +189,9 @@ export default function RootExportInvoice({
                         invoiceID,
                         client: {
                             name: client.name,
-                            phone: client.phone || 'N/A',
+                            company: client.company,
                             address: client.address || 'N/A',
+                            email: client.email || 'N/A',
                         },
                         company: {
                             name: 'Web Briks LLC',
@@ -190,12 +200,15 @@ export default function RootExportInvoice({
                             phone: '+1 718 577 1232',
                         },
                         orders: selectedOrders,
+                        payments: payments.filter((payment: IPayment) =>
+                            selectedOrderIDs.includes(payment.orderID)
+                        ),
                         date: {
                             ...dateRange,
                             issued: new Date(),
                         },
-                        taxRate,
                         subTotal,
+                        taxAmount,
                         total,
                         createdBy: userID,
                     }),
@@ -236,6 +249,48 @@ export default function RootExportInvoice({
                 <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-0">
                     <div className="p-4 border-r">
                         <div className="space-y-4">
+                            {role === 'admin' && (
+                                <div>
+                                    <h3 className="font-medium text-sm mb-2">
+                                        Select Users
+                                    </h3>
+
+                                    <Select
+                                        value={selectedUserID}
+                                        onValueChange={setSelectedUserID}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select users..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {users.map(
+                                                (
+                                                    user: ISanitizedUser,
+                                                    idx: number
+                                                ) => (
+                                                    <SelectItem
+                                                        key={idx}
+                                                        value={user.userID}
+                                                        className="flex items-center gap-2"
+                                                    >
+                                                        <Avatar className="size-5">
+                                                            <AvatarImage
+                                                                src={user.image}
+                                                                alt="user image"
+                                                            />
+                                                            <AvatarFallback>
+                                                                <Loader />
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        {user.name}
+                                                    </SelectItem>
+                                                )
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
                             <div>
                                 <h3 className="font-medium text-sm mb-2">
                                     Date Range
@@ -294,7 +349,14 @@ export default function RootExportInvoice({
 
                     <ScrollArea className="h-[500px]">
                         <div className="p-4">
-                            {filteredOrders.length > 0 ? (
+                            {role === 'admin' && !selectedUserID ? (
+                                <div className="flex flex-col items-center justify-center h-[400px]">
+                                    <FileSearch className="h-10 w-10 text-muted-foreground mb-3" />
+                                    <h4 className="font-medium text-lg mb-1">
+                                        Select users to view orders
+                                    </h4>
+                                </div>
+                            ) : filteredOrders.length > 0 ? (
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center space-x-2">
@@ -328,11 +390,13 @@ export default function RootExportInvoice({
                                             <Button
                                                 disabled={
                                                     selectedOrderIDs.length ===
-                                                        0 || isPdfDownloading
+                                                        0 ||
+                                                    isPdfDownloading ||
+                                                    isPaymentsLoading
                                                 }
                                                 onClick={handleInvoice}
                                             >
-                                                <Download className="h-4 w-4" />
+                                                <Download className="h-4 w-4 mr-2" />
                                                 Download
                                             </Button>
 
@@ -340,11 +404,12 @@ export default function RootExportInvoice({
                                                 <Button
                                                     disabled={
                                                         selectedOrderIDs.length ===
-                                                        0
+                                                            0 ||
+                                                        isPaymentsLoading
                                                     }
                                                     variant="outline"
                                                 >
-                                                    <Send className="h-4 w-4" />
+                                                    <Send className="h-4 w-4 mr-2" />
                                                     Send
                                                 </Button>
                                             )}
@@ -391,6 +456,11 @@ export default function RootExportInvoice({
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between mt-1">
+                                                        <p className="text-sm text-muted-foreground truncate">
+                                                            {order.user.name ||
+                                                                order.user
+                                                                    .email}
+                                                        </p>
                                                         <p className="text-sm text-muted-foreground truncate">
                                                             {order.services
                                                                 .map(

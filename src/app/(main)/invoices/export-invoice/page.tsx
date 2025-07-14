@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 export default async function ExportInvoicePage() {
     const authToken = await getAuthToken();
 
-    return <RootExportInvoice authToken={authToken as string} />;
+    return <RootExportInvoice />;
 }
