@@ -46,6 +46,30 @@ export const userApi = apiSlice.injectEndpoints({
             }),
             providesTags: ['Users'],
         }),
+        updateUser: builder.mutation({
+            query: ({ userID, data }) => ({
+                url: `users/update-info/${userID}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: ['Users'],
+        }),
+        updatePassword: builder.mutation({
+            query: ({ userID, password }) => ({
+                url: `users/update-password/${userID}`,
+                method: 'PUT',
+                body: password,
+            }),
+            invalidatesTags: ['Users'],
+        }),
+        updateAvatar: builder.mutation({
+            query: ({ userID, file }) => ({
+                url: `users/update-password/${userID}`,
+                method: 'PUT',
+                body: file,
+            }),
+            invalidatesTags: ['Users'],
+        }),
 
         // gbkwjsdfg
         getUsersWithRole: builder.query({
@@ -80,6 +104,9 @@ export const {
     useGetOrdersByUserIDQuery,
     useUpdateUserInfoMutation,
     useGetUsersQuery,
+    useUpdateUserMutation,
+    useUpdatePasswordMutation,
+    useUpdateAvatarMutation,
 
     //sdfgbasd
     useGetUsersWithRoleQuery,
