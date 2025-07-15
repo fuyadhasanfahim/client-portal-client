@@ -50,16 +50,12 @@ import { statusData } from '@/data/orders';
 import { useGetPaymentsByStatusQuery } from '@/redux/features/payments/paymentApi';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
 import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
-export default function RootDashboard({
-    user,
-}: {
-    user: {
-        userID: string;
-        role: string;
-    };
-}) {
+export default function RootDashboard() {
+    const { user } = useLoggedInUser();
     const { userID, role } = user;
+
     const [chartDateRange, setChartDateRange] = useState('30');
 
     const { data, isLoading } = useGetOrdersQuery(

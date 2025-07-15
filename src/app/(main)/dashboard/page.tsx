@@ -9,11 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default async function Dashboard() {
-    const user = await getUserData();
-    const userData = {
-        userID: user.userID,
-        role: user.role,
-    };
-
-    return <RootDashboard user={userData} />;
+    return <RootDashboard />;
 }

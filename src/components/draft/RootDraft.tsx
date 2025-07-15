@@ -1,8 +1,16 @@
 'use client';
 
-import ApiError from '@/components/shared/ApiError';
+import React, { useState } from 'react';
+import {
+    Search,
+    ChevronLeft,
+    ChevronRight,
+    Funnel,
+    NotebookText,
+    DollarSign,
+    ListChecks,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -10,12 +18,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
     Table,
     TableBody,
@@ -24,87 +26,123 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { statusData } from '@/data/orders';
-import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
-import { ChevronLeft, ChevronRight, NotebookText, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { statusData } from '@/data/orders';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useState } from 'react';
-import getLoggedInUser from '@/utils/getLoggedInUser';
-import SelectOrderStatus from '../orders/SelectOrderStatus';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
-export default function RootDraft({ authToken }: { authToken: string }) {
-    const { user } = getLoggedInUser();
+function renderOrderStageAction(order: IOrder) {
+    const baseClass = 'flex items-center justify-center gap-1 group';
+
+    switch (order.orderStage) {
+        case 'details-provided':
+            if (!order.total || order.total < 0) {
+                return (
+                    <Link
+                        href={`/orders/new-order/review/${order.orderID}`}
+                        className={baseClass}
+                    >
+                        <DollarSign size={20} />
+                        <span className="group-hover:underline cursor-pointer">
+                            Complete Payment
+                        </span>
+                    </Link>
+                );
+            }
+            break;
+
+        case 'details-provided':
+            if (order.total) {
+                return (
+                    <Link
+                        href={`/orders/new-order/payment/${order.orderID}`}
+                        className={baseClass}
+                    >
+                        <DollarSign size={20} />
+                        <span className="group-hover:underline cursor-pointer">
+                            Complete Payment
+                        </span>
+                    </Link>
+                );
+            }
+            break;
+
+        case 'services-selected':
+            return (
+                <Link
+                    href={`/orders/new-order/details/${order.orderID}`}
+                    className={baseClass}
+                >
+                    <ListChecks size={20} />
+                    <span className="group-hover:underline cursor-pointer">
+                        Provide Details
+                    </span>
+                </Link>
+            );
+    }
+
+    return null;
+}
+
+export default function RootDraft() {
+    const { user } = useLoggedInUser();
     const { userID, role } = user;
 
-    const router = useRouter();
-
     const [searchQuery, setSearchQuery] = useState('');
-    const [quantity, setQuantity] = useState(10);
+    const [filter, setFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
-    const [orders, setOrders] = useState<IOrder[] | []>([]);
-    const [pagination, setPagination] = useState({
+    const [quantity, setQuantity] = useState(10);
+    const [sort, setSort] = useState('createdAt-desc');
+
+    const [sortField, sortOrder] = sort.split('-') as [string, 'asc' | 'desc'];
+
+    const { data, isLoading } = useGetOrdersQuery(
+        {
+            userID,
+            role,
+            search: searchQuery,
+            page: currentPage,
+            limit: quantity,
+            filter: filter !== 'all' ? filter : undefined,
+            sort: sortField,
+            order: sortOrder,
+        },
+        {
+            skip: !userID || !role,
+        }
+    );
+
+    const orders = data?.orders || [];
+    const pagination = data?.pagination || {
         total: 0,
-        quantity: 10,
         page: 1,
+        limit: 10,
         totalPages: 1,
-    });
-
-    useEffect(() => {
-        const fetchOrders = async () => {
-            setIsLoading(true);
-
-            try {
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/get-draft-order?user_id=${userID}&user_role=${role}&limit=${quantity}&search=${searchQuery}&page=${currentPage}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
-                    }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setOrders(result.data);
-                    setPagination(result.pagination);
-                }
-            } catch (error) {
-                ApiError(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (userID && role) {
-            fetchOrders();
-        }
-    }, [userID, role, currentPage, quantity, searchQuery, authToken]);
-
-    const redirectTo = (orderID: string) => {
-        const selectedOrder = orders.find((order) => order.orderID === orderID);
-
-        if (selectedOrder?.details?.images === 0) {
-            return router.push(
-                `http://localhost:3000/orders/new-order/${selectedOrder.orderID!}/details`
-            );
-        } else {
-            return router.push(
-                `http://localhost:3000/orders/new-order/${orderID}/review`
-            );
-        }
     };
 
-    const handleSearch = (e: FormEvent<HTMLFormElement>) => {
+    const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setCurrentPage(1);
     };
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= pagination.totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    const handleQuantityChange = (newQuantity: number) => {
+        setQuantity(newQuantity);
+        setCurrentPage(1);
+    };
+
     return (
         <div className="space-y-6 animate-fadeIn">
-            <div className="flex flex-row items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <form onSubmit={handleSearch} className="w-full max-w-sm">
                     <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -117,18 +155,53 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                     </div>
                 </form>
 
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <NotebookText size={16} /> Show:
+                            <Funnel size={16} />
+                            Filter:
+                        </span>
+                        <Select
+                            value={filter}
+                            onValueChange={(value) => setFilter(value)}
+                        >
+                            <SelectTrigger className="w-32 h-9">
+                                <SelectValue placeholder={filter} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {[
+                                    'all',
+                                    'pending',
+                                    'pay-later',
+                                    'paid',
+                                    'payment-failed',
+                                    'refunded',
+                                    'canceled',
+                                ].map((val) => (
+                                    <SelectItem
+                                        key={val}
+                                        value={val}
+                                        className="capitalize"
+                                    >
+                                        {val}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <NotebookText size={16} />
+                            Show:
                         </span>
                         <Select
                             value={quantity.toString()}
                             onValueChange={(value) =>
-                                setQuantity(Number(value))
+                                handleQuantityChange(Number(value))
                             }
                         >
-                            <SelectTrigger className="w-24 h-9">
+                            <SelectTrigger className="w-20 h-9">
                                 <SelectValue placeholder={quantity} />
                             </SelectTrigger>
                             <SelectContent>
@@ -156,7 +229,6 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                                 'Services',
                                 'Total ($)',
                                 'Payment ($)',
-                                'Working Status',
                                 'Order Status',
                                 'Actions',
                             ].map((title, idx) => (
@@ -171,9 +243,9 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: 8 }).map((_, i) => (
+                            Array.from({ length: 7 }).map((_, i) => (
                                 <TableRow key={`loading-${i}`}>
-                                    {Array.from({ length: 8 }).map((_, j) => (
+                                    {Array.from({ length: 7 }).map((_, j) => (
                                         <TableCell
                                             key={j}
                                             className="text-center"
@@ -183,182 +255,148 @@ export default function RootDraft({ authToken }: { authToken: string }) {
                                     ))}
                                 </TableRow>
                             ))
-                        ) : !isLoading && orders && orders.length === 0 ? (
+                        ) : orders.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={8}
+                                    colSpan={7}
                                     className="text-center py-8"
                                 >
                                     <p className="text-gray-500">
-                                        No draft orders found
+                                        No orders found
                                     </p>
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            !isLoading &&
-                            orders &&
-                            orders.map((order: IOrder, index: number) => {
-                                const item = statusData.find(
-                                    (item) => item.value === order.status
-                                );
+                            orders
+                                .filter(
+                                    (order: IOrder) =>
+                                        order.orderStage !== 'payment-completed'
+                                )
+                                .map((order: IOrder, index: number) => {
+                                    const item = statusData.find(
+                                        (item) => item.value === order.status
+                                    );
 
-                                return (
-                                    <TableRow
-                                        key={index}
-                                        className="hover:bg-muted/50"
-                                    >
-                                        <TableCell className="text-center font-medium border-r">
-                                            <Link
-                                                href={`/orders/details/${order.orderID!}`}
+                                    return (
+                                        <TableRow
+                                            key={index}
+                                            className="hover:bg-muted/50"
+                                        >
+                                            <TableCell className="text-center font-medium border-r">
+                                                <Link
+                                                    href={`/orders/details/${order.orderID!}`}
+                                                    className={cn(
+                                                        'text-primary underline',
+                                                        order.status ===
+                                                            'canceled' &&
+                                                            'text-destructive'
+                                                    )}
+                                                >
+                                                    #{order.orderID}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell
                                                 className={cn(
-                                                    'text-primary underline',
+                                                    'text-center text-sm border-r',
                                                     order.status ===
                                                         'canceled' &&
                                                         'text-destructive'
                                                 )}
                                             >
-                                                #{order.orderID}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            {order.user.userID}
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-start text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            <ul className="list-decimal list-inside space-y-1">
-                                                {order.services.map(
-                                                    (service) => (
-                                                        <li key={service.name}>
-                                                            {service.name}
-                                                        </li>
-                                                    )
-                                                )}
-                                            </ul>
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            ${order?.total?.toFixed(2) || 0}
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r',
-                                                order.status === 'canceled' &&
-                                                    'text-destructive'
-                                            )}
-                                        >
-                                            Nothing
-                                        </TableCell>
-                                        <TableCell className="text-center text-sm border-r">
-                                            <span
+                                                {order.user.userID}
+                                            </TableCell>
+                                            <TableCell
                                                 className={cn(
-                                                    'flex items-center justify-center gap-1',
-                                                    item && item.text
+                                                    'text-start text-sm border-r',
+                                                    order.status ===
+                                                        'canceled' &&
+                                                        'text-destructive'
                                                 )}
                                             >
-                                                {item ? (
-                                                    <item.icon
-                                                        size={16}
-                                                        className={cn(
-                                                            item.text
-                                                        )}
-                                                    />
-                                                ) : null}
-                                                {order.status}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                'text-center text-sm border-r'
-                                            )}
-                                        >
-                                            <SelectOrderStatus
-                                                order={order}
-                                                role={role!}
-                                                orderID={order.orderID!}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-center hover:underline cursor-pointer">
-                                            {role !== 'User' ? (
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        Continue
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>
-                                                            You can$apos;t
-                                                            access this.
-                                                        </p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            ) : (
-                                                <p
-                                                    onClick={() =>
-                                                        redirectTo(
-                                                            order.orderID!
+                                                <ul className="list-decimal list-inside space-y-1">
+                                                    {order.services.map(
+                                                        (service) => (
+                                                            <li
+                                                                key={
+                                                                    service.name
+                                                                }
+                                                            >
+                                                                {service.name}
+                                                            </li>
                                                         )
-                                                    }
+                                                    )}
+                                                </ul>
+                                            </TableCell>
+                                            <TableCell
+                                                className={cn(
+                                                    'text-center text-sm border-r',
+                                                    order.status ===
+                                                        'canceled' &&
+                                                        'text-destructive'
+                                                )}
+                                            >
+                                                ${order.total?.toFixed(2) || 0}
+                                            </TableCell>
+                                            <TableCell
+                                                className={cn(
+                                                    'text-center capitalize text-sm border-r',
+                                                    order.status ===
+                                                        'canceled' &&
+                                                        'text-destructive'
+                                                )}
+                                            >
+                                                {order.paymentStatus}
+                                            </TableCell>
+                                            <TableCell className="text-center text-sm border-r">
+                                                <span
+                                                    className={cn(
+                                                        'flex items-center capitalize justify-center gap-1',
+                                                        item && item.text
+                                                    )}
                                                 >
-                                                    Continue
-                                                </p>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
+                                                    {order.status}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {renderOrderStageAction(order)}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
                         )}
                     </TableBody>
                 </Table>
             </div>
 
-            <div className="flex items-center justify-between px-2 text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-between gap-4 px-2 text-sm text-muted-foreground sm:flex-row">
                 <div>
                     Showing{' '}
-                    {pagination?.total > 0
+                    {pagination.total > 0
                         ? `${(currentPage - 1) * quantity + 1} to ${Math.min(
                               currentPage * quantity,
-                              pagination?.total
+                              pagination.total
                           )}`
                         : '0'}{' '}
-                    of {pagination?.total} entries
+                    of {pagination.total} entries
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() =>
-                            setCurrentPage((prev) => Math.max(prev - 1, 1))
-                        }
-                        disabled={currentPage <= 1 || isLoading}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || isLoading}
                     >
                         <ChevronLeft className="w-4 h-4" />
                     </Button>
-
+                    <div className="flex items-center justify-center w-10 text-sm">
+                        {currentPage}
+                    </div>
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() =>
-                            setCurrentPage((prev) =>
-                                prev < pagination.totalPages ? prev + 1 : prev
-                            )
-                        }
+                        onClick={() => handlePageChange(currentPage + 1)}
                         disabled={
-                            currentPage >= pagination.totalPages || isLoading
+                            currentPage === pagination.totalPages || isLoading
                         }
                     >
                         <ChevronRight className="w-4 h-4" />

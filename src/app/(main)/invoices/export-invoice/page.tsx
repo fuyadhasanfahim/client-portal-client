@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import getAuthToken from '@/utils/getAuthToken';
 import RootExportInvoice from '@/components/invoices/RootExportInvoice';
 
 export const metadata: Metadata = {
@@ -8,7 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default async function ExportInvoicePage() {
-    const authToken = await getAuthToken();
-
     return <RootExportInvoice />;
 }
