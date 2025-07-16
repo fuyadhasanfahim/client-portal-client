@@ -24,20 +24,6 @@ export const userApi = apiSlice.injectEndpoints({
                 method: 'GET',
             }),
         }),
-        updateUserInfo: builder.mutation({
-            query: ({
-                userID,
-                data,
-            }: {
-                userID: string;
-                data: Partial<ISanitizedUser>;
-            }) => ({
-                url: 'users/update-info',
-                method: 'PUT',
-                body: { userID, data },
-            }),
-            invalidatesTags: ['Users'],
-        }),
         getUsers: builder.query({
             query: (role) => ({
                 url: 'users/get-users',
@@ -55,18 +41,18 @@ export const userApi = apiSlice.injectEndpoints({
             invalidatesTags: ['Users'],
         }),
         updatePassword: builder.mutation({
-            query: ({ userID, password }) => ({
+            query: ({ userID, newPassword, currentPassword }) => ({
                 url: `users/update-password/${userID}`,
                 method: 'PUT',
-                body: password,
+                body: { currentPassword, newPassword },
             }),
             invalidatesTags: ['Users'],
         }),
         updateAvatar: builder.mutation({
-            query: ({ userID, file }) => ({
-                url: `users/update-password/${userID}`,
+            query: ({ userID, formData }) => ({
+                url: `users/upload-avatar/${userID}`,
                 method: 'PUT',
-                body: file,
+                body: formData,
             }),
             invalidatesTags: ['Users'],
         }),
@@ -77,7 +63,6 @@ export const {
     useGetMeQuery,
     useGetUserInfoQuery,
     useGetOrdersByUserIDQuery,
-    useUpdateUserInfoMutation,
     useGetUsersQuery,
     useUpdateUserMutation,
     useUpdatePasswordMutation,

@@ -17,7 +17,7 @@ import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useUpdateUserInfoMutation } from '@/redux/features/users/userApi';
+import { useUpdateUserMutation } from '@/redux/features/users/userApi';
 import {
     Form,
     FormControl,
@@ -59,7 +59,7 @@ export default function AdditionalInformationAlert({
         },
     });
 
-    const [updateUserInfo, { isLoading }] = useUpdateUserInfoMutation();
+    const [updateUserInfo, { isLoading }] = useUpdateUserMutation();
 
     const router = useRouter();
 

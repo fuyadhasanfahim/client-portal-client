@@ -105,13 +105,12 @@ export default function ProfilePage() {
             reader.readAsDataURL(file);
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('image', file);
 
             const res = await updateAvatar({
                 userID: user.userID,
-                file: formData,
+                formData,
             }).unwrap();
-            console.log(res)
 
             if (res.success) {
                 toast.success('Avatar updated successfully');
@@ -161,7 +160,8 @@ export default function ProfilePage() {
 
         try {
             const res = await updatePassword({
-                userID: user.userID,
+                userID: user.userID!,
+                currentPassword,
                 newPassword,
             }).unwrap();
 
