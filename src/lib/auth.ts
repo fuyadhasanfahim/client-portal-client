@@ -11,8 +11,8 @@ export const authOptions: NextAuthOptions = {
         sessionToken: {
             name: `__Secure-next-auth.session-token`,
             options: {
-                httpOnly: true,
-                sameSite: 'lax',
+                httpOnly: process.env.NODE_ENV === 'production',
+                sameSite: 'none',
                 path: '/',
                 secure: process.env.NODE_ENV === 'production',
                 domain: '.webbriks.com',
