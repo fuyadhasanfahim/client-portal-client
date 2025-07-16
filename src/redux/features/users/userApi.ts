@@ -70,31 +70,6 @@ export const userApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['Users'],
         }),
-
-        // gbkwjsdfg
-        getUsersWithRole: builder.query({
-            query: (role) => ({
-                url: 'users/get-user-with-role',
-                method: 'GET',
-                params: { role },
-            }),
-            providesTags: ['Users'],
-        }),
-        getUser: builder.query({
-            query: (user_id) => ({
-                url: `users/get-user`,
-                params: { user_id },
-            }),
-            providesTags: ['Users'],
-        }),
-        getAdmin: builder.query({
-            query: () => ({ url: 'users/get-admin' }),
-            providesTags: ['Users'],
-        }),
-        getLoggedInUser: builder.query({
-            query: () => 'users/get-info',
-            providesTags: ['Users'],
-        }),
     }),
 });
 
@@ -107,10 +82,4 @@ export const {
     useUpdateUserMutation,
     useUpdatePasswordMutation,
     useUpdateAvatarMutation,
-
-    //sdfgbasd
-    useGetUsersWithRoleQuery,
-    useGetUserQuery,
-    useGetAdminQuery,
-    useGetLoggedInUserQuery,
 } = userApi;
