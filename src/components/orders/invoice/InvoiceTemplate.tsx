@@ -1,6 +1,5 @@
 import { format } from 'date-fns';
 import { IOrder, IOrderServiceSelection } from '@/types/order.interface';
-import { ISanitizedUser } from '@/types/user.interface';
 import {
     Table,
     TableBody,

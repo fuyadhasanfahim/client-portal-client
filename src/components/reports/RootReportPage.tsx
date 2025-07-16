@@ -90,8 +90,10 @@ export default function RootReportPage() {
         { skip: !userID || !role }
     );
 
-    // Derived data states
-    const orders = isOrdersLoading ? [] : ordersData?.data ?? [];
+    const orders = useMemo(() => {
+        return ordersData?.data ?? [];
+    }, [ordersData]);
+
     const payments = isPaymentsLoading ? null : paymentsData?.data;
     const pending = isPendingLoading ? null : pendingData?.data;
     const paymentToMonth = isMonthlyPaymentsLoading
@@ -310,8 +312,8 @@ export default function RootReportPage() {
                             Error Loading Data
                         </CardTitle>
                         <CardDescription>
-                            We couldn't load your report data. Please try again
-                            later.
+                            We couldn&apos;t load your report data. Please try
+                            again later.
                         </CardDescription>
                     </CardHeader>
                 </Card>

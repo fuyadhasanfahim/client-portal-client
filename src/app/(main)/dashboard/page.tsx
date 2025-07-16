@@ -1,4 +1,3 @@
-import { getUserData } from '@/actions/user.action';
 import RootDashboard from '@/components/dashboard/RootDashboard';
 import { Metadata } from 'next';
 

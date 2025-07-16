@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import InvoiceTemplate from './InvoiceTemplate';
 import { useGetPaymentByOrderIDQuery } from '@/redux/features/payments/paymentApi';
 import { useSendInvoiceMutation } from '@/redux/features/invoice/invoiceApi';
+import ApiError from '@/components/shared/ApiError';
 
 export default function InvoiceCard({ orderID }: { orderID: string }) {
     const { user } = getLoggedInUser();
@@ -32,12 +33,12 @@ export default function InvoiceCard({ orderID }: { orderID: string }) {
     const handleSendInvoice = async () => {
         if (!order) return;
         try {
-            const result = await sendInvoice(orderID).unwrap();
+            await sendInvoice(orderID).unwrap();
             toast.success(
                 `Invoice for order #${orderID} has been sent to ${order.user?.email}`
             );
         } catch (error) {
-            toast.error('Failed to send invoice');
+            ApiError(error)
         }
     };
 

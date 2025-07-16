@@ -96,9 +96,6 @@ export default function RootDraft() {
     const [filter, setFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
-    const [sort, setSort] = useState('createdAt-desc');
-
-    const [sortField, sortOrder] = sort.split('-') as [string, 'asc' | 'desc'];
 
     const { data, isLoading } = useGetOrdersQuery(
         {
@@ -108,8 +105,6 @@ export default function RootDraft() {
             page: currentPage,
             limit: quantity,
             filter: filter !== 'all' ? filter : undefined,
-            sort: sortField,
-            order: sortOrder,
         },
         {
             skip: !userID || !role,

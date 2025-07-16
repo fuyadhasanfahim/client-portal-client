@@ -86,28 +86,32 @@ export default function RootExportInvoice() {
 
     const payments = !isPaymentsLoading ? paymentsData?.data || [] : [];
 
+    const memoizedOrders = useMemo(() => orders, [orders]);
+    const memoizedDateRange = useMemo(() => dateRange, [dateRange]);
+
     useEffect(() => {
-        if (dateRange.from && dateRange.to) {
-            const adjustedEndDate = new Date(dateRange.to);
+        if (!memoizedOrders) return;
+
+        const { from, to } = memoizedDateRange ?? {};
+
+        if (from && to) {
+            const adjustedEndDate = new Date(to);
             adjustedEndDate.setHours(23, 59, 59, 999);
 
-            const filtered =
-                orders?.filter((order: IOrder) => {
-                    if (!order.createdAt) return false;
-                    const createdAt = new Date(order.createdAt);
-                    return (
-                        dateRange.from !== undefined &&
-                        createdAt >= dateRange.from &&
-                        createdAt <= adjustedEndDate
-                    );
-                }) || [];
+            const filtered = memoizedOrders.filter((order: IOrder) => {
+                if (!order.createdAt) return false;
+                const createdAt = new Date(order.createdAt);
+                return createdAt >= from && createdAt <= adjustedEndDate;
+            });
+
             setFilteredOrders(filtered);
         } else {
-            setFilteredOrders(orders || []);
+            setFilteredOrders(memoizedOrders);
         }
+
         setSelectedOrderIDs([]);
         setSelectAll(false);
-    }, [dateRange, JSON.stringify(orders)]);
+    }, [memoizedOrders, memoizedDateRange]);
 
     const toggleSelect = (id: string) => {
         setSelectedOrderIDs((prev) =>
@@ -182,7 +186,7 @@ export default function RootExportInvoice() {
             pdf.save(`invoice-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
             toast.success('Invoice downloaded successfully');
         } catch (error) {
-            toast.error('Failed to generate invoice');
+            ApiError(error);
         } finally {
             setPdfDownloading(false);
         }
