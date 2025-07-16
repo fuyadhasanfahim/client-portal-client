@@ -1,5 +1,4 @@
 import { apiSlice } from '@/redux/api/apiSlice';
-import { ISanitizedUser } from '@/types/user.interface';
 
 export const userApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({

@@ -1,15 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { IconPlus } from '@tabler/icons-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import AddServiceForm from '@/components/services/AddServiceForm';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Metadata } from 'next';
 import ServicesDataTable from '@/components/services/ServicesDataTable';
 
@@ -27,28 +17,10 @@ export default async function ServicesPage() {
                     Active Services
                 </h2>
 
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <IconPlus />
-                            Add New Service
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="p-0 min-w-5xl">
-                        <ScrollArea className="px-2 max-h-[95vh]">
-                            <DialogHeader className="p-4">
-                                <DialogTitle>Add Service Form</DialogTitle>
-                                <DialogDescription>
-                                    Fill all the required fields to add a new
-                                    service.
-                                </DialogDescription>
-                            </DialogHeader>
-
-                            {/* Form component */}
-                            <AddServiceForm />
-                        </ScrollArea>
-                    </DialogContent>
-                </Dialog>
+                <Button>
+                    <IconPlus />
+                    Add New Service
+                </Button>
             </div>
 
             <ServicesDataTable />
