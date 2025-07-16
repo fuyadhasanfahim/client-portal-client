@@ -7,6 +7,18 @@ import UserModel from '@/models/user.model';
 import { nanoid } from 'nanoid';
 
 export const authOptions: NextAuthOptions = {
+    cookies: {
+        sessionToken: {
+            name: `__Secure-next-auth.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                domain: '.webbriks.com',
+            },
+        },
+    },
     providers: [
         CredentialsProvider({
             name: 'Credentials',
