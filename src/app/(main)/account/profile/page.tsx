@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import RootProfile from '@/components/profile/RootProfile';
+import RootProfile from '@/components/account/profile/RootProfile';
 
 export const metadata: Metadata = {
     title: 'Profile - Account | Client Portal',

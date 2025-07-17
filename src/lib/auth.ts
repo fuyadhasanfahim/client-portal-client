@@ -6,16 +6,20 @@ import bcrypt from 'bcryptjs';
 import UserModel from '@/models/user.model';
 import { nanoid } from 'nanoid';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const authOptions: NextAuthOptions = {
     cookies: {
         sessionToken: {
-            name: `__Secure-next-auth.session-token`,
+            name: isProduction
+                ? '__Secure-next-auth.session-token'
+                : 'next-auth.session-token',
             options: {
-                httpOnly: process.env.NODE_ENV === 'production',
-                sameSite: 'none',
+                httpOnly: true,
+                sameSite: isProduction ? 'none' : 'lax',
                 path: '/',
-                secure: process.env.NODE_ENV === 'production',
-                domain: '.webbriks.com',
+                secure: isProduction,
+                domain: isProduction ? '.webbriks.com' : undefined,
             },
         },
     },
