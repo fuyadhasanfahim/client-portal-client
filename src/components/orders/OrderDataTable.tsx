@@ -37,6 +37,7 @@ import OrderStats from './OrderStats';
 import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
 import { socket } from '@/lib/socket';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -54,6 +55,8 @@ export default function OrderDataTable({
     role: string;
     id: string;
 }) {
+    const { user } = useLoggedInUser();
+
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
@@ -87,16 +90,37 @@ export default function OrderDataTable({
     };
 
     useEffect(() => {
-        function handleOrderUpdate() {
+        if (!user?.userID) return;
+
+        function handleOrderUpdate(updateData: {
+            orderID: string;
+            status?: string;
+            updatedAt?: Date;
+        }) {
             refetch();
         }
 
-        socket.on('new-order', handleOrderUpdate);
+        function handleNewOrder(updateData: {
+            orderID: string;
+            status?: string;
+            orderStage?: string;
+            createdAt?: Date;
+        }) {
+            refetch();
+        }
+
+        socket.connect();
+        socket.emit('join-user-room', user.userID);
+
+        socket.on('order-status-updated', handleOrderUpdate);
+        socket.on('new-order', handleNewOrder);
 
         return () => {
-            socket.off('new-order', handleOrderUpdate);
+            socket.off('order-status-updated', handleOrderUpdate);
+            socket.off('new-order', handleNewOrder);
+            socket.disconnect();
         };
-    }, [refetch]);
+    }, [user?.userID, refetch]);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -365,6 +389,7 @@ export default function OrderDataTable({
                                                         order={order}
                                                         role={role}
                                                         orderID={order.orderID}
+                                                        refetch={refetch}
                                                     />
                                                 </span>
                                             </TableCell>

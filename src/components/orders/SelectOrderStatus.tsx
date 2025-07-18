@@ -13,18 +13,26 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Check, Loader, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { socket } from '@/lib/socket';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 interface SelectOrderStatusProps {
     order: IOrder;
     role: string;
     orderID: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    refetch: any;
 }
 
 export default function SelectOrderStatus({
     order,
     role,
     orderID,
+    refetch,
 }: SelectOrderStatusProps) {
+    const { user } = useLoggedInUser();
+
     const item = OrderStatusData.find((item) => item.value === order.status);
     const [updateOrder, { isLoading }] = useUpdateOrderMutation();
 
@@ -48,6 +56,32 @@ export default function SelectOrderStatus({
             ApiError(error);
         }
     };
+
+    useEffect(() => {
+        if (!orderID || !user?.userID) return;
+
+        function handleOrderUpdate(updateData: {
+            orderID: string;
+            status?: string;
+            updatedAt?: Date;
+        }) {
+            if (updateData.orderID === orderID) {
+                refetch();
+            }
+        }
+
+        socket.connect();
+        socket.emit('join-user-room', user.userID);
+        socket.emit('join-order-room', orderID);
+
+        socket.on('order-status-updated', handleOrderUpdate);
+
+        return () => {
+            socket.off('order-status-updated', handleOrderUpdate);
+            socket.emit('leave-order-room', orderID);
+        };
+    }, [orderID, user?.userID, refetch]);
+
     return (
         <div className="flex items-center justify-center">
             {role && role === 'user' ? (
