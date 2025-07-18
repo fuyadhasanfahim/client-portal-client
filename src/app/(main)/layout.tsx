@@ -7,6 +7,7 @@ import VerificationAlert from '@/components/shared/VerificationAlert';
 import { Metadata } from 'next';
 import AdditionalInformationAlert from '@/components/shared/AdditionalInformationAlert';
 import getAuthToken from '@/utils/getAuthToken';
+import SocketInitializer from './SocketInitializer';
 
 export const metadata: Metadata = {
     title: 'Client Portal',
@@ -30,6 +31,7 @@ export default async function Layout({
 
     return (
         <NextAuthProvider>
+            <SocketInitializer />
             <SidebarProvider
                 style={
                     {

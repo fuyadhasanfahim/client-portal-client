@@ -1,5 +1,9 @@
 import { apiSlice } from '@/redux/api/apiSlice';
-import { IOrderDetails, IOrderServiceSelection } from '@/types/order.interface';
+import {
+    IOrder,
+    IOrderDetails,
+    IOrderServiceSelection,
+} from '@/types/order.interface';
 import { IPayment } from '@/types/payment.interface';
 
 export const ordersApi = apiSlice.injectEndpoints({
@@ -95,15 +99,6 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
-
-            addOrder: builder.mutation({
-                query: (data) => ({
-                    url: 'orders/add-order',
-                    method: 'POST',
-                    body: data,
-                }),
-                invalidatesTags: ['Orders'],
-            }),
             getOrdersByStatus: builder.query({
                 query: ({ userID, role, status }) => ({
                     url: `orders/get-orders-by-status/${status}`,
@@ -112,14 +107,6 @@ export const ordersApi = apiSlice.injectEndpoints({
                         userID,
                         role,
                     },
-                }),
-                providesTags: ['Orders'],
-            }),
-            getOrder: builder.query({
-                query: (params) => ({
-                    url: 'orders/get-order',
-                    method: 'GET',
-                    params,
                 }),
                 providesTags: ['Orders'],
             }),
@@ -136,6 +123,4 @@ export const {
     useReviewOrderMutation,
     useCompleteOrderMutation,
     useGetOrdersByStatusQuery,
-    // fjkdgbsdfg
-    useGetOrderQuery,
 } = ordersApi;

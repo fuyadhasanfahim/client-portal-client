@@ -11,6 +11,7 @@ import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
 import { Loader, Save } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import ApiError from '@/components/shared/ApiError';
 
 export default function SaveCardForm({
     userID,
@@ -37,13 +38,11 @@ export default function SaveCardForm({
         setIsProcessing(true);
 
         try {
-            // First validate the card details
             const { error: validationError } = await elements.submit();
             if (validationError) {
                 throw validationError;
             }
 
-            // Then confirm the SetupIntent
             const { error, setupIntent } = await stripe.confirmSetup({
                 elements,
                 confirmParams: {
@@ -57,10 +56,9 @@ export default function SaveCardForm({
             }
 
             if (!setupIntent) {
-                throw new Error('No setup intent returned from Stripe');
+                toast.error('No setup intent returned from Stripe');
             }
 
-            // Handle successful setup
             const res = await newPayment({
                 userID,
                 orderID,
@@ -70,15 +68,15 @@ export default function SaveCardForm({
                 status: setupIntent.status,
             });
 
+            console.log(res)
+
             if ('error' in res) {
                 throw res.error;
             }
 
             router.push('/orders');
         } catch (err) {
-            toast.error(
-                (err instanceof Error && err.message) || 'Payment failed'
-            );
+            ApiError(err)
         } finally {
             setIsProcessing(false);
         }
@@ -86,7 +84,7 @@ export default function SaveCardForm({
 
     return (
         <div className="space-y-4">
-            <PaymentElement />
+            <PaymentElement className='w-full' />
             <Button
                 onClick={handleSaveCard}
                 className="w-full"

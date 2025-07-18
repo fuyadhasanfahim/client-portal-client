@@ -53,6 +53,7 @@ interface OrderDetailsPaymentAndDetailsProps {
     paymentStatus?: string;
     role: string;
     orderID: string;
+    setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export default function OrderDetailsPaymentAndDetails({
@@ -62,6 +63,7 @@ export default function OrderDetailsPaymentAndDetails({
     paymentId,
     paymentStatus,
     role,
+    setIsSubmitting,
 }: OrderDetailsPaymentAndDetailsProps) {
     const [downloadLink, setDownloadLink] = useState<string>('');
     const [instruction, setInstruction] = useState<string>('');
@@ -76,11 +78,12 @@ export default function OrderDetailsPaymentAndDetails({
 
     const handleDeliverOrder = async () => {
         try {
+            setIsSubmitting(true);
+
             const response = await deliverOrder({
                 orderID,
                 downloadLink,
             }).unwrap();
-            console.log(response);
 
             if (response.success) {
                 setDownloadLink('');
@@ -88,16 +91,19 @@ export default function OrderDetailsPaymentAndDetails({
             }
         } catch (error) {
             ApiError(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleReviewOrder = async () => {
         try {
+            setIsSubmitting(true);
+
             const response = await reviewOrder({
                 orderID,
                 instructions: instruction,
             });
-            console.log(response);
 
             if (response.data.success) {
                 setInstruction('');
@@ -105,11 +111,15 @@ export default function OrderDetailsPaymentAndDetails({
             }
         } catch (error) {
             ApiError(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleCompleteOrder = async () => {
         try {
+            setIsSubmitting(true);
+
             const response = await completeOrder({
                 orderID,
             });
@@ -120,6 +130,8 @@ export default function OrderDetailsPaymentAndDetails({
             }
         } catch (error) {
             ApiError(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 

@@ -76,6 +76,7 @@
     "react-redux": "^9.2.0",
     "react-resizable-panels": "^3.0.3",
     "recharts": "^3.0.2",
+    "socket.io-client": "^4.8.1",
     "sonner": "^2.0.5",
     "stripe": "^18.2.1",
     "tailwind-merge": "^3.3.1",

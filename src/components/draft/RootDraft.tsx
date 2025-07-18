@@ -39,38 +39,6 @@ function renderOrderStageAction(order: IOrder) {
     const baseClass = 'flex items-center justify-center gap-1 group';
 
     switch (order.orderStage) {
-        case 'details-provided':
-            if (!order.total || order.total < 0) {
-                return (
-                    <Link
-                        href={`/orders/new-order/review/${order.orderID}`}
-                        className={baseClass}
-                    >
-                        <DollarSign size={20} />
-                        <span className="group-hover:underline cursor-pointer">
-                            Complete Payment
-                        </span>
-                    </Link>
-                );
-            }
-            break;
-
-        case 'details-provided':
-            if (order.total) {
-                return (
-                    <Link
-                        href={`/orders/new-order/payment/${order.orderID}`}
-                        className={baseClass}
-                    >
-                        <DollarSign size={20} />
-                        <span className="group-hover:underline cursor-pointer">
-                            Complete Payment
-                        </span>
-                    </Link>
-                );
-            }
-            break;
-
         case 'services-selected':
             return (
                 <Link
@@ -83,9 +51,37 @@ function renderOrderStageAction(order: IOrder) {
                     </span>
                 </Link>
             );
-    }
 
-    return null;
+        case 'details-provided':
+            if (!order.total || order.total < 0) {
+                return (
+                    <Link
+                        href={`/orders/new-order/review/${order.orderID}`}
+                        className={baseClass}
+                    >
+                        <DollarSign size={20} />
+                        <span className="group-hover:underline cursor-pointer">
+                            Review Order
+                        </span>
+                    </Link>
+                );
+            } else {
+                return (
+                    <Link
+                        href={`/orders/new-order/payment/${order.orderID}`}
+                        className={baseClass}
+                    >
+                        <DollarSign size={20} />
+                        <span className="group-hover:underline cursor-pointer">
+                            Complete Payment
+                        </span>
+                    </Link>
+                );
+            }
+
+        default:
+            return null;
+    }
 }
 
 export default function RootDraft() {

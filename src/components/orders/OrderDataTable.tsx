@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Search,
     ChevronLeft,
@@ -36,6 +36,7 @@ import Link from 'next/link';
 import OrderStats from './OrderStats';
 import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
+import { socket } from '@/lib/socket';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -61,7 +62,7 @@ export default function OrderDataTable({
 
     const [sortField, sortOrder] = sort.split('-') as [string, 'asc' | 'desc'];
 
-    const { data, isLoading } = useGetOrdersQuery(
+    const { data, isLoading, refetch } = useGetOrdersQuery(
         {
             userID: id,
             role,
@@ -84,6 +85,18 @@ export default function OrderDataTable({
         limit: 10,
         totalPages: 1,
     };
+
+    useEffect(() => {
+        function handleOrderUpdate() {
+            refetch();
+        }
+
+        socket.on('new-order', handleOrderUpdate);
+
+        return () => {
+            socket.off('new-order', handleOrderUpdate);
+        };
+    }, [refetch]);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

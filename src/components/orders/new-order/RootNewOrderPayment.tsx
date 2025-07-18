@@ -26,6 +26,7 @@ import { Loader2, CreditCard, Calendar } from 'lucide-react';
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 const paymentOptions = [
     {
@@ -84,6 +85,7 @@ export default function RootNewOrderPayment({
             try {
                 if (paymentOption === 'pay-now') {
                     const res = await newOrderCheckout({
+                        userID,
                         orderID,
                         paymentOption,
                         paymentMethod: 'card-payment',
@@ -114,7 +116,7 @@ export default function RootNewOrderPayment({
     }, [createSetupIntent, newOrderCheckout, paymentOption, orderID, userID]);
 
     return (
-        <div className="space-y-8">
+        <div className="grid grid-cols-2 gap-8 items-start">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl">

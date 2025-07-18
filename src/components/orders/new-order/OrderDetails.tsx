@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Trash2 } from 'lucide-react';
+import { ArrowRight, Loader, Trash2 } from 'lucide-react';
 import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
@@ -33,8 +33,11 @@ import { MultiSelect } from '@/components/shared/multi-select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IOrderDetails } from '@/types/order.interface';
 import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 export default function OrderDetails({ orderID }: { orderID: string }) {
+    const { user } = useLoggedInUser();
+
     const form = useForm<z.infer<typeof NewOrderDetailsSchema>>({
         resolver: zodResolver(NewOrderDetailsSchema),
         defaultValues: {
@@ -56,15 +59,18 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
 
     const [newOrder, { isLoading }] = useNewOrderMutation();
 
-    const onSubmit = async (data: z.infer<typeof NewOrderDetailsSchema>) => {
+    const onSubmit = async (data: Partial<IOrderDetails>) => {
         try {
             const response = await newOrder({
+                userID: user.userID,
                 orderStage: 'details-provided',
                 orderID,
                 details: data as IOrderDetails,
-            });
+            }).unwrap();
 
-            if (response?.data?.success) {
+            console.log(response)
+
+            if (response.success) {
                 toast.success('Details saved. Redirecting...');
                 router.push(`/orders/new-order/review/${orderID}`);
             }
@@ -77,9 +83,14 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
     const backgroundOption = form.watch('backgroundOption');
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <Card>
+        <Card>
+            <Form {...form}>
+                <form
+                    onSubmit={form.handleSubmit(onSubmit, (error) =>
+                        console.log(error)
+                    )}
+                    className="space-y-6"
+                >
                     <CardHeader>
                         <CardTitle className="text-2xl">
                             Order Details
@@ -232,7 +243,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                         </FormLabel>
                                         <FormControl>
                                             <div className="space-y-2">
-                                                {field.value?.map(
+                                                {(field.value ?? []).map(
                                                     (color, index) => (
                                                         <div
                                                             key={index}
@@ -246,7 +257,8 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                                 ) => {
                                                                     const newColors =
                                                                         [
-                                                                            ...field.value,
+                                                                            ...(field.value ??
+                                                                                []),
                                                                         ];
                                                                     newColors[
                                                                         index
@@ -267,7 +279,8 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                                 ) => {
                                                                     const newColors =
                                                                         [
-                                                                            ...field.value,
+                                                                            ...(field.value ??
+                                                                                []),
                                                                         ];
                                                                     newColors[
                                                                         index
@@ -285,7 +298,8 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                                 onClick={() => {
                                                                     const newColors =
                                                                         [
-                                                                            ...field.value,
+                                                                            ...(field.value ??
+                                                                                []),
                                                                         ];
                                                                     newColors.splice(
                                                                         index,
@@ -307,7 +321,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                     variant="outline"
                                                     onClick={() => {
                                                         field.onChange([
-                                                            ...(field.value ||
+                                                            ...(field.value ??
                                                                 []),
                                                             '#FFFFFF',
                                                         ]);
@@ -462,11 +476,15 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                             disabled={isLoading}
                         >
                             {isLoading ? 'Submitting...' : 'View Prices'}
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            {isLoading ? (
+                                <Loader className="animate-spin" />
+                            ) : (
+                                <ArrowRight />
+                            )}
                         </Button>
                     </CardFooter>
-                </Card>
-            </form>
-        </Form>
+                </form>
+            </Form>
+        </Card>
     );
 }
