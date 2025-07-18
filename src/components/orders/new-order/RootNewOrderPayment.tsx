@@ -26,7 +26,6 @@ import { Loader2, CreditCard, Calendar } from 'lucide-react';
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import useLoggedInUser from '@/utils/getLoggedInUser';
 
 const paymentOptions = [
     {

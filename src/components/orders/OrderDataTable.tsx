@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Search,
     ChevronLeft,
@@ -36,8 +36,6 @@ import Link from 'next/link';
 import OrderStats from './OrderStats';
 import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
-import { socket } from '@/lib/socket';
-import useLoggedInUser from '@/utils/getLoggedInUser';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -55,8 +53,6 @@ export default function OrderDataTable({
     role: string;
     id: string;
 }) {
-    const { user } = useLoggedInUser();
-
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
@@ -88,39 +84,6 @@ export default function OrderDataTable({
         limit: 10,
         totalPages: 1,
     };
-
-    useEffect(() => {
-        if (!user?.userID) return;
-
-        function handleOrderUpdate(updateData: {
-            orderID: string;
-            status?: string;
-            updatedAt?: Date;
-        }) {
-            refetch();
-        }
-
-        function handleNewOrder(updateData: {
-            orderID: string;
-            status?: string;
-            orderStage?: string;
-            createdAt?: Date;
-        }) {
-            refetch();
-        }
-
-        socket.connect();
-        socket.emit('join-user-room', user.userID);
-
-        socket.on('order-status-updated', handleOrderUpdate);
-        socket.on('new-order', handleNewOrder);
-
-        return () => {
-            socket.off('order-status-updated', handleOrderUpdate);
-            socket.off('new-order', handleNewOrder);
-            socket.disconnect();
-        };
-    }, [user?.userID, refetch]);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

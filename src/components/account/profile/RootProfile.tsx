@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import {
-    Calendar,
     Mail,
     Phone,
     ShieldCheck,
@@ -15,15 +14,11 @@ import {
     CalendarDays,
     Settings,
     Verified,
-    Edit,
-    Save,
-    X,
     Loader2,
     Camera,
     Key,
     Lock,
     Globe,
-    MapPin,
     Building,
 } from 'lucide-react';
 import {
@@ -37,21 +32,11 @@ import {
 import { Button } from '@/components/ui/button';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { useState, useRef } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { ISanitizedUser } from '@/types/user.interface';
 import {
     useUpdateAvatarMutation,
     useUpdatePasswordMutation,
-    useUpdateUserMutation,
 } from '@/redux/features/users/userApi';
 import toast from 'react-hot-toast';
 import ApiError from '../../shared/ApiError';
@@ -488,7 +473,7 @@ export default function ProfilePage() {
                                     confirmPassword &&
                                     newPassword !== confirmPassword && (
                                         <p className="text-sm text-destructive">
-                                            Passwords don't match
+                                            Passwords don&apos;t match
                                         </p>
                                     )}
                                 {newPassword && newPassword.length < 8 && (

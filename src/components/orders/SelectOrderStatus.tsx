@@ -22,7 +22,7 @@ interface SelectOrderStatusProps {
     role: string;
     orderID: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    refetch: any;
+    refetch?: any;
 }
 
 export default function SelectOrderStatus({

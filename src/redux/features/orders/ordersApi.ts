@@ -1,9 +1,5 @@
 import { apiSlice } from '@/redux/api/apiSlice';
-import {
-    IOrder,
-    IOrderDetails,
-    IOrderServiceSelection,
-} from '@/types/order.interface';
+import { IOrderDetails, IOrderServiceSelection } from '@/types/order.interface';
 import { IPayment } from '@/types/payment.interface';
 
 export const ordersApi = apiSlice.injectEndpoints({
