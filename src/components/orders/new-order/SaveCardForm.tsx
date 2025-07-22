@@ -59,24 +59,23 @@ export default function SaveCardForm({
                 toast.error('No setup intent returned from Stripe');
             }
 
-            const res = await newPayment({
-                userID,
-                orderID,
-                paymentOption: 'pay-later',
-                paymentIntentID: setupIntent.id,
-                customerID: customerID,
-                status: setupIntent.status,
-            });
+            if (setupIntent.status === 'succeeded') {
+                const paymentMethodId = setupIntent.payment_method as string;
 
-            console.log(res)
-
-            if ('error' in res) {
-                throw res.error;
+                await newPayment({
+                    userID,
+                    orderID,
+                    paymentOption: 'pay-later',
+                    paymentIntentID: setupIntent.id,
+                    customerID: customerID,
+                    status: setupIntent.status,
+                    paymentMethodID: paymentMethodId,
+                });
             }
 
             router.push('/orders');
         } catch (err) {
-            ApiError(err)
+            ApiError(err);
         } finally {
             setIsProcessing(false);
         }
@@ -84,7 +83,7 @@ export default function SaveCardForm({
 
     return (
         <div className="space-y-4">
-            <PaymentElement className='w-full' />
+            <PaymentElement className="w-full" />
             <Button
                 onClick={handleSaveCard}
                 className="w-full"
