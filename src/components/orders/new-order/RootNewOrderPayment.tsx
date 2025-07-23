@@ -205,7 +205,7 @@ export default function RootNewOrderPayment({
                     Select a payment method to begin
                 </p>
                 <p className="text-sm">
-                    You'll be guided through a secure process
+                    You&apos;ll be guided through a secure process
                 </p>
             </div>
         );
