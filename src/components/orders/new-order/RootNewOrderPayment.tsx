@@ -17,13 +17,15 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import ApiError from '@/components/shared/ApiError';
 import { useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
-import { Loader2, CreditCard } from 'lucide-react';
+import { Loader2, CreditCard, Clock } from 'lucide-react';
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import PayPalCheckoutButton from './PayPalCheckoutButton';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useSession } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
 
 const PAYMENT_OPTIONS = [
     {
@@ -37,6 +39,12 @@ const PAYMENT_OPTIONS = [
         title: 'PayPal',
         description: 'Pay with your PayPal account',
         icon: <CreditCard className="w-5 h-5" />,
+    },
+    {
+        value: 'pay-later',
+        title: 'Pay Later',
+        description: 'Complete payment at a later time',
+        icon: <Clock className="w-5 h-5" />,
     },
 ] as const;
 
@@ -60,12 +68,13 @@ export default function RootNewOrderPayment({
     const { data: orderData, isLoading: isOrderLoading } =
         useGetOrderByIDQuery(orderID);
     const [newOrderCheckout] = useNewOrderCheckoutMutation();
+    const [newPayment] = useNewPaymentMutation();
 
     const [paymentOption, setPaymentOption] = useState<PaymentOption | ''>('');
     const [clientSecret, setClientSecret] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isProcessingPayLater, setIsProcessingPayLater] = useState(false);
 
-    // Redirect if order is already paid
     useEffect(() => {
         if (!isOrderLoading && orderData?.data.paymentStatus === 'paid') {
             toast.error('This order has already been paid. Redirecting...');
@@ -74,7 +83,6 @@ export default function RootNewOrderPayment({
         }
     }, [isOrderLoading, orderData?.data.paymentStatus, router]);
 
-    // Fetch Stripe client secret when Stripe is selected
     useEffect(() => {
         const fetchStripeClientSecret = async () => {
             if (paymentOption !== 'stripe') return;
@@ -100,6 +108,28 @@ export default function RootNewOrderPayment({
 
         fetchStripeClientSecret();
     }, [paymentOption, newOrderCheckout, orderID, userID]);
+
+    const handlePayLater = async () => {
+        setIsProcessingPayLater(true);
+        try {
+            const res = await newPayment({
+                userID,
+                orderID,
+                paymentOption: 'pay-later',
+                paymentMethod: 'pending',
+                status: 'pending',
+            }).unwrap();
+
+            if (res?.success) {
+                toast.success('Order created successfully! You can pay later.');
+                router.push('/orders');
+            }
+        } catch (err) {
+            ApiError(err);
+        } finally {
+            setIsProcessingPayLater(false);
+        }
+    };
 
     const renderPaymentContent = () => {
         if (isLoading) {
@@ -138,6 +168,37 @@ export default function RootNewOrderPayment({
                         token={token}
                     />
                 </PayPalScriptProvider>
+            );
+        }
+
+        if (paymentOption === 'pay-later') {
+            return (
+                <div className="text-center p-6 space-y-6">
+                    <div className="space-y-2">
+                        <Clock className="w-10 h-10 mx-auto text-primary" />
+                        <p className="text-lg font-semibold">
+                            Pay Later Option
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            You can complete payment at a later time. Your order
+                            will be created as pending.
+                        </p>
+                    </div>
+                    <Button
+                        onClick={handlePayLater}
+                        disabled={isProcessingPayLater}
+                        className="w-full"
+                    >
+                        {isProcessingPayLater ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                            </>
+                        ) : (
+                            'Finish Order Creation'
+                        )}
+                    </Button>
+                </div>
             );
         }
 
@@ -210,11 +271,15 @@ export default function RootNewOrderPayment({
                             ? 'Payment Details'
                             : paymentOption === 'stripe'
                             ? 'Card Payment'
-                            : 'PayPal Payment'}
+                            : paymentOption === 'paypal'
+                            ? 'PayPal Payment'
+                            : 'Pay Later'}
                     </CardTitle>
                     <CardDescription>
                         {paymentOption
-                            ? 'Complete your payment securely'
+                            ? paymentOption === 'pay-later'
+                                ? 'Complete your order without immediate payment'
+                                : 'Complete your payment securely'
                             : 'Select a payment method to continue'}
                     </CardDescription>
                 </CardHeader>
