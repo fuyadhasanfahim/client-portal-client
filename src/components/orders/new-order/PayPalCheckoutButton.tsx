@@ -12,11 +12,9 @@ import { IOrder } from '@/types/order.interface';
 export default function PayPalCheckoutButton({
     order,
     userID,
-    token,
 }: {
     order: IOrder;
     userID: string;
-    token: string;
 }) {
     const router = useRouter();
     const [newPayment] = useNewPaymentMutation();
@@ -86,9 +84,10 @@ export default function PayPalCheckoutButton({
                     orderID: order.orderID,
                     paymentOption: 'pay-now',
                     paymentMethod: 'paypal',
+                    paymentMethodID: data.orderID,
                     status: 'paid',
-                    transactionId: captureData.captureDetails.id,
                     amount: order.total ?? 0,
+                    currency: 'USD', 
                 }).unwrap();
 
                 if (paymentResponse?.success) {

@@ -10,6 +10,8 @@ export const paymentsApi = apiSlice.injectEndpoints({
                 paymentIntentID,
                 customerID,
                 status,
+                currency,
+                amount,
             }) => ({
                 url: 'payments/new-payment',
                 method: 'POST',
@@ -20,6 +22,8 @@ export const paymentsApi = apiSlice.injectEndpoints({
                     paymentIntentID,
                     customerID,
                     status,
+                    amount,
+                    currency,
                 },
             }),
         }),

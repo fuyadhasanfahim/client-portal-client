@@ -23,7 +23,6 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import PayPalCheckoutButton from './PayPalCheckoutButton';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
-import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
 
@@ -61,8 +60,6 @@ export default function RootNewOrderPayment({
     orderID: string;
     userID: string;
 }) {
-    const { data: session } = useSession();
-    const token = session?.accessToken as string;
     const router = useRouter();
 
     const { data: orderData, isLoading: isOrderLoading } =
@@ -165,7 +162,6 @@ export default function RootNewOrderPayment({
                     <PayPalCheckoutButton
                         order={orderData.data}
                         userID={userID}
-                        token={token}
                     />
                 </PayPalScriptProvider>
             );
