@@ -14,5 +14,10 @@ export default async function NewOrderPaymentPage({
     const { orderID } = await params;
     const user = await getUserData();
 
-    return <RootNewOrderPayment orderID={orderID} userID={user.userID!} />;
+    return (
+        <RootNewOrderPayment
+            orderID={orderID}
+            userID={user.userID!}
+        />
+    );
 }

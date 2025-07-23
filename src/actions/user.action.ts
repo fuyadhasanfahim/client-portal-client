@@ -15,3 +15,18 @@ export async function getUserData() {
 
     return userData;
 }
+
+// lib/getAuthToken.ts
+export async function getAuthToken(): Promise<string> {
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL!}/api/users/get-token`,
+        {
+            method: 'GET',
+            credentials: 'include',
+        }
+    );
+
+    const result = await response.json();
+    console.log(result);
+    return result.token;
+}

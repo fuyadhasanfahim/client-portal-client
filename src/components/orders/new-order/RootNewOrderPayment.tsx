@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { RadioGroup } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout,
@@ -17,24 +17,25 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import ApiError from '@/components/shared/ApiError';
 import { useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
-import { Loader2, CreditCard, Calendar } from 'lucide-react';
+import { Loader2, CreditCard } from 'lucide-react';
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
-import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
+import PayPalCheckoutButton from './PayPalCheckoutButton';
+import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { useSession } from 'next-auth/react';
 
 const PAYMENT_OPTIONS = [
     {
-        value: 'pay-later',
-        title: 'Pay Later (Monthly)',
-        description: 'Split your payments monthly.',
-        icon: <Calendar className="w-5 h-5" />,
+        value: 'stripe',
+        title: 'Credit/Debit Card',
+        description: 'Pay with Visa, Mastercard, etc.',
+        icon: <CreditCard className="w-5 h-5" />,
     },
     {
-        value: 'pay-now',
-        title: 'Pay Now',
-        description: 'One-time full payment.',
+        value: 'paypal',
+        title: 'PayPal',
+        description: 'Pay with your PayPal account',
         icon: <CreditCard className="w-5 h-5" />,
     },
 ] as const;
@@ -52,77 +53,53 @@ export default function RootNewOrderPayment({
     orderID: string;
     userID: string;
 }) {
+    const { data: session } = useSession();
+    const token = session?.accessToken as string;
     const router = useRouter();
-    const { data, isLoading: isOrderLoading } = useGetOrderByIDQuery(orderID);
+
+    const { data: orderData, isLoading: isOrderLoading } =
+        useGetOrderByIDQuery(orderID);
     const [newOrderCheckout] = useNewOrderCheckoutMutation();
-    const [newPayment] = useNewPaymentMutation();
 
     const [paymentOption, setPaymentOption] = useState<PaymentOption | ''>('');
     const [clientSecret, setClientSecret] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Redirect if payment is already paid
+    // Redirect if order is already paid
     useEffect(() => {
-        if (!isOrderLoading && data?.data.paymentStatus === 'paid') {
-            toast.error(
-                "The order's payment status is paid. Redirecting to orders page..."
-            );
+        if (!isOrderLoading && orderData?.data.paymentStatus === 'paid') {
+            toast.error('This order has already been paid. Redirecting...');
             const timer = setTimeout(() => router.push('/orders'), 3000);
             return () => clearTimeout(timer);
         }
-    }, [isOrderLoading, data?.data.paymentStatus, router]);
+    }, [isOrderLoading, orderData?.data.paymentStatus, router]);
 
-    const fetchPaymentSession = useCallback(async () => {
-        if (!paymentOption || paymentOption !== 'pay-now') return;
-
-        setIsLoading(true);
-        try {
-            const res = await newOrderCheckout({
-                userID,
-                orderID,
-                paymentOption,
-                paymentMethod: 'card-payment',
-            }).unwrap();
-
-            if (res?.success) {
-                setClientSecret(res.data);
-            }
-        } catch (err) {
-            ApiError(err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [newOrderCheckout, paymentOption, orderID, userID]);
-
+    // Fetch Stripe client secret when Stripe is selected
     useEffect(() => {
-        fetchPaymentSession();
-    }, [fetchPaymentSession]);
+        const fetchStripeClientSecret = async () => {
+            if (paymentOption !== 'stripe') return;
 
-    const handlePayLater = useCallback(async () => {
-        if (paymentOption !== 'pay-later') return;
+            setIsLoading(true);
+            try {
+                const res = await newOrderCheckout({
+                    userID,
+                    orderID,
+                    paymentOption: 'pay-now',
+                    paymentMethod: 'card-payment',
+                }).unwrap();
 
-        setIsLoading(true);
-        try {
-            const res = await newPayment({
-                userID,
-                orderID,
-                paymentOption,
-                status: 'pending',
-            }).unwrap();
-
-            if (res?.success) {
-                toast.success('Payment preference saved successfully!');
-                router.push('/orders');
-            } else {
-                toast.error('Failed to save payment preference');
+                if (res?.success) {
+                    setClientSecret(res.data);
+                }
+            } catch (err) {
+                ApiError(err);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (err) {
-            console.log(err)
-            ApiError(err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [newPayment, paymentOption, orderID, userID, router]);
+        };
+
+        fetchStripeClientSecret();
+    }, [paymentOption, newOrderCheckout, orderID, userID]);
 
     const renderPaymentContent = () => {
         if (isLoading) {
@@ -134,7 +111,7 @@ export default function RootNewOrderPayment({
             );
         }
 
-        if (paymentOption === 'pay-now' && clientSecret) {
+        if (paymentOption === 'stripe' && clientSecret) {
             return (
                 <EmbeddedCheckoutProvider
                     stripe={stripePromise}
@@ -145,11 +122,22 @@ export default function RootNewOrderPayment({
             );
         }
 
-        if (paymentOption === 'pay-later') {
+        if (paymentOption === 'paypal' && orderData?.data) {
             return (
-                <Button onClick={handlePayLater}>
-                    Save preference and complete order
-                </Button>
+                <PayPalScriptProvider
+                    options={{
+                        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+                        currency: 'USD',
+                        intent: 'capture',
+                        components: 'buttons',
+                    }}
+                >
+                    <PayPalCheckoutButton
+                        order={orderData.data}
+                        userID={userID}
+                        token={token}
+                    />
+                </PayPalScriptProvider>
             );
         }
 
@@ -170,11 +158,9 @@ export default function RootNewOrderPayment({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             <Card className="md:col-span-2">
                 <CardHeader>
-                    <CardTitle className="text-2xl">
-                        Select Payment Option
-                    </CardTitle>
+                    <CardTitle className="text-2xl">Payment Method</CardTitle>
                     <CardDescription>
-                        Choose a payment method that fits your needs
+                        Choose how you want to pay for your order
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -221,18 +207,18 @@ export default function RootNewOrderPayment({
                 <CardHeader>
                     <CardTitle className="text-2xl">
                         {!paymentOption
-                            ? 'Choose a Payment Option'
-                            : paymentOption === 'pay-now'
-                            ? 'Complete Your Payment'
-                            : 'Secure Your Payment'}
+                            ? 'Payment Details'
+                            : paymentOption === 'stripe'
+                            ? 'Card Payment'
+                            : 'PayPal Payment'}
                     </CardTitle>
                     <CardDescription>
                         {paymentOption
-                            ? 'Securely submit your payment using Stripe'
-                            : 'Select an option to continue'}
+                            ? 'Complete your payment securely'
+                            : 'Select a payment method to continue'}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="flex justify-center items-center min-h-[200px]">
+                <CardContent className="flex justify-center items-center min-h-[300px]">
                     {renderPaymentContent()}
                 </CardContent>
             </Card>

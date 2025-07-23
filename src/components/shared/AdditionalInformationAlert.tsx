@@ -44,7 +44,6 @@ export default function AdditionalInformationAlert({
     userAddress,
     userCompany,
 }: {
-    authToken: string;
     userID: string;
     userPhone: string | null | undefined;
     userCompany: string | null | undefined;

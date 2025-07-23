@@ -1,88 +1,140 @@
+'use client';
+
+import { useState } from 'react';
+import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
+import ApiError from '@/components/shared/ApiError';
+import { Loader2 } from 'lucide-react';
 import { IOrder } from '@/types/order.interface';
-import getAuthToken from '@/utils/getAuthToken';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
-import { getSession } from 'next-auth/react';
 
-export default function PayPalCheckoutButton({ order }: { order: IOrder }) {
+export default function PayPalCheckoutButton({
+    order,
+    userID,
+    token,
+}: {
+    order: IOrder;
+    userID: string;
+    token: string;
+}) {
+    const router = useRouter();
+    const [newPayment] = useNewPaymentMutation();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [{ isPending }] = usePayPalScriptReducer();
+
+    const createPayPalOrder = async (): Promise<string> => {
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/paypal/create-order`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        orderID: order.orderID,
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.error || 'Failed to create PayPal order'
+                );
+            }
+
+            const { paypalOrderID } = await response.json();
+            if (!paypalOrderID) {
+                throw new Error('No order ID returned from PayPal');
+            }
+
+            return paypalOrderID;
+        } catch (err) {
+            console.error('Failed to create PayPal order:', err);
+            toast.error('Failed to create PayPal order. Please try again.');
+            throw err;
+        }
+    };
+
+    const onApprove = async (data: { orderID: string }): Promise<void> => {
+        setIsProcessing(true);
+        try {
+            const captureResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/paypal/${data.orderID}/capture`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            if (!captureResponse.ok) {
+                const errorData = await captureResponse.json();
+                throw new Error(errorData.error || 'Failed to capture payment');
+            }
+
+            const captureData = await captureResponse.json();
+
+            if (captureData.status === 'COMPLETED') {
+                const paymentResponse = await newPayment({
+                    userID,
+                    orderID: order.orderID,
+                    paymentOption: 'pay-now',
+                    paymentMethod: 'paypal',
+                    status: 'paid',
+                    transactionId: captureData.captureDetails.id,
+                    amount: order.total ?? 0,
+                }).unwrap();
+
+                if (paymentResponse?.success) {
+                    toast.success('Payment completed successfully!');
+                    router.push('/orders');
+                }
+            }
+        } catch (err) {
+            console.error('Payment capture failed:', err);
+            ApiError(err);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    if (isPending || isProcessing) {
+        return (
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p>
+                    {isPending ? 'Loading PayPal...' : 'Processing payment...'}
+                </p>
+            </div>
+        );
+    }
+
     return (
-        <PayPalScriptProvider
-            options={{
-                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
-                currency: 'USD',
-            }}
-        >
+        <div className="w-full">
             <PayPalButtons
-                style={{ layout: 'vertical' }}
-                // Temporarily modify your createOrder function to log the response
-                createOrder={async () => {
-                    try {
-                        const session = await getAuthToken();
-                        console.log('Sending order data:', {
-                            purchase_units: [
-                                {
-                                    amount: {
-                                        currency_code: 'USD',
-                                        value: (order.total ?? 0).toString(),
-                                    },
-                                },
-                            ],
-                        });
-
-                        const res = await fetch(
-                            `${process.env.NEXT_PUBLIC_API_URL}/api/paypal`,
-                            {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    Authorization: `Bearer eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..9eSpar_4psyvyQFV.dP4EdnGi8D4U6vA5TPwk3YqmARr3pxO5Bn25HCJWcKgLveuuRg8ShcgnV3t12QAggRxyQvj-Y-48KVZ-xYA5m2mli4iEv7OJHbCnyUG9trtrNCJKyPq3KVpTQ-Y-hhft1gtPIe1hnARfvWeDGQkFzXUbyWCskDVVL-uwLb707CTDSm27VgeIL4M2ieGpuaYwoUgZL9Ei7MvAQq4b9Yv98uUXQnzldzxMljJjyCM-IHKOhkrtElVuGvxLCQPsaGfl2opRiWUzA26UEIQpimFyVW8cBMlVU1Vp7nP8wQ9ehdi-KHQVZ_JHvc9pA9DUPpjYTWx9Q4quExkqPPnW03S9k_VLIqGTHbYKt14slDnCsR07cjaKiWDQZIqbcOua42FcPqwbJutBj859XVioNMPvhXLmYWsIouTRYRET.bKD2ZEF3i9Ps8hmA4ByiwA`,
-                                },
-                                body: JSON.stringify({
-                                    purchase_units: [
-                                        {
-                                            amount: {
-                                                currency_code: 'USD',
-                                                value: (
-                                                    order.total ?? 0
-                                                ).toString(),
-                                            },
-                                        },
-                                    ],
-                                }),
-                            }
-                        );
-
-                        console.log('Response status:', res.status);
-                        const data = await res.json();
-                        console.log('Response data:', data);
-
-                        if (!res.ok)
-                            throw new Error(
-                                data.message || 'Failed to create order'
-                            );
-                        return data.id;
-                    } catch (err) {
-                        console.error('Full create order error:', err);
-                        throw err;
-                    }
+                style={{
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'paypal',
+                    height: 48,
                 }}
-                onApprove={async (data, actions) => {
-                    try {
-                        const res = await fetch(
-                            `${process.env.NEXT_PUBLIC_API_URL}/api/paypal/${data.orderID}/capture`,
-                            { method: 'POST' }
-                        );
-                        if (!res.ok) throw new Error('Capture failed');
-                        const details = await res.json();
-                        console.log('Payment Approved:', details);
-                        // Add your success logic here
-                    } catch (err) {
-                        console.error('Capture error:', err);
-                    }
-                }}
+                createOrder={createPayPalOrder}
+                onApprove={onApprove}
                 onError={(err) => {
-                    console.error('PayPal error', err);
+                    console.error('PayPal Error:', err);
+                    toast.error(`Payment failed: ${err.message}`);
+                }}
+                onCancel={() => {
+                    toast('Payment canceled', { icon: 'ℹ️' });
                 }}
             />
-        </PayPalScriptProvider>
+        </div>
     );
 }

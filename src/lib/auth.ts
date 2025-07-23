@@ -118,6 +118,12 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id;
                 token.role = db.role;
             }
+
+            if (account) {
+                token.accessToken = account.access_token || token.accessToken;
+                token.idToken = account.id_token || token.idToken;
+            }
+
             return token;
         },
         async session({ session, token }) {
@@ -126,6 +132,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.role = token.role as string;
             }
 
+            session.accessToken = token.accessToken as string;
             return session;
         },
 
