@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
+import { useGetDraftOrdersQuery } from '@/redux/features/orders/ordersApi';
 import { IOrder } from '@/types/order.interface';
 import { cn } from '@/lib/utils';
 import { statusData } from '@/data/orders';
@@ -93,7 +93,7 @@ export default function RootDraft() {
     const [currentPage, setCurrentPage] = useState(1);
     const [quantity, setQuantity] = useState(10);
 
-    const { data, isLoading } = useGetOrdersQuery(
+    const { data, isLoading } = useGetDraftOrdersQuery(
         {
             userID,
             role,

@@ -9,25 +9,22 @@ import {
 } from '@/components/ui/card';
 import { RadioGroup } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
     EmbeddedCheckoutProvider,
     EmbeddedCheckout,
-    Elements,
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import ApiError from '@/components/shared/ApiError';
-import SaveCardForm from './SaveCardForm';
-import {
-    useCreateSetupIntentMutation,
-    useNewOrderCheckoutMutation,
-} from '@/redux/features/stripe/stripeApi';
+import { useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
 import { Loader2, CreditCard, Calendar } from 'lucide-react';
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
 
-const paymentOptions = [
+const PAYMENT_OPTIONS = [
     {
         value: 'pay-later',
         title: 'Pay Later (Monthly)',
@@ -40,11 +37,13 @@ const paymentOptions = [
         description: 'One-time full payment.',
         icon: <CreditCard className="w-5 h-5" />,
     },
-];
+] as const;
 
 const stripePromise = loadStripe(
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
+
+type PaymentOption = (typeof PAYMENT_OPTIONS)[number]['value'];
 
 export default function RootNewOrderPayment({
     orderID,
@@ -53,70 +52,123 @@ export default function RootNewOrderPayment({
     orderID: string;
     userID: string;
 }) {
-    const { data, isLoading: isOrderLoading } = useGetOrderByIDQuery(orderID);
     const router = useRouter();
+    const { data, isLoading: isOrderLoading } = useGetOrderByIDQuery(orderID);
+    const [newOrderCheckout] = useNewOrderCheckoutMutation();
+    const [newPayment] = useNewPaymentMutation();
 
-    if (!isOrderLoading && data.data.paymentStatus === 'paid') {
-        toast.error(
-            "The order's payment status is paid. Redirecting to orders page..."
-        );
-
-        setTimeout(() => {
-            router.push('/orders');
-        }, 3000);
-    }
-
-    const [paymentOption, setPaymentOption] = useState<
-        '' | 'pay-now' | 'pay-later'
-    >('');
+    const [paymentOption, setPaymentOption] = useState<PaymentOption | ''>('');
     const [clientSecret, setClientSecret] = useState('');
-    const [customerID, setCustomerID] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const [newOrderCheckout] = useNewOrderCheckoutMutation();
-    const [createSetupIntent] = useCreateSetupIntentMutation();
+    // Redirect if payment is already paid
+    useEffect(() => {
+        if (!isOrderLoading && data?.data.paymentStatus === 'paid') {
+            toast.error(
+                "The order's payment status is paid. Redirecting to orders page..."
+            );
+            const timer = setTimeout(() => router.push('/orders'), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [isOrderLoading, data?.data.paymentStatus, router]);
+
+    const fetchPaymentSession = useCallback(async () => {
+        if (!paymentOption || paymentOption !== 'pay-now') return;
+
+        setIsLoading(true);
+        try {
+            const res = await newOrderCheckout({
+                userID,
+                orderID,
+                paymentOption,
+                paymentMethod: 'card-payment',
+            }).unwrap();
+
+            if (res?.success) {
+                setClientSecret(res.data);
+            }
+        } catch (err) {
+            ApiError(err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [newOrderCheckout, paymentOption, orderID, userID]);
 
     useEffect(() => {
-        const fetchPaymentSession = async () => {
-            if (!paymentOption) return;
-
-            setIsLoading(true);
-            try {
-                if (paymentOption === 'pay-now') {
-                    const res = await newOrderCheckout({
-                        userID,
-                        orderID,
-                        paymentOption,
-                        paymentMethod: 'card-payment',
-                    }).unwrap();
-
-                    if (res?.success) {
-                        setClientSecret(res.data);
-                    }
-                } else if (paymentOption === 'pay-later') {
-                    const res = await createSetupIntent({
-                        userID,
-                        orderID,
-                    }).unwrap();
-
-                    if (res?.success) {
-                        setClientSecret(res.data.client_secret);
-                        setCustomerID(res.data.customer_id);
-                    }
-                }
-            } catch (err) {
-                ApiError(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchPaymentSession();
-    }, [createSetupIntent, newOrderCheckout, paymentOption, orderID, userID]);
+    }, [fetchPaymentSession]);
+
+    const handlePayLater = useCallback(async () => {
+        if (paymentOption !== 'pay-later') return;
+
+        setIsLoading(true);
+        try {
+            const res = await newPayment({
+                userID,
+                orderID,
+                paymentOption,
+                status: 'pending',
+            }).unwrap();
+
+            if (res?.success) {
+                toast.success('Payment preference saved successfully!');
+                router.push('/orders');
+            } else {
+                toast.error('Failed to save payment preference');
+            }
+        } catch (err) {
+            console.log(err)
+            ApiError(err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [newPayment, paymentOption, orderID, userID, router]);
+
+    const renderPaymentContent = () => {
+        if (isLoading) {
+            return (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <p>Preparing payment form...</p>
+                </div>
+            );
+        }
+
+        if (paymentOption === 'pay-now' && clientSecret) {
+            return (
+                <EmbeddedCheckoutProvider
+                    stripe={stripePromise}
+                    options={{ clientSecret }}
+                >
+                    <EmbeddedCheckout className="w-full" />
+                </EmbeddedCheckoutProvider>
+            );
+        }
+
+        if (paymentOption === 'pay-later') {
+            return (
+                <Button onClick={handlePayLater}>
+                    Save preference and complete order
+                </Button>
+            );
+        }
+
+        return (
+            <div className="text-center p-6 text-muted-foreground space-y-2">
+                <CreditCard className="w-10 h-10 mx-auto" />
+                <p className="text-lg font-semibold">
+                    Select a payment method to begin
+                </p>
+                <p className="text-sm">
+                    You'll be guided through a secure process
+                </p>
+            </div>
+        );
+    };
 
     return (
-        <div className="grid grid-cols-2 gap-8 items-start">
-            <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <Card className="md:col-span-2">
                 <CardHeader>
                     <CardTitle className="text-2xl">
                         Select Payment Option
@@ -129,11 +181,11 @@ export default function RootNewOrderPayment({
                     <RadioGroup
                         value={paymentOption}
                         onValueChange={(val) =>
-                            setPaymentOption(val as 'pay-now' | 'pay-later')
+                            setPaymentOption(val as PaymentOption)
                         }
                         className="grid gap-4 sm:grid-cols-2"
                     >
-                        {paymentOptions.map(
+                        {PAYMENT_OPTIONS.map(
                             ({ value, title, description, icon }) => (
                                 <Card
                                     key={value}
@@ -143,11 +195,7 @@ export default function RootNewOrderPayment({
                                             ? 'border-primary bg-primary/5'
                                             : 'border-muted hover:border-primary/50'
                                     )}
-                                    onClick={() =>
-                                        setPaymentOption(
-                                            value as 'pay-now' | 'pay-later'
-                                        )
-                                    }
+                                    onClick={() => setPaymentOption(value)}
                                 >
                                     <div className="flex items-start gap-4">
                                         <div className="bg-primary/10 text-primary p-3 rounded-md">
@@ -169,14 +217,14 @@ export default function RootNewOrderPayment({
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="md:col-span-1">
                 <CardHeader>
                     <CardTitle className="text-2xl">
-                        {paymentOption === 'pay-now'
+                        {!paymentOption
+                            ? 'Choose a Payment Option'
+                            : paymentOption === 'pay-now'
                             ? 'Complete Your Payment'
-                            : paymentOption === 'pay-later'
-                            ? 'Secure Your Payment'
-                            : 'Choose a Payment Option'}
+                            : 'Secure Your Payment'}
                     </CardTitle>
                     <CardDescription>
                         {paymentOption
@@ -185,40 +233,7 @@ export default function RootNewOrderPayment({
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center items-center min-h-[200px]">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                            <p>Preparing payment form...</p>
-                        </div>
-                    ) : paymentOption === 'pay-now' && clientSecret ? (
-                        <EmbeddedCheckoutProvider
-                            stripe={stripePromise}
-                            options={{ clientSecret }}
-                        >
-                            <EmbeddedCheckout className="w-full" />
-                        </EmbeddedCheckoutProvider>
-                    ) : paymentOption === 'pay-later' && clientSecret ? (
-                        <Elements
-                            stripe={stripePromise}
-                            options={{ clientSecret }}
-                        >
-                            <SaveCardForm
-                                userID={userID}
-                                orderID={orderID}
-                                customerID={customerID}
-                            />
-                        </Elements>
-                    ) : (
-                        <div className="text-center p-6 text-muted-foreground space-y-2">
-                            <CreditCard className="w-10 h-10 mx-auto" />
-                            <p className="text-lg font-semibold">
-                                Select a payment method to begin
-                            </p>
-                            <p className="text-sm">
-                                You’ll be guided through a secure process
-                            </p>
-                        </div>
-                    )}
+                    {renderPaymentContent()}
                 </CardContent>
             </Card>
         </div>

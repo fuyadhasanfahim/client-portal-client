@@ -12,6 +12,8 @@ import { Loader, Save } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
+import PayPalCheckoutButton from './PayPalCheckoutButton';
+import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 
 export default function SaveCardForm({
     userID,
@@ -22,6 +24,12 @@ export default function SaveCardForm({
     orderID: string;
     customerID: string;
 }) {
+    const { data, isLoading } = useGetOrderByIDQuery(orderID, {
+        skip: !orderID,
+    });
+
+    const order = !isLoading && data.data;
+
     const stripe = useStripe();
     const elements = useElements();
     const router = useRouter();
@@ -84,6 +92,7 @@ export default function SaveCardForm({
     return (
         <div className="space-y-4">
             <PaymentElement className="w-full" />
+            <PayPalCheckoutButton order={order} />
             <Button
                 onClick={handleSaveCard}
                 className="w-full"

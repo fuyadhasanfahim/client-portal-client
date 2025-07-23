@@ -56,6 +56,26 @@ export const ordersApi = apiSlice.injectEndpoints({
                     };
                 },
             }),
+            getDraftOrders: builder.query({
+                query: (params) => ({
+                    url: 'orders/get-draft-orders',
+                    params: {
+                        ...params,
+                        page: params.page || 1,
+                        limit: params.limit || 10,
+                    },
+                }),
+                providesTags: ['Orders'],
+                transformResponse: (response) => {
+                    if (!response.success) {
+                        throw new Error('Failed to fetch orders');
+                    }
+                    return {
+                        orders: response.data.orders,
+                        pagination: response.data.pagination,
+                    };
+                },
+            }),
             getOrderByID: builder.query({
                 query: (orderID) => ({
                     url: `orders/get-orders/${orderID}`,
@@ -113,6 +133,7 @@ export const ordersApi = apiSlice.injectEndpoints({
 export const {
     useNewOrderMutation,
     useGetOrdersQuery,
+    useGetDraftOrdersQuery,
     useGetOrderByIDQuery,
     useUpdateOrderMutation,
     useDeliverOrderMutation,

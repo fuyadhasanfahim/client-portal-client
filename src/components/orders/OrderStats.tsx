@@ -22,7 +22,7 @@ export default function OrderStats({
             value:
                 !isLoading &&
                 orders.filter((order) =>
-                    ['In Progress', 'In Revision', 'Delivered'].includes(
+                    ['in-progress', 'in-revision', 'delivered'].includes(
                         order.status
                     )
                 ).length,
@@ -34,7 +34,7 @@ export default function OrderStats({
             title: 'Completed Orders',
             value:
                 !isLoading &&
-                orders.filter((order) => ['Completed'].includes(order.status))
+                orders.filter((order) => ['completed'].includes(order.status))
                     .length,
             icon: IconClock,
             color: 'from-green-500 to-teal-600',
@@ -44,7 +44,7 @@ export default function OrderStats({
             title: 'Pending Orders',
             value:
                 !isLoading &&
-                orders.filter((order) => ['Pending'].includes(order.status))
+                orders.filter((order) => ['pending'].includes(order.status))
                     .length,
             icon: IconCheckbox,
             color: 'from-yellow-500 to-orange-500',
@@ -54,7 +54,7 @@ export default function OrderStats({
             title: 'Canceled Orders',
             value:
                 !isLoading &&
-                orders.filter((order) => ['Canceled'].includes(order.status))
+                orders.filter((order) => ['canceled'].includes(order.status))
                     .length,
             icon: IconPackageOff,
             color: 'from-orange-500 to-red-600',
