@@ -17,9 +17,14 @@ export interface IUser {
     password: string;
     oldPasswords?: string[];
 
-    isEmailVerified: boolean;
     isExistingUser: boolean;
-    services?: string[];
+    services?: {
+        _id: string;
+        name: string;
+        price: number;
+    }[];
+
+    isEmailVerified: boolean;
     emailVerificationToken?: string;
     emailVerificationTokenExpiry?: Date;
     forgetPasswordToken?: string;
@@ -27,15 +32,15 @@ export interface IUser {
     isPasswordChanged?: boolean;
     lastPasswordChange?: Date;
 
-    lastLogin?: Date;
+    lastLogin: Date;
     image?: string;
 
     isActive: boolean;
     isDeleted: boolean;
     isBlocked: boolean;
 
-    createdAt?: Date;
-    updatedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface ISanitizedUser {
@@ -52,6 +57,7 @@ export interface ISanitizedUser {
     services?: string[];
     lastLogin: Date;
     image?: string;
+    provider: string;
     createdAt: Date;
     updatedAt: Date;
 }

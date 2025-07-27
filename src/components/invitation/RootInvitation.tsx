@@ -13,7 +13,7 @@ export default function RootInvitation() {
     const { data, isLoading } = useGetServicesQuery({});
     const [isExistingUser, setIsExistingUser] = useState(false);
     const [selectedServices, setSelectedServices] = useState<
-        { _id: string; name: string; price: number }[]
+        { name: string; price: number }[]
     >([]);
     const [generatedLink, setGeneratedLink] = useState('');
     const [copied, setCopied] = useState(false);
@@ -26,11 +26,11 @@ export default function RootInvitation() {
         );
     }
 
-    const handleServiceToggle = (service: { _id: string; name: string }) => {
+    const handleServiceToggle = (service: { name: string }) => {
         setSelectedServices((prev) => {
-            const exists = prev.find((s) => s._id === service._id);
+            const exists = prev.find((s) => s.name === service.name);
             if (exists) {
-                return prev.filter((s) => s._id !== service._id);
+                return prev.filter((s) => s.name !== service.name);
             } else {
                 return [...prev, { ...service, price: 0 }];
             }
@@ -40,7 +40,7 @@ export default function RootInvitation() {
     const handlePriceChange = (id: string, price: string) => {
         setSelectedServices((prev) =>
             prev.map((s) =>
-                s._id === id ? { ...s, price: Number(price) || 0 } : s
+                s.name === id ? { ...s, price: Number(price) || 0 } : s
             )
         );
     };
@@ -88,22 +88,22 @@ export default function RootInvitation() {
                     <div className="space-y-3 max-h-96 overflow-y-auto border p-3 rounded-md">
                         {data.data?.map((service: any) => {
                             const selected = selectedServices.find(
-                                (s) => s._id === service._id
+                                (s) => s.name === service.name
                             );
                             return (
                                 <div
-                                    key={service._id}
+                                    key={service.name}
                                     className="space-y-2 border-b pb-2"
                                 >
                                     <div className="flex items-center space-x-2">
                                         <Checkbox
-                                            id={service._id}
+                                            id={service.name}
                                             checked={!!selected}
                                             onCheckedChange={() =>
                                                 handleServiceToggle(service)
                                             }
                                         />
-                                        <Label htmlFor={service._id}>
+                                        <Label htmlFor={service.name}>
                                             {service.name}
                                         </Label>
                                     </div>
@@ -115,7 +115,7 @@ export default function RootInvitation() {
                                                 value={selected.price || ''}
                                                 onChange={(e) =>
                                                     handlePriceChange(
-                                                        service._id,
+                                                        service.name,
                                                         e.target.value
                                                     )
                                                 }

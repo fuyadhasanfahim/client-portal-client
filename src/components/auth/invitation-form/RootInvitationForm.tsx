@@ -20,25 +20,18 @@ import { Loader2, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ApiError from '@/components/shared/ApiError';
 import { useEffect, useState } from 'react';
-import { useCreateExistingUserMutation } from '@/redux/features/users/userApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 
 export default function RootInvitationForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
-
     const { user } = useLoggedInUser();
 
-    const [createExistingUser, { isLoading }] = useCreateExistingUserMutation();
-
     const isExistingUser = searchParams.get('isExistingUser') === 'true';
+    const [isLoading, setIsLoading] = useState(false);
 
     const [services, setServices] = useState<
-        {
-            _id: string;
-            name: string;
-            price: number;
-        }[]
+        { _id: string; name: string; price: number }[]
     >([]);
 
     useEffect(() => {
@@ -71,40 +64,51 @@ export default function RootInvitationForm() {
 
     const onsubmit = async (data: z.infer<typeof SignupSchema>) => {
         try {
-            if (user) {
+            setIsLoading(true);
+
+            if (user?.email) {
                 toast.error(
-                    `You are logged in as ${user.email!}, and can't create another one. Log out and try again later.`,
+                    `You are logged in as ${user.email}, log out and try again.`,
                     {
-                        icon: <TriangleAlert className='w-6 h-6 text-amber-400' />,
+                        icon: (
+                            <TriangleAlert className="w-6 h-6 text-amber-400" />
+                        ),
                     }
                 );
                 return;
             }
 
-            const response = await createExistingUser({
-                ...data,
-                isExistingUser,
-                services,
+            const response = await fetch('/api/user/create-existing-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...data,
+                    isExistingUser,
+                    services,
+                }),
             });
 
-            if (response.data.success) {
-                toast.success('User created successfully! Please sign in.');
-                form.reset();
+            const resData = await response.json();
 
-                router.push('/sign-in');
+            if (!response.ok) {
+                toast.error(resData.message || 'Failed to create user.');
+                return;
             }
+
+            toast.success('User created successfully! Please sign in.');
+            form.reset();
+            router.push('/sign-in');
         } catch (error) {
             ApiError(error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onsubmit)}>
-                <fieldset
-                    disabled={form.formState.isSubmitting}
-                    className="space-y-5"
-                >
+                <fieldset disabled={isLoading} className="space-y-5">
                     <FormField
                         control={form.control}
                         name="name"
@@ -132,7 +136,7 @@ export default function RootInvitationForm() {
                                 <FormLabel>Username *</FormLabel>
                                 <FormControl>
                                     <Input
-                                        placeholder="Enter your full username"
+                                        placeholder="Enter your username"
                                         type="text"
                                         required
                                         {...field}
@@ -179,15 +183,16 @@ export default function RootInvitationForm() {
                             </FormItem>
                         )}
                     />
+
                     <FormField
                         control={form.control}
                         name="company"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Company (Optional)</FormLabel>
+                                <FormLabel>Company</FormLabel>
                                 <FormControl>
                                     <Input
-                                        placeholder="Enter your company name"
+                                        placeholder="Enter your company"
                                         type="text"
                                         {...field}
                                     />
@@ -196,6 +201,7 @@ export default function RootInvitationForm() {
                             </FormItem>
                         )}
                     />
+
                     <FormField
                         control={form.control}
                         name="address"
@@ -237,18 +243,16 @@ export default function RootInvitationForm() {
                     <Button
                         type="submit"
                         className={cn(
-                            'w-full col-span-2',
-                            form.formState.isSubmitting && 'cursor-not-allowed'
+                            'w-full',
+                            isLoading && 'cursor-not-allowed'
                         )}
-                        disabled={form.formState.isSubmitting || isLoading}
-                        aria-busy={form.formState.isSubmitting || isLoading}
+                        disabled={isLoading}
+                        aria-busy={isLoading}
                     >
-                        {form.formState.isSubmitting || isLoading ? (
+                        {isLoading ? (
                             <Loader2 className="animate-spin" />
                         ) : null}
-                        {form.formState.isSubmitting || isLoading
-                            ? 'Signing Up...'
-                            : 'Sign Up'}
+                        {isLoading ? 'Signing Up...' : 'Sign Up'}
                     </Button>
                 </fieldset>
             </form>

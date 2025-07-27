@@ -1,4 +1,3 @@
-import { getUserData } from '@/actions/user.action';
 import OrderServices from '@/components/orders/new-order/OrderServices';
 import { Metadata } from 'next';
 
@@ -8,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default async function NewOrderPage() {
-    const user = await getUserData();
-
-    return (
-        <OrderServices userID={user.userID} />
-    );
+    return <OrderServices />;
 }

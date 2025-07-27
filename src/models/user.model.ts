@@ -1,5 +1,5 @@
-import { IUser } from '@/types/user.interface';
 import { model, models, Schema } from 'mongoose';
+import { IUser } from '../types/user.interface.js';
 
 const userSchema = new Schema<IUser>(
     {
@@ -7,7 +7,7 @@ const userSchema = new Schema<IUser>(
         name: { type: String, required: true },
         username: { type: String, required: true, unique: true },
         email: { type: String, required: true, unique: true },
-        phone: { type: String },
+        phone: { type: String, required: true },
         address: String,
         company: String,
 
@@ -22,10 +22,24 @@ const userSchema = new Schema<IUser>(
         password: {
             type: String,
             required: function () {
-                return this.provider !== 'google';
+                return !this.googleId;
             },
         },
         oldPasswords: [String],
+
+        isExistingUser: { type: Boolean, default: false },
+        services: [
+            {
+                name: {
+                    type: String,
+                    required: true,
+                },
+                price: {
+                    type: Number,
+                    required: true,
+                },
+            },
+        ],
 
         isEmailVerified: { type: Boolean, default: false },
         emailVerificationToken: String,

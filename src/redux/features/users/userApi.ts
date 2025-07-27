@@ -2,13 +2,6 @@ import { apiSlice } from '@/redux/api/apiSlice';
 
 export const userApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        createExistingUser: builder.mutation({
-            query: (data) => ({
-                url: 'users/create-existing-user',
-                method: 'POST',
-                body: data,
-            }),
-        }),
         getMe: builder.query({
             query: (token) => ({
                 url: 'users/me',
@@ -75,7 +68,6 @@ export const userApi = apiSlice.injectEndpoints({
 });
 
 export const {
-    useCreateExistingUserMutation,
     useGetMeQuery,
     useGetUserInfoQuery,
     useGetUsersQuery,
