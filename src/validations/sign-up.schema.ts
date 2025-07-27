@@ -10,7 +10,7 @@ const SignupSchema = z
             .min(1, { message: 'Email is required' }),
         phone: z.string().optional(),
         company: z.string().optional(),
-        country: z.string().min(1, { message: 'Country is required' }),
+        address: z.string().min(1, { message: 'Country is required' }),
         password: z
             .string()
             .min(6, { message: 'Password must be at least 6 characters long' }),

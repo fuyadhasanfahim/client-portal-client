@@ -1,5 +1,8 @@
 import { getUserData } from '@/actions/user.action';
 import ClientDataTable from './ClientDataTable';
+import Link from 'next/link';
+import { Button } from '../ui/button';
+import { Plus } from 'lucide-react';
 
 export default async function RootCLients() {
     const user = await getUserData();
@@ -10,6 +13,13 @@ export default async function RootCLients() {
                 <h2 className="text-base md:text-lg lg:text-xl font-semibold">
                     Clients Summery
                 </h2>
+
+                <Link href={'/clients/invitation'}>
+                    <Button>
+                        <Plus />
+                        Invite User
+                    </Button>
+                </Link>
             </div>
 
             <ClientDataTable id={user.userID} />

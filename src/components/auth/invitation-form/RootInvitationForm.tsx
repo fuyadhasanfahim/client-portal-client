@@ -15,14 +15,45 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import SignupSchema from '@/validations/sign-up.schema';
-import axiosInstance from '@/lib/axios-instance';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader2, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ApiError from '@/components/shared/ApiError';
+import { useEffect, useState } from 'react';
+import { useCreateExistingUserMutation } from '@/redux/features/users/userApi';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
-export default function SignupForm() {
+export default function RootInvitationForm() {
+    const searchParams = useSearchParams();
     const router = useRouter();
+
+    const { user } = useLoggedInUser();
+
+    const [createExistingUser, { isLoading }] = useCreateExistingUserMutation();
+
+    const isExistingUser = searchParams.get('isExistingUser') === 'true';
+
+    const [services, setServices] = useState<
+        {
+            _id: string;
+            name: string;
+            price: number;
+        }[]
+    >([]);
+
+    useEffect(() => {
+        const rawServices = searchParams.get('services');
+        if (rawServices) {
+            try {
+                const parsed = JSON.parse(rawServices);
+                if (Array.isArray(parsed)) {
+                    setServices(parsed);
+                }
+            } catch (err) {
+                console.error('Invalid services query param', err);
+            }
+        }
+    }, [searchParams]);
 
     const form = useForm<z.infer<typeof SignupSchema>>({
         resolver: zodResolver(SignupSchema),
@@ -40,15 +71,26 @@ export default function SignupForm() {
 
     const onsubmit = async (data: z.infer<typeof SignupSchema>) => {
         try {
-            const response = await axiosInstance.post(
-                '/user/create-user',
-                data
-            );
+            if (user) {
+                toast.error(
+                    `You are logged in as ${user.email!}, and can't create another one. Log out and try again later.`,
+                    {
+                        icon: <TriangleAlert className='w-6 h-6 text-amber-400' />,
+                    }
+                );
+                return;
+            }
+
+            const response = await createExistingUser({
+                ...data,
+                isExistingUser,
+                services,
+            });
 
             if (response.data.success) {
                 toast.success('User created successfully! Please sign in.');
-
                 form.reset();
+
                 router.push('/sign-in');
             }
         } catch (error) {
@@ -198,13 +240,13 @@ export default function SignupForm() {
                             'w-full col-span-2',
                             form.formState.isSubmitting && 'cursor-not-allowed'
                         )}
-                        disabled={form.formState.isSubmitting}
-                        aria-busy={form.formState.isSubmitting}
+                        disabled={form.formState.isSubmitting || isLoading}
+                        aria-busy={form.formState.isSubmitting || isLoading}
                     >
-                        {form.formState.isSubmitting ? (
+                        {form.formState.isSubmitting || isLoading ? (
                             <Loader2 className="animate-spin" />
                         ) : null}
-                        {form.formState.isSubmitting
+                        {form.formState.isSubmitting || isLoading
                             ? 'Signing Up...'
                             : 'Sign Up'}
                     </Button>

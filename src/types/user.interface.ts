@@ -18,6 +18,8 @@ export interface IUser {
     oldPasswords?: string[];
 
     isEmailVerified: boolean;
+    isExistingUser: boolean;
+    services?: string[];
     emailVerificationToken?: string;
     emailVerificationTokenExpiry?: Date;
     forgetPasswordToken?: string;
@@ -46,6 +48,8 @@ export interface ISanitizedUser {
     company?: string;
     role: UserRole;
     isEmailVerified: boolean;
+    isExistingUser: boolean;
+    services?: string[];
     lastLogin: Date;
     image?: string;
     createdAt: Date;
