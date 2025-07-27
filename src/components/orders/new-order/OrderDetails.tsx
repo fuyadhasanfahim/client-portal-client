@@ -34,6 +34,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { IOrderDetails } from '@/types/order.interface';
 import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import FileUploadField from './FileUploadField';
 
 export default function OrderDetails({ orderID }: { orderID: string }) {
     const { user } = useLoggedInUser();
@@ -67,8 +68,6 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                 orderID,
                 details: data as IOrderDetails,
             }).unwrap();
-
-            console.log(response)
 
             if (response.success) {
                 toast.success('Details saved. Redirecting...');
@@ -104,7 +103,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                     </CardHeader>
 
                     <CardContent className="space-y-6">
-                        <FormField
+                        {/* <FormField
                             control={form.control}
                             name="downloadLink"
                             render={({ field }) => (
@@ -125,6 +124,16 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                     <FormMessage />
                                 </FormItem>
                             )}
+                        /> */}
+
+                        <FileUploadField
+                            label="Download Link"
+                            name="downloadLink"
+                            control={form.control}
+                            setValue={form.setValue}
+                            orderID={orderID}
+                            required
+                            description="Upload your images or provide a download link"
                         />
 
                         <FormField
@@ -427,7 +436,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                             </div>
                         )}
 
-                        <FormField
+                        {/* <FormField
                             control={form.control}
                             name="sourceFileLink"
                             render={({ field }) => (
@@ -443,6 +452,17 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                     <FormMessage />
                                 </FormItem>
                             )}
+                        /> */}
+
+                        <FileUploadField
+                            label="Source File Link"
+                            name="sourceFileLink"
+                            control={form.control}
+                            setValue={form.setValue}
+                            orderID={orderID}
+                            required={false}
+                            isDownloadLink={false}
+                            description="Optional: Upload source files like PSD, AI, etc."
                         />
 
                         <FormField
