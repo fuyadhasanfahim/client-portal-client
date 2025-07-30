@@ -55,7 +55,7 @@ export function MultiSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={`w-full justify-between ${className}`}
+                    className={`!w-full justify-between ${className}`}
                 >
                     {selected.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -81,8 +81,8 @@ export function MultiSelect({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-                <Command>
+            <PopoverContent className="w-[730px] p-0">
+                <Command className="!w-full">
                     <CommandInput placeholder="Search options..." />
                     <CommandEmpty>No option found.</CommandEmpty>
                     <CommandGroup className="max-h-64 overflow-auto">
@@ -93,7 +93,7 @@ export function MultiSelect({
                             >
                                 <Check
                                     className={cn(
-                                        'mr-2 h-4 w-4',
+                                        'h-4 w-4',
                                         selected.includes(option.value)
                                             ? 'opacity-100'
                                             : 'opacity-0'

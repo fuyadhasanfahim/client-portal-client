@@ -129,9 +129,8 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         <FileUploadField
                             label="Download Link"
                             name="downloadLink"
-                            control={form.control}
-                            setValue={form.setValue}
                             orderID={orderID}
+                            userID={user.userID}
                             required
                             description="Upload your images or provide a download link"
                         />
@@ -457,9 +456,8 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         <FileUploadField
                             label="Source File Link"
                             name="sourceFileLink"
-                            control={form.control}
-                            setValue={form.setValue}
                             orderID={orderID}
+                            userID={user.userID}
                             required={false}
                             isDownloadLink={false}
                             description="Optional: Upload source files like PSD, AI, etc."

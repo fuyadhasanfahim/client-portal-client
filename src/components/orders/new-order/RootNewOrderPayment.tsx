@@ -25,6 +25,7 @@ import PayPalCheckoutButton from './PayPalCheckoutButton';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Button } from '@/components/ui/button';
 import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
+import { error } from 'console';
 
 const PAYMENT_OPTIONS = [
     {
@@ -115,6 +116,7 @@ export default function RootNewOrderPayment({
                 paymentOption: 'pay-later',
                 paymentMethod: 'pending',
                 status: 'pending',
+                amount: !isOrderLoading && orderData?.data.total,
             }).unwrap();
 
             if (res?.success) {
@@ -122,6 +124,7 @@ export default function RootNewOrderPayment({
                 router.push('/orders');
             }
         } catch (err) {
+            console.log(err);
             ApiError(err);
         } finally {
             setIsProcessingPayLater(false);
