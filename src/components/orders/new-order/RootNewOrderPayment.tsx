@@ -25,7 +25,6 @@ import PayPalCheckoutButton from './PayPalCheckoutButton';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Button } from '@/components/ui/button';
 import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
-import { error } from 'console';
 
 const PAYMENT_OPTIONS = [
     {
