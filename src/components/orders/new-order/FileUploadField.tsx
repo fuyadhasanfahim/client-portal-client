@@ -74,7 +74,7 @@ export default function FileUploadField({
                         : 'upload-source-file';
 
                     const response = await fetch(
-                        `https://desktop-dhsfq6p.tailc51032.ts.net/api/orders/${endpoint}?userID=${userID}&orderID=${orderID}`,
+                        `${process.env.NEXT_PUBLIC_SERVER_API!}/api/orders/${endpoint}?userID=${userID}&orderID=${orderID}`,
                         {
                             method: 'POST',
                             body: formData,
