@@ -143,7 +143,7 @@ export default function OrderDetailsServiceList({
                         <strong>Download Link:</strong>{' '}
                         {downloadLink ? (
                             <Link
-                                href={`${process.env.NEXT_PUBLIC_SERVER_API}${downloadLink}`}
+                                href={`${process.env.NEXT_PUBLIC_SERVER_API!}${downloadLink}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline"
@@ -158,7 +158,7 @@ export default function OrderDetailsServiceList({
                         <strong>Supporting File:</strong>{' '}
                         {sourceFileLink ? (
                             <Link
-                                href={`${process.env.NEXT_PUBLIC_SERVER_API}${sourceFileLink}`}
+                                href={`${process.env.NEXT_PUBLIC_SERVER_API!}${sourceFileLink}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline"
