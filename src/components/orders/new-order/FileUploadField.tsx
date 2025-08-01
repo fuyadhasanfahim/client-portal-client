@@ -20,14 +20,16 @@ export default function FileUploadField({
     description = '',
     orderID,
     userID,
+    quoteID,
     isDownloadLink = true,
 }: {
     label: string;
     name: 'downloadLink' | 'sourceFileLink';
     required?: boolean;
     description?: string;
-    orderID: string;
+    orderID?: string;
     userID: string;
+    quoteID?: string;
     isDownloadLink?: boolean;
 }) {
     const {
@@ -73,13 +75,19 @@ export default function FileUploadField({
                         ? 'upload-images'
                         : 'upload-source-file';
 
-                    const response = await fetch(
-                        `${process.env.NEXT_PUBLIC_SERVER_API!}/api/orders/${endpoint}?userID=${userID}&orderID=${orderID}`,
-                        {
-                            method: 'POST',
-                            body: formData,
-                        }
-                    );
+                    // Determine if this is for orders or quotes
+                    const isOrder = !!orderID;
+                    const basePath = isOrder ? 'orders' : 'quotes';
+                    const idParam = isOrder ? 'orderID' : 'quoteID';
+                    const idValue = isOrder ? orderID : quoteID;
+
+                    const fileUploadUrl = `${process.env
+                        .NEXT_PUBLIC_SERVER_API!}/api/${basePath}/${endpoint}?userID=${userID}&${idParam}=${idValue}`;
+
+                    const response = await fetch(fileUploadUrl, {
+                        method: 'POST',
+                        body: formData,
+                    });
 
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -88,7 +96,6 @@ export default function FileUploadField({
 
                     const data = await response.json();
 
-                    // For image uploads, we get the folder path and files
                     if (isDownloadLink) {
                         setValue(name, data.folderPath);
                         setValue('images', data.storedFiles?.length || 0);
@@ -96,9 +103,7 @@ export default function FileUploadField({
                             folderPath: data.folderPath,
                             files: data.storedFiles,
                         };
-                    }
-                    // For source files, we get the file details
-                    else {
+                    } else {
                         setValue(name, data.storedFile?.path);
                         return {
                             file: data.storedFile,

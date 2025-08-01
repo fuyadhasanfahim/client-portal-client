@@ -48,6 +48,21 @@ export function NavMain({
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </Link>
+                    <Link href={'/quotes/new-quote'}>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                className="border text-black"
+                                asChild
+                                variant={'outline'}
+                                tooltip={'New Quote'}
+                            >
+                                <Button>
+                                    <PlusIcon />
+                                    New Quote
+                                </Button>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </Link>
                 </SidebarMenu>
 
                 <SidebarMenu>
