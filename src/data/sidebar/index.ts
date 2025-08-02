@@ -4,6 +4,7 @@ import {
     IconFileInvoice,
     IconMessage,
     IconPackage,
+    IconPackageExport,
     IconReportAnalytics,
     IconServer,
 } from '@tabler/icons-react';
@@ -22,6 +23,12 @@ export const sidebarItems = [
         access: ['admin', 'user'],
     },
     {
+        title: 'Quotes',
+        url: '/quotes',
+        icon: IconPackageExport,
+        access: ['admin', 'user'],
+    },
+    {
         title: 'Drafts',
         url: '/drafts',
         icon: IconBrandMinecraft,
@@ -31,13 +38,13 @@ export const sidebarItems = [
         title: 'Services',
         url: '/services',
         icon: IconServer,
-        access: ['user'],
+        access: ['admin'],
     },
     {
         title: 'Messages',
         url: '/messages',
         icon: IconMessage,
-        access: ['user'],
+        access: ['admin'],
     },
     {
         title: 'Invoices',

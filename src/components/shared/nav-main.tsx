@@ -29,6 +29,7 @@ export function NavMain({
     const pathname = usePathname();
 
     const filteredItems = items.filter((item) => item.access.includes(role));
+    console.log(filteredItems);
 
     return (
         <SidebarGroup>

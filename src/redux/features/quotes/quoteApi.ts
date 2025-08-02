@@ -29,6 +29,26 @@ export const quotesApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Quotes'],
             }),
+            getQuotes: builder.query({
+                query: (params) => ({
+                    url: 'quotes/get-quotes',
+                    params: {
+                        ...params,
+                        page: params.page || 1,
+                        limit: params.limit || 10,
+                    },
+                }),
+                providesTags: ['Quotes'],
+                transformResponse: (response) => {
+                    if (!response.success) {
+                        throw new Error('Failed to fetch quotes');
+                    }
+                    return {
+                        quotes: response.data.quotes,
+                        pagination: response.data.pagination,
+                    };
+                },
+            }),
             getQuoteByID: builder.query({
                 query: (quoteID) => ({
                     url: `quotes/get-quote/${quoteID}`,
@@ -36,8 +56,60 @@ export const quotesApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Quotes'],
             }),
+            updateQuote: builder.mutation({
+                query: ({ quoteID, data }) => ({
+                    url: `quotes/update-quote/${quoteID}`,
+                    method: 'PUT',
+                    body: data,
+                }),
+                invalidatesTags: ['Quotes'],
+            }),
+            deliverQuote: builder.mutation({
+                query: ({ quoteID, downloadLink }) => ({
+                    url: 'quotes/deliver-quote',
+                    method: 'PUT',
+                    body: { quoteID, downloadLink },
+                }),
+                invalidatesTags: ['Quotes'],
+            }),
+            reviewQuote: builder.mutation({
+                query: ({ quoteID, instructions }) => ({
+                    url: `quotes/review-quote`,
+                    method: 'PUT',
+                    body: { quoteID, instructions },
+                }),
+                invalidatesTags: ['Quotes'],
+            }),
+            completeQuote: builder.mutation({
+                query: (quoteID) => ({
+                    url: `quotes/complete-quote`,
+                    method: 'PUT',
+                    body: quoteID,
+                }),
+                invalidatesTags: ['Quotes'],
+            }),
+            getQuotesByStatus: builder.query({
+                query: ({ userID, role, status }) => ({
+                    url: `quotes/get-quotes-by-status/${status}`,
+                    method: 'GET',
+                    params: {
+                        userID,
+                        role,
+                    },
+                }),
+                providesTags: ['Quotes'],
+            }),
         };
     },
 });
 
-export const { useNewQuoteMutation, useGetQuoteByIDQuery } = quotesApi;
+export const {
+    useNewQuoteMutation,
+    useGetQuotesQuery,
+    useGetQuoteByIDQuery,
+    useUpdateQuoteMutation,
+    useGetQuotesByStatusQuery,
+    useCompleteQuoteMutation,
+    useDeliverQuoteMutation,
+    useReviewQuoteMutation,
+} = quotesApi;

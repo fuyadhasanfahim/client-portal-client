@@ -6,15 +6,15 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { IOrder } from '@/types/order.interface';
+import { IQuote } from '@/types/quote.interface';
 import { IconInvoice } from '@tabler/icons-react';
 import Link from 'next/link';
 
-export default function OrderDetailsInvoice({
-    order,
+export default function QuoteDetailsInvoice({
+    quote,
     user,
 }: {
-    order: IOrder;
+    quote: IQuote;
     user: {
         userID: string;
         name: string;
@@ -30,11 +30,11 @@ export default function OrderDetailsInvoice({
             <CardHeader>
                 <CardTitle className="text-2xl">Invoice</CardTitle>
                 <CardDescription>
-                    Generate and view the invoice for this order
+                    Generate and view the invoice for this quote
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Link href={`/orders/invoice/${order.orderID}`}>
+                <Link href={`/quotes/invoice/${quote.quoteID}`}>
                     <Button className="w-full">
                         <IconInvoice />
                         {isUser ? 'Generate My Invoice' : 'Generate Invoice'}
