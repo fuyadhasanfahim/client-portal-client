@@ -43,7 +43,6 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
         resolver: zodResolver(NewOrderDetailsSchema),
         defaultValues: {
             downloadLink: '',
-            sourceFileLink: '',
             images: 0,
             returnFileFormat: [],
             backgroundOption: [],
@@ -103,32 +102,8 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                     </CardHeader>
 
                     <CardContent className="space-y-6">
-                        {/* <FormField
-                            control={form.control}
-                            name="downloadLink"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Download Link{' '}
-                                        <span className="text-destructive">
-                                            *
-                                        </span>
-                                    </FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            type="url"
-                                            placeholder="Enter the download link"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        /> */}
-
                         <FileUploadField
                             label="Download Link"
-                            name="downloadLink"
                             orderID={orderID}
                             userID={user.userID}
                             required
@@ -171,71 +146,76 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                             label="Delivery date and time"
                         />
 
-                        <FormField
-                            control={form.control}
-                            name="returnFileFormat"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Return File Format{' '}
-                                        <span className="text-destructive">
-                                            *
-                                        </span>
-                                    </FormLabel>
-                                    <FormControl>
-                                        <MultiSelect
-                                            selected={field.value}
-                                            options={[
-                                                'JPEG',
-                                                'PNG',
-                                                'PSD',
-                                                'EPS',
-                                                'AI',
-                                                'GIF',
-                                                'PDF',
-                                            ].map((format) => ({
-                                                label: format,
-                                                value: format,
-                                            }))}
-                                            {...field}
-                                            className="sm:w-[510px]"
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-2 items-center gap-4">
+                            <FormField
+                                control={form.control}
+                                name="returnFileFormat"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            Return File Format{' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
+                                        </FormLabel>
+                                        <FormControl>
+                                            <MultiSelect
+                                                selected={field.value}
+                                                options={[
+                                                    'JPEG',
+                                                    'PNG',
+                                                    'PSD',
+                                                    'EPS',
+                                                    'AI',
+                                                    'GIF',
+                                                    'PDF',
+                                                    'TIFF',
+                                                    'SVG',
+                                                    'WEBP',
+                                                    'Source File With TIFF',
+                                                    'Source File With PSD',
+                                                ].map((format) => ({
+                                                    label: format,
+                                                    value: format,
+                                                }))}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                        <FormField
-                            control={form.control}
-                            name="backgroundOption"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Background Option{' '}
-                                        <span className="text-destructive">
-                                            *
-                                        </span>
-                                    </FormLabel>
-                                    <FormControl>
-                                        <MultiSelect
-                                            selected={field.value}
-                                            options={[
-                                                'Transparent',
-                                                'White',
-                                                'Colored',
-                                            ].map((option) => ({
-                                                label: option,
-                                                value: option,
-                                            }))}
-                                            {...field}
-                                            className="sm:w-[510px]"
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                            <FormField
+                                control={form.control}
+                                name="backgroundOption"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            Background Option{' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
+                                        </FormLabel>
+                                        <FormControl>
+                                            <MultiSelect
+                                                selected={field.value}
+                                                options={[
+                                                    'Transparent',
+                                                    'White',
+                                                    'Colored',
+                                                ].map((option) => ({
+                                                    label: option,
+                                                    value: option,
+                                                }))}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
 
                         {backgroundOption?.includes('Colored') && (
                             <FormField
@@ -434,34 +414,6 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                 />
                             </div>
                         )}
-
-                        {/* <FormField
-                            control={form.control}
-                            name="sourceFileLink"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Source File Link</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Enter the source file link"
-                                            required={false}
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        /> */}
-
-                        <FileUploadField
-                            label="Source File Link"
-                            name="sourceFileLink"
-                            orderID={orderID}
-                            userID={user.userID}
-                            required={false}
-                            isDownloadLink={false}
-                            description="Optional: Upload source files like PSD, AI, etc."
-                        />
 
                         <FormField
                             control={form.control}

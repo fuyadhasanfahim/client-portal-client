@@ -54,7 +54,6 @@ const OrderDetailsSchema = new Schema<IOrderDetails>(
     {
         deliveryDate: { type: Date },
         downloadLink: { type: String },
-        sourceFileLink: { type: String },
         images: { type: Number },
         returnFileFormat: [{ type: String }],
         backgroundOption: [{ type: String }],

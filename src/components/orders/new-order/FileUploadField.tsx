@@ -1,6 +1,8 @@
+'use client';
+
 import { useDropzone } from 'react-dropzone';
 import { useFormContext } from 'react-hook-form';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
     FilePlus2,
@@ -11,26 +13,23 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import ApiError from '@/components/shared/ApiError';
 
 export default function FileUploadField({
     label,
-    name,
     required = false,
     description = '',
     orderID,
     userID,
     quoteID,
-    isDownloadLink = true,
 }: {
     label: string;
-    name: 'downloadLink' | 'sourceFileLink';
     required?: boolean;
     description?: string;
     orderID?: string;
     userID: string;
     quoteID?: string;
-    isDownloadLink?: boolean;
 }) {
     const {
         setValue,
@@ -39,24 +38,46 @@ export default function FileUploadField({
         formState: { errors },
     } = useFormContext();
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadTime, setUploadTime] = useState(0);
     const [useExternalLink, setUseExternalLink] = useState(false);
-    const currentValue = watch(name);
+    const currentValue = watch('downloadLink');
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (isUploading) {
+            const startTime = Date.now();
+            intervalRef.current = setInterval(() => {
+                setUploadTime(Math.floor((Date.now() - startTime) / 1000));
+            }, 1000);
+        } else {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+            setUploadTime(0);
+            setUploadProgress(0);
+        }
+
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, [isUploading]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        accept: isDownloadLink
-            ? {
-                  'image/*': [
-                      '.jpeg',
-                      '.jpg',
-                      '.png',
-                      '.gif',
-                      '.bmp',
-                      '.tiff',
-                      '.webp',
-                  ],
-              }
-            : undefined,
-        multiple: isDownloadLink,
+        accept: {
+            'image/*': [
+                '.jpeg',
+                '.jpg',
+                '.png',
+                '.gif',
+                '.bmp',
+                '.tiff',
+                '.webp',
+            ],
+        },
+        multiple: true,
         maxSize: 5 * 1024 * 1024 * 1024,
         disabled: useExternalLink,
         onDrop: async (acceptedFiles) => {
@@ -64,25 +85,20 @@ export default function FileUploadField({
 
             try {
                 setIsUploading(true);
+                setUploadProgress(0);
 
                 const formData = new FormData();
-                acceptedFiles.forEach((file) =>
-                    formData.append(isDownloadLink ? 'files' : 'file', file)
-                );
+                acceptedFiles.forEach((file) => formData.append('files', file));
 
                 const uploadFn = async () => {
-                    const endpoint = isDownloadLink
-                        ? 'upload-images'
-                        : 'upload-source-file';
-
-                    // Determine if this is for orders or quotes
                     const isOrder = !!orderID;
-                    const basePath = isOrder ? 'orders' : 'quotes';
-                    const idParam = isOrder ? 'orderID' : 'quoteID';
-                    const idValue = isOrder ? orderID : quoteID;
+                    const type = isOrder ? 'orders' : 'quotes';
+                    const id = isOrder ? orderID : quoteID;
 
                     const fileUploadUrl = `${process.env
-                        .NEXT_PUBLIC_SERVER_API!}/api/${basePath}/${endpoint}?userID=${userID}&${idParam}=${idValue}`;
+                        .NEXT_PUBLIC_SERVER_API!}/api/${type}/upload?userID=${userID}&${
+                        isOrder ? 'orderID' : 'quoteID'
+                    }=${id}`;
 
                     const response = await fetch(fileUploadUrl, {
                         method: 'POST',
@@ -96,29 +112,52 @@ export default function FileUploadField({
 
                     const data = await response.json();
 
-                    if (isDownloadLink) {
-                        setValue(name, data.folderPath);
-                        setValue('images', data.storedFiles?.length || 0);
-                        return {
-                            folderPath: data.folderPath,
-                            files: data.storedFiles,
-                        };
-                    } else {
-                        setValue(name, data.storedFile?.path);
-                        return {
-                            file: data.storedFile,
-                        };
-                    }
+                    setValue('downloadLink', data.folderPath);
+                    setValue('images', data.storedFiles?.length || 0);
+
+                    return {
+                        folderPath: data.folderPath,
+                        files: data.storedFiles,
+                        downloadUrl: data.folderPath,
+                    };
                 };
 
-                await toast.promise(uploadFn(), {
-                    loading: 'Uploading files...',
+                const uploadPromise = uploadFn();
+
+                const progressInterval = setInterval(() => {
+                    setUploadProgress((prev) => {
+                        if (prev >= 90) {
+                            clearInterval(progressInterval);
+                            return prev;
+                        }
+                        return prev + 10;
+                    });
+                }, 500);
+
+                await toast.promise(uploadPromise, {
+                    loading: (
+                        <div className="flex flex-col gap-2">
+                            <span>Uploading files...</span>
+                            <Progress value={uploadProgress} className="h-2" />
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{uploadProgress}%</span>
+                                <span>{uploadTime}s elapsed</span>
+                            </div>
+                        </div>
+                    ),
                     success: () => {
+                        setUploadProgress(100);
                         setUseExternalLink(false);
                         return 'Files uploaded successfully!';
                     },
-                    error: (err) => err.message || 'Failed to upload files',
+                    error: (err) => {
+                        clearInterval(progressInterval);
+                        return err.message || 'Failed to upload files';
+                    },
                 });
+
+                clearInterval(progressInterval);
+                setUploadProgress(100);
             } catch (error) {
                 ApiError(error);
             } finally {
@@ -128,14 +167,10 @@ export default function FileUploadField({
     });
 
     const handleRemove = () => {
-        setValue(name, '');
-        if (isDownloadLink) {
-            setValue('images', 0);
-        }
+        setValue('downloadLink', '');
+        setValue('images', 0);
         setUseExternalLink(false);
     };
-
-    const displayValue = currentValue?.split('/').pop() || currentValue;
 
     return (
         <div className="space-y-2">
@@ -177,7 +212,7 @@ export default function FileUploadField({
                 <div className="space-y-1">
                     <Input
                         placeholder="Paste your Dropbox, Google Drive, or other file link"
-                        {...register(name, {
+                        {...register('downloadLink', {
                             validate: (value) => {
                                 if (!value && required)
                                     return 'Link is required';
@@ -194,9 +229,9 @@ export default function FileUploadField({
                         })}
                         disabled={isUploading}
                     />
-                    {errors[name] && (
+                    {errors['downloadLink'] && (
                         <p className="text-sm text-destructive">
-                            {errors[name]?.message as string}
+                            {errors['downloadLink']?.message as string}
                         </p>
                     )}
                 </div>
@@ -204,7 +239,7 @@ export default function FileUploadField({
                 <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
                     <FilePlus2 className="h-5 w-5" />
                     <span className="truncate flex-1" title={currentValue}>
-                        {displayValue}
+                        {currentValue}
                     </span>
                     <Button
                         variant="ghost"
@@ -227,9 +262,18 @@ export default function FileUploadField({
                     <input {...getInputProps()} />
 
                     {isUploading ? (
-                        <div className="flex flex-col items-center gap-2">
+                        <div className="flex flex-col items-center gap-4">
                             <Loader2 className="h-8 w-8 animate-spin" />
-                            <span>Uploading...</span>
+                            <div className="w-full space-y-2">
+                                <Progress
+                                    value={uploadProgress}
+                                    className="h-2"
+                                />
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>{uploadProgress}% uploaded</span>
+                                    <span>{uploadTime}s elapsed</span>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-2">
@@ -241,9 +285,7 @@ export default function FileUploadField({
                                         : 'Click or drag files here'}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                    {isDownloadLink
-                                        ? 'Images (JPEG, PNG, GIF, BMP, TIFF, WEBP)'
-                                        : 'Source files'}
+                                    Images (JPEG, PNG, GIF, BMP, TIFF, WEBP)
                                 </p>
                             </div>
                         </div>

@@ -41,12 +41,11 @@ export const NewQuoteDetailsSchema = z
         instructions: z
             .string({ required_error: 'Instructions are required' })
             .min(1, 'Instructions are required'),
-        sourceFileLink: z.string().optional(),
         deliveryDate: z.date(),
     })
     .superRefine((data, ctx) => {
         if (
-            (!data.downloadLink || data.downloadLink.startsWith('/uploads/')) &&
+            (!data.downloadLink || data.downloadLink.startsWith('/Uploads/')) &&
             data.images < 1
         ) {
             ctx.addIssue({
@@ -83,20 +82,5 @@ export const NewQuoteDetailsSchema = z
                 message:
                     'At least one background color is required when "Colored" is selected.',
             });
-        }
-
-        if (data.sourceFileLink && data.sourceFileLink !== '') {
-            if (
-                !data.sourceFileLink.startsWith('http://') &&
-                !data.sourceFileLink.startsWith('https://') &&
-                !data.sourceFileLink.startsWith('/uploads/')
-            ) {
-                ctx.addIssue({
-                    path: ['sourceFileLink'],
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'Source file link must be a valid URL or file path',
-                });
-            }
         }
     });

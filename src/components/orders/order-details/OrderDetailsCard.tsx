@@ -34,7 +34,6 @@ export default function OrderDetailsCard({
                     returnFileFormat={order.details?.returnFileFormat}
                     services={order.services}
                     width={order.details?.width}
-                    sourceFileLink={order.details?.sourceFileLink}
                     downloadLink={order.details?.downloadLink}
                 />
             </div>

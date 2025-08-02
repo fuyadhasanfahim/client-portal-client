@@ -36,7 +36,6 @@ export interface IOrderServiceSelection {
 export interface IOrderDetails {
     deliveryDate?: Date;
     downloadLink?: string;
-    sourceFileLink?: string;
     images?: number;
     returnFileFormat?: string[];
     backgroundOption?: string[];

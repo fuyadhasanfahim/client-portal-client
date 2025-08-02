@@ -21,7 +21,6 @@ interface OrderDetailsServiceListProps {
     backgroundColor?: string[];
     instructions?: string;
     downloadLink?: string;
-    sourceFileLink?: string;
 }
 
 export default function OrderDetailsServiceList({
@@ -35,7 +34,6 @@ export default function OrderDetailsServiceList({
     instructions,
     backgroundColor,
     downloadLink,
-    sourceFileLink,
 }: OrderDetailsServiceListProps) {
     return (
         <Card>
@@ -139,36 +137,20 @@ export default function OrderDetailsServiceList({
                 ))}
 
                 <div>
-                    <div>
-                        <strong>Download Link:</strong>{' '}
-                        {downloadLink ? (
-                            <Link
-                                href={`${process.env.NEXT_PUBLIC_SERVER_API!}${downloadLink}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                            >
-                                Download Images
-                            </Link>
-                        ) : (
-                            'N/A'
-                        )}
-                    </div>
-                    <div>
-                        <strong>Supporting File:</strong>{' '}
-                        {sourceFileLink ? (
-                            <Link
-                                href={`${process.env.NEXT_PUBLIC_SERVER_API!}${sourceFileLink}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                            >
-                                Download source file
-                            </Link>
-                        ) : (
-                            'N/A'
-                        )}
-                    </div>
+                    <strong>Download Link:</strong>{' '}
+                    {downloadLink ? (
+                        <Link
+                            href={`${process.env
+                                .NEXT_PUBLIC_SERVER_API!}${downloadLink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                        >
+                            Download Images
+                        </Link>
+                    ) : (
+                        'N/A'
+                    )}
                 </div>
             </CardContent>
             <CardFooter>

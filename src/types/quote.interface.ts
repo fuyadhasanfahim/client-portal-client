@@ -33,7 +33,6 @@ export interface IQuoteServiceSelection {
 export interface IQuoteDetails {
     deliveryDate?: Date;
     downloadLink?: string;
-    sourceFileLink?: string;
     images?: number;
     returnFileFormat?: string[];
     backgroundOption?: string[];
