@@ -23,11 +23,9 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    useCompleteQuoteMutation,
     useDeliverQuoteMutation,
     useReviewQuoteMutation,
 } from '@/redux/features/quotes/quoteApi';
-import { loadStripe } from '@stripe/stripe-js';
 import { IconPackage } from '@tabler/icons-react';
 import { CheckCircle, Loader, RefreshCw, Send, Truck } from 'lucide-react';
 import { useState } from 'react';
@@ -52,8 +50,6 @@ export default function OrderDetailsPaymentAndDetails({
 
     const [deliverQuote, { isLoading }] = useDeliverQuoteMutation();
     const [reviewQuote, { isLoading: isReviewDone }] = useReviewQuoteMutation();
-    const [completeQuote, { isLoading: isCompleted }] =
-        useCompleteQuoteMutation();
 
     const handleDeliverQuote = async () => {
         try {
@@ -94,29 +90,6 @@ export default function OrderDetailsPaymentAndDetails({
             setIsSubmitting(false);
         }
     };
-
-    const handleCompleteQuote = async () => {
-        try {
-            setIsSubmitting(true);
-
-            const response = await completeQuote({
-                quoteID,
-            });
-
-            if (response.data.success) {
-                setInstruction('');
-                toast.success(response.data.message);
-            }
-        } catch (error) {
-            ApiError(error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const stripePromise = loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-    );
 
     return (
         <Card>
@@ -205,9 +178,9 @@ export default function OrderDetailsPaymentAndDetails({
                         <DialogTrigger asChild>
                             <Button
                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                                disabled={isReviewDone || isCompleted}
+                                disabled={isReviewDone}
                             >
-                                {isReviewDone || isCompleted ? (
+                                {isReviewDone ? (
                                     <div className="flex items-center gap-2">
                                         <Loader className="h-4 w-4 animate-spin" />
                                         Processing...

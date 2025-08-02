@@ -6,7 +6,6 @@ import {
     TableHeader,
     TableRow,
     TableCell,
-    TableFooter,
 } from '@/components/ui/table';
 import Image from 'next/image';
 import { IQuote, IQuoteServiceSelection } from '@/types/quote.interface';

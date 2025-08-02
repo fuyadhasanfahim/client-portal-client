@@ -1,4 +1,3 @@
-import RootNewOrderDetails from '@/components/orders/new-order/RootNewOrderDetails';
 import RootNewQuoteDetails from '@/components/quotes/new-quote/details/RootQuoteDetails';
 import { Metadata } from 'next';
 

@@ -2,17 +2,14 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send, Printer } from 'lucide-react';
-import getLoggedInUser from '@/utils/getLoggedInUser';
+import { Loader2, Printer } from 'lucide-react';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import toast from 'react-hot-toast';
-import ApiError from '@/components/shared/ApiError';
 import InvoiceTemplate from './InvoiceTemplate';
 import { useGetQuoteByIDQuery } from '@/redux/features/quotes/quoteApi';
 
 export default function InvoiceCard({ quoteID }: { quoteID: string }) {
-    const { user } = getLoggedInUser();
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     const { data, isLoading } = useGetQuoteByIDQuery(quoteID, {
