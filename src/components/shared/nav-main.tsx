@@ -32,7 +32,7 @@ export function NavMain({
 
     return (
         <SidebarGroup>
-            <SidebarGroupContent className="flex flex-col w-full">
+            <SidebarGroupContent className="flex flex-col w-full gap-2">
                 <SidebarMenu className="flex flex-row items-center justify-between gap-2">
                     <SidebarMenuItem className="flex-1 w-full">
                         <Link href={'/orders/new-order'}>
