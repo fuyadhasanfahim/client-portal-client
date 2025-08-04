@@ -121,6 +121,9 @@ export default function ClientDataTable({ id }: { id: string }) {
                             <TableHead className="font-semibold border-r text-center">
                                 Email
                             </TableHead>
+                            <TableHead className="font-semibold border-r text-center">
+                                Role
+                            </TableHead>
                             <TableHead
                                 className="font-semibold cursor-pointer border-r text-center"
                                 onClick={() => handleSort('createdAt')}
@@ -153,12 +156,15 @@ export default function ClientDataTable({ id }: { id: string }) {
                                     <TableCell>
                                         <Skeleton className="h-6 w-full" />
                                     </TableCell>
+                                    <TableCell>
+                                        <Skeleton className="h-6 w-full" />
+                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : data?.clients?.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={5}
+                                    colSpan={6}
                                     className="text-center py-8"
                                 >
                                     <p className="text-gray-500">
@@ -181,6 +187,9 @@ export default function ClientDataTable({ id }: { id: string }) {
                                         </TableCell>
                                         <TableCell className="border-r">
                                             {client.email}
+                                        </TableCell>
+                                        <TableCell className="border-r capitalize">
+                                            {client.role}
                                         </TableCell>
                                         <TableCell className="border-r text-center">
                                             {format(client.createdAt, 'PPP')}
