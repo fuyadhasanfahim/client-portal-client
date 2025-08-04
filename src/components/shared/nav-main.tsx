@@ -29,14 +29,13 @@ export function NavMain({
     const pathname = usePathname();
 
     const filteredItems = items.filter((item) => item.access.includes(role));
-    console.log(filteredItems);
 
     return (
         <SidebarGroup>
-            <SidebarGroupContent className="flex flex-col gap-2">
-                <SidebarMenu>
-                    <Link href={'/orders/new-order'}>
-                        <SidebarMenuItem>
+            <SidebarGroupContent className="flex flex-col w-full">
+                <SidebarMenu className="flex flex-row items-center justify-between gap-2">
+                    <SidebarMenuItem className="flex-1 w-full">
+                        <Link href={'/orders/new-order'}>
                             <SidebarMenuButton
                                 className="hover:bg-primary/90 hover:text-white transition-colors duration-200 ease-in"
                                 asChild
@@ -47,10 +46,10 @@ export function NavMain({
                                     New Order
                                 </Button>
                             </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </Link>
-                    <Link href={'/quotes/new-quote'}>
-                        <SidebarMenuItem>
+                        </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem className="flex-1 w-full">
+                        <Link href={'/quotes/new-quote'}>
                             <SidebarMenuButton
                                 className="border text-black"
                                 asChild
@@ -62,8 +61,8 @@ export function NavMain({
                                     New Quote
                                 </Button>
                             </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </Link>
+                        </Link>
+                    </SidebarMenuItem>
                 </SidebarMenu>
 
                 <SidebarMenu>

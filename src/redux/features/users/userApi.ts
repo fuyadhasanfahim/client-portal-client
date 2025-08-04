@@ -17,12 +17,6 @@ export const userApi = apiSlice.injectEndpoints({
                 method: 'GET',
             }),
         }),
-        getOrdersByUserID: builder.query({
-            query: (userID) => ({
-                url: `users/get-orders/${userID}`,
-                method: 'GET',
-            }),
-        }),
         getUsers: builder.query({
             query: (role) => ({
                 url: 'users/get-users',
@@ -55,15 +49,30 @@ export const userApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['Users'],
         }),
+        getClients: builder.query({
+            query: ({ search, page, limit, sortBy, sortOrder, userID }) => ({
+                url: 'users/get-clients',
+                method: 'GET',
+                params: {
+                    search,
+                    page,
+                    limit,
+                    sortBy,
+                    sortOrder,
+                    userID,
+                },
+            }),
+            providesTags: ['Users'],
+        }),
     }),
 });
 
 export const {
     useGetMeQuery,
     useGetUserInfoQuery,
-    useGetOrdersByUserIDQuery,
     useGetUsersQuery,
     useUpdateUserMutation,
     useUpdatePasswordMutation,
     useUpdateAvatarMutation,
+    useGetClientsQuery,
 } = userApi;

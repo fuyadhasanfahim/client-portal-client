@@ -126,6 +126,21 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Orders'],
             }),
+            getOrdersByUserID: builder.query({
+                query: ({ userID, search, page, limit, filter, sort }) => ({
+                    url: 'orders/get-orders-by-user',
+                    method: 'GET',
+                    params: {
+                        userID,
+                        search,
+                        page,
+                        limit,
+                        filter,
+                        sort,
+                    },
+                }),
+                providesTags: ['Orders'],
+            }),
         };
     },
 });
@@ -140,4 +155,5 @@ export const {
     useReviewOrderMutation,
     useCompleteOrderMutation,
     useGetOrdersByStatusQuery,
+    useGetOrdersByUserIDQuery,
 } = ordersApi;

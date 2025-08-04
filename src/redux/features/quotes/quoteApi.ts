@@ -99,6 +99,21 @@ export const quotesApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Quotes'],
             }),
+            getQuotesByUserID: builder.query({
+                query: ({ userID, search, page, limit, filter, sort }) => ({
+                    url: 'orders/get-quotes-by-user',
+                    method: 'GET',
+                    params: {
+                        userID,
+                        search,
+                        page,
+                        limit,
+                        filter,
+                        sort,
+                    },
+                }),
+                providesTags: ['Orders'],
+            }),
         };
     },
 });
@@ -112,4 +127,5 @@ export const {
     useCompleteQuoteMutation,
     useDeliverQuoteMutation,
     useReviewQuoteMutation,
+    useGetQuotesByUserIDQuery,
 } = quotesApi;

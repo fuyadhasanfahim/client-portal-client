@@ -46,8 +46,8 @@ export interface ISanitizedUser {
     company?: string;
     role: UserRole;
     isEmailVerified: boolean;
-    lastLogin?: Date;
+    lastLogin: Date;
     image?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
 }

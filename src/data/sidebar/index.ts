@@ -7,6 +7,7 @@ import {
     IconPackageExport,
     IconReportAnalytics,
     IconServer,
+    IconUsers,
 } from '@tabler/icons-react';
 
 export const sidebarItems = [
@@ -33,6 +34,12 @@ export const sidebarItems = [
         url: '/drafts',
         icon: IconBrandMinecraft,
         access: ['admin', 'user'],
+    },
+    {
+        title: 'Clients',
+        url: '/clients',
+        icon: IconUsers,
+        access: ['admin'],
     },
     {
         title: 'Services',
