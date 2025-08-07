@@ -176,11 +176,23 @@ export default function OrderServices() {
         }
 
         try {
+            const services = isExistingUser
+                ? userSelectedServices
+                : validServices;
+
+            if (isExistingUser && validServices.length > 0) {
+                toast.error(
+                    'You can use the more services alongside with your services. Select either your services or the mre services. '
+                );
+                return;
+            }
+
             const response = await newOrder({
                 orderStage: 'services-selected',
                 userID,
-                services: validServices as IOrderServiceSelection[],
+                services,
             });
+            console.log(response);
 
             if (response?.data?.success && response.data.orderID) {
                 toast.success(
@@ -192,6 +204,7 @@ export default function OrderServices() {
                 );
             }
         } catch (error) {
+            console.log(error);
             ApiError(error);
         }
     };
@@ -275,10 +288,12 @@ export default function OrderServices() {
                                 {more && (
                                     <CardFooter className="space-y-4 flex flex-col">
                                         {services
-                                            .filter((s) =>
-                                                userServices?.some(
-                                                    (us) => us.name === s.name
-                                                )
+                                            .filter(
+                                                (s) =>
+                                                    !userServices?.some(
+                                                        (us) =>
+                                                            us.name === s.name
+                                                    )
                                             )
                                             .map((service) => {
                                                 const selected =

@@ -14,14 +14,6 @@ export const ordersApi = apiSlice.injectEndpoints({
                     details,
                     total,
                     payment,
-                }: {
-                    orderStage: string;
-                    userID?: string;
-                    services?: IOrderServiceSelection[];
-                    orderID?: string;
-                    details?: IOrderDetails;
-                    total?: number;
-                    payment?: IPayment;
                 }) => ({
                     url: `orders/new-order/${orderStage}`,
                     method: 'POST',

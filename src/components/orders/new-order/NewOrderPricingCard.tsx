@@ -93,7 +93,7 @@ export default function NewOrderPricingCard({ order }: { order: IOrder }) {
     });
 
     let resizingFee = 0;
-    if (details?.imageResizing) {
+    if (!user?.isExistingUser && details?.imageResizing) {
         resizingFee = 0.25 * (details?.images || 0);
         total += resizingFee;
     }
