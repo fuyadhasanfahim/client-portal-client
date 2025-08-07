@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { useGetQuoteByIDQuery } from '@/redux/features/quotes/quoteApi';
+import { socketEvents } from '@/utils/socket/socketEvents';
 
 export default function RootQuoteDetails({ quoteID }: { quoteID: string }) {
     const { user } = useLoggedInUser();
@@ -20,27 +21,48 @@ export default function RootQuoteDetails({ quoteID }: { quoteID: string }) {
     );
 
     useEffect(() => {
+        if (!user?.id) return;
+
+        socket.connect();
+        socket.emit('join', user.id);
+
+        socket.on('new-notification', () => {
+            refetch();
+        });
+
+        return () => {
+            socket.off('new-notification');
+            socket.disconnect();
+        };
+    }, [user?.id, refetch]);
+
+    useEffect(() => {
         if (!quoteID || !user?.userID) return;
 
-        function handleOrderUpdate(updateData: {
-            orderID: string;
+        const statusUpdatedEvent = socketEvents.entity.statusUpdated('quote');
+        const joinUserRoomEvent = socketEvents.joinRoom('user');
+        const joinQuoteRoomEvent = socketEvents.joinRoom('quote');
+        const leaveQuoteRoomEvent = socketEvents.leaveRoom('quote');
+
+        function handleQuoteUpdate(updateData: {
+            quoteID: string;
             status?: string;
             updatedAt?: Date;
         }) {
-            if (updateData.orderID === quoteID && !isSubmitting) {
+            if (updateData.quoteID === quoteID && !isSubmitting) {
                 refetch();
             }
         }
 
         socket.connect();
-        socket.emit('join-user-room', user.userID);
-        socket.emit('join-order-room', quoteID);
-
-        socket.on('order-status-updated', handleOrderUpdate);
+        socket.emit(joinUserRoomEvent, user.userID);
+        socket.emit(joinQuoteRoomEvent, quoteID);
+        socket.on(statusUpdatedEvent, handleQuoteUpdate);
 
         return () => {
-            socket.off('order-status-updated', handleOrderUpdate);
-            socket.emit('leave-order-room', quoteID);
+            socket.off(statusUpdatedEvent, handleQuoteUpdate);
+            socket.emit(leaveQuoteRoomEvent, quoteID);
+            socket.disconnect();
         };
     }, [quoteID, user?.userID, refetch, isSubmitting]);
 
@@ -55,7 +77,7 @@ export default function RootQuoteDetails({ quoteID }: { quoteID: string }) {
     if (!isLoading && !isError && !data) {
         return (
             <div className="min-h-[80vh] w-full flex items-center justify-center">
-                <p className="text-destructive">Order not found.</p>
+                <p className="text-destructive">Quote not found.</p>
             </div>
         );
     }

@@ -29,7 +29,7 @@ import { useNewQuoteMutation } from '@/redux/features/quotes/quoteApi';
 
 export default function RootNewQuote() {
     const { user } = useLoggedInUser();
-    const userID = user?.userID;
+    const { userID } = user;
 
     const [selectedServices, setSelectedServices] = useState<
         IQuoteServiceSelection[]
@@ -154,19 +154,21 @@ export default function RootNewQuote() {
         }
 
         try {
+            console.log(userID)
             const response = await newQuote({
                 quoteStage: 'services-selected',
-                userID,
+                userID: userID!,
                 services: validServices as IQuoteServiceSelection[],
             });
 
-            if (response?.data?.success && response.data.orderID) {
+            if (response?.data?.success && response.data.quoteID) {
                 toast.success(
                     'Quote created successfully. Redirecting to details page...'
                 );
                 setSelectedServices([]);
+                
                 router.push(
-                    `/quotes/new-quote/details/${response.data.orderID}`
+                    `/quotes/new-quote/details/${response.data.quoteID}`
                 );
             }
         } catch (error) {
@@ -183,7 +185,7 @@ export default function RootNewQuote() {
         >
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
-                    <CardTitle className="text-2xl">Order Your Edits</CardTitle>
+                    <CardTitle className="text-2xl">Quote Your Edits</CardTitle>
                     <CardDescription>
                         Tell us what you need, and we&apos;ll generate instant
                         pricing.

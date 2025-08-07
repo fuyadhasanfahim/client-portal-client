@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Search,
     ChevronLeft,
@@ -36,6 +36,8 @@ import QuoteStats from './QuoteStats';
 import SelectQuoteStatus from './SelectQuoteStatus';
 import { useGetQuotesQuery } from '@/redux/features/quotes/quoteApi';
 import { IQuote } from '@/types/quote.interface';
+import { socketEvents } from '@/utils/socket/socketEvents';
+import { socket } from '@/lib/socket';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -76,6 +78,26 @@ export default function QuoteDataTable({
             skip: !id || !role,
         }
     );
+
+    useEffect(() => {
+        if (!id) return;
+
+        const event = socketEvents.entity.created('quote');
+
+        function handleNewQuote() {
+            refetch();
+        }
+
+        socket.connect();
+        socket.emit(socketEvents.joinRoom('user'), id);
+        socket.on(event, handleNewQuote);
+
+        return () => {
+            socket.off(event, handleNewQuote);
+            socket.emit(socketEvents.leaveRoom('user'), id);
+            socket.disconnect();
+        };
+    }, [id, refetch]);
 
     const quotes = data?.quotes || [];
     const pagination = data?.pagination || {
@@ -209,7 +231,7 @@ export default function QuoteDataTable({
                 </div>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border bg-background">
+            <div className="overflow-x-auto rounded-lg bquote bg-background">
                 <Table>
                     <TableHeader className="bg-accent text-primary-foreground">
                         <TableRow>
@@ -222,7 +244,7 @@ export default function QuoteDataTable({
                             ].map((title, idx) => (
                                 <TableHead
                                     key={idx}
-                                    className="text-center font-semibold border-r last:border-r-0"
+                                    className="text-center font-semibold bquote-r last:bquote-r-0"
                                 >
                                     {title}
                                 </TableHead>
@@ -265,7 +287,7 @@ export default function QuoteDataTable({
                                         key={index}
                                         className="hover:bg-muted/50"
                                     >
-                                        <TableCell className="text-center font-medium border-r">
+                                        <TableCell className="text-center font-medium bquote-r">
                                             <Link
                                                 href={`/quotes/details/${quote.quoteID!}`}
                                                 className={cn(
@@ -280,7 +302,7 @@ export default function QuoteDataTable({
                                         </TableCell>
                                         <TableCell
                                             className={cn(
-                                                'text-center text-sm border-r',
+                                                'text-center text-sm bquote-r',
                                                 quote.status === 'canceled' &&
                                                     'text-destructive'
                                             )}
@@ -289,7 +311,7 @@ export default function QuoteDataTable({
                                         </TableCell>
                                         <TableCell
                                             className={cn(
-                                                'text-start text-sm border-r',
+                                                'text-start text-sm bquote-r',
                                                 quote.status === 'canceled' &&
                                                     'text-destructive'
                                             )}
@@ -304,7 +326,7 @@ export default function QuoteDataTable({
                                                 )}
                                             </ul>
                                         </TableCell>
-                                        <TableCell className="text-center text-sm border-r">
+                                        <TableCell className="text-center text-sm bquote-r">
                                             <span
                                                 className={cn(
                                                     'flex items-center capitalize justify-center gap-1',

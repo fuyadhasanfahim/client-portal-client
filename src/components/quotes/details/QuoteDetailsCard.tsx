@@ -39,12 +39,17 @@ export default function QuoteDetailsCard({
             </div>
 
             <div className="space-y-6">
-                <QuoteDetailsPaymentAndDetails
-                    role={user.role}
-                    quoteID={quote.quoteID}
-                    status={quote.status}
-                    setIsSubmitting={setIsSubmitting}
-                />
+                {((user.role === 'user' && quote.status === 'delivered') ||
+                    (user.role === 'admin' &&
+                        quote.status !== 'delivered')) && (
+                    <QuoteDetailsPaymentAndDetails
+                        role={user.role}
+                        quoteID={quote.quoteID}
+                        status={quote.status}
+                        setIsSubmitting={setIsSubmitting}
+                    />
+                )}
+
                 <QuoteDetailsInvoice quote={quote} user={user} />
             </div>
         </div>

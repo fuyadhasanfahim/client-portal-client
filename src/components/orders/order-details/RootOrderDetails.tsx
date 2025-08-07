@@ -6,6 +6,7 @@ import { Loader } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { socketEvents } from '@/utils/socket/socketEvents';
 
 export default function RootOrderDetails({ orderID }: { orderID: string }) {
     const { user } = useLoggedInUser();
@@ -20,7 +21,28 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
     );
 
     useEffect(() => {
+        if (!user?.id) return;
+
+        socket.connect();
+        socket.emit('join', user.id);
+
+        socket.on('new-notification', () => {
+            refetch();
+        });
+
+        return () => {
+            socket.off('new-notification');
+            socket.disconnect();
+        };
+    }, [user?.id, refetch]);
+
+    useEffect(() => {
         if (!orderID || !user?.userID) return;
+
+        const statusUpdatedEvent = socketEvents.entity.statusUpdated('order');
+        const joinUserRoomEvent = socketEvents.joinRoom('user');
+        const joinOrderRoomEvent = socketEvents.joinRoom('order');
+        const leaveOrderRoomEvent = socketEvents.leaveRoom('order');
 
         function handleOrderUpdate(updateData: {
             orderID: string;
@@ -33,14 +55,14 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         }
 
         socket.connect();
-        socket.emit('join-user-room', user.userID);
-        socket.emit('join-order-room', orderID);
-
-        socket.on('order-status-updated', handleOrderUpdate);
+        socket.emit(joinUserRoomEvent, user.userID);
+        socket.emit(joinOrderRoomEvent, orderID);
+        socket.on(statusUpdatedEvent, handleOrderUpdate);
 
         return () => {
-            socket.off('order-status-updated', handleOrderUpdate);
-            socket.emit('leave-order-room', orderID);
+            socket.off(statusUpdatedEvent, handleOrderUpdate);
+            socket.emit(leaveOrderRoomEvent, orderID);
+            socket.disconnect();
         };
     }, [orderID, user?.userID, refetch, isSubmitting]);
 
@@ -61,7 +83,12 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
     }
 
     if (data) {
-        return <OrderDetailsCard order={data.data} setIsSubmitting={setIsSubmitting} />;
+        return (
+            <OrderDetailsCard
+                order={data.data}
+                setIsSubmitting={setIsSubmitting}
+            />
+        );
     }
 
     return null;

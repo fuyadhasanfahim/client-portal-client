@@ -356,7 +356,9 @@ export default function OrderDetailsPaymentAndDetails({
                                         <Button
                                             type="submit"
                                             className="bg-emerald-600 hover:bg-emerald-700"
-                                            disabled={isCompleted}
+                                            disabled={
+                                                reviewOrComplete !== 'complete'
+                                            }
                                             onClick={() => {
                                                 handleCompleteOrder();
 

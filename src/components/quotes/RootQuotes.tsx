@@ -1,9 +1,10 @@
 'use client';
 
-import { Link, Loader, Plus } from 'lucide-react';
+import { Loader, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import QuoteDataTable from './QuoteDataTable';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 export default function RootQuotes() {
     const { data: session } = useSession();
@@ -22,9 +23,9 @@ export default function RootQuotes() {
 
     return (
         <section className="space-y-4">
-            <div className="flex flex-1/2 items-center justify-between gap-6 flex-wrap">
+            <div className="flex items-center justify-between gap-6 flex-wrap">
                 <h2 className="text-base md:text-lg lg:text-xl font-semibold">
-                    Orders Summery
+                    Quote Summery
                 </h2>
 
                 <Link href={'/quotes/new-quote'}>

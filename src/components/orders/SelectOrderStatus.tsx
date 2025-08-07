@@ -16,6 +16,7 @@ import { Check, Loader, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { socketEvents } from '@/utils/socket/socketEvents';
 
 interface SelectOrderStatusProps {
     order: IOrder;
@@ -44,7 +45,6 @@ export default function SelectOrderStatus({
         status: string;
     }) => {
         try {
-            console.log(orderID, status);
             const response = await updateOrder({
                 orderID,
                 data: { status },
@@ -58,7 +58,25 @@ export default function SelectOrderStatus({
     };
 
     useEffect(() => {
+        if (!user?.id) return;
+
+        socket.connect();
+        socket.emit('join', user.id);
+
+        socket.on('new-notification', () => {
+            refetch();
+        });
+
+        return () => {
+            socket.off('new-notification');
+            socket.disconnect();
+        };
+    }, [user?.id, refetch]);
+
+    useEffect(() => {
         if (!orderID || !user?.userID) return;
+
+        const event = socketEvents.entity.statusUpdated('order');
 
         function handleOrderUpdate(updateData: {
             orderID: string;
@@ -71,14 +89,16 @@ export default function SelectOrderStatus({
         }
 
         socket.connect();
-        socket.emit('join-user-room', user.userID);
-        socket.emit('join-order-room', orderID);
 
-        socket.on('order-status-updated', handleOrderUpdate);
+        socket.emit(socketEvents.joinRoom('user'), user.userID);
+        socket.emit(socketEvents.joinRoom('order'), orderID);
+
+        socket.on(event, handleOrderUpdate);
 
         return () => {
-            socket.off('order-status-updated', handleOrderUpdate);
-            socket.emit('leave-order-room', orderID);
+            socket.off(event, handleOrderUpdate);
+            socket.emit(socketEvents.leaveRoom('order'), orderID);
+            socket.disconnect();
         };
     }, [orderID, user?.userID, refetch]);
 

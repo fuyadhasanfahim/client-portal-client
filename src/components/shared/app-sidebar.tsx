@@ -17,6 +17,7 @@ import Link from 'next/link';
 export function AppSidebar(
     props: React.ComponentProps<typeof Sidebar> & {
         user: {
+            id: string;
             name: string;
             email: string;
             image?: string;

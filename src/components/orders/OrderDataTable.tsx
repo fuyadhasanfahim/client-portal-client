@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Search,
     ChevronLeft,
@@ -36,6 +36,8 @@ import Link from 'next/link';
 import OrderStats from './OrderStats';
 import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
+import { socket } from '@/lib/socket';
+import { socketEvents } from '@/utils/socket/socketEvents';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -76,6 +78,26 @@ export default function OrderDataTable({
             skip: !id || !role,
         }
     );
+
+    useEffect(() => {
+        if (!id) return;
+
+        const event = socketEvents.entity.created('order');
+
+        function handleNewOrder() {
+            refetch();
+        }
+
+        socket.connect();
+        socket.emit(socketEvents.joinRoom('user'), id);
+        socket.on(event, handleNewOrder);
+
+        return () => {
+            socket.off(event, handleNewOrder);
+            socket.emit(socketEvents.leaveRoom('user'), id);
+            socket.disconnect();
+        };
+    }, [id, refetch]);
 
     const orders = data?.orders || [];
     const pagination = data?.pagination || {

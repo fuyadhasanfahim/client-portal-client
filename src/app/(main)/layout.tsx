@@ -21,6 +21,7 @@ export default async function Layout({
     const user = await getUserData();
 
     const userData = {
+        id: user.userID,
         name: user.name,
         email: user.email,
         image: user.image || '',

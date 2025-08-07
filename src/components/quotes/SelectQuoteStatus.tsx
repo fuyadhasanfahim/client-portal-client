@@ -16,6 +16,7 @@ import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { IQuote } from '@/types/quote.interface';
 import { useUpdateQuoteMutation } from '@/redux/features/quotes/quoteApi';
+import { socketEvents } from '@/utils/socket/socketEvents';
 
 interface SelectQuoteStatusProps {
     quote: IQuote;
@@ -58,7 +59,25 @@ export default function SelectQuoteStatus({
     };
 
     useEffect(() => {
+        if (!user?.id) return;
+
+        socket.connect();
+        socket.emit('join', user.id);
+
+        socket.on('new-notification', () => {
+            refetch();
+        });
+
+        return () => {
+            socket.off('new-notification');
+            socket.disconnect();
+        };
+    }, [user?.id, refetch]);
+
+    useEffect(() => {
         if (!quoteID || !user?.userID) return;
+
+        const event = socketEvents.entity.statusUpdated('quote');
 
         function handleQuoteUpdate(updateData: {
             quoteID: string;
@@ -71,14 +90,16 @@ export default function SelectQuoteStatus({
         }
 
         socket.connect();
-        socket.emit('join-user-room', user.userID);
-        socket.emit('join-quote-room', quoteID);
 
-        socket.on('quote-status-updated', handleQuoteUpdate);
+        socket.emit(socketEvents.joinRoom('user'), user.userID);
+        socket.emit(socketEvents.joinRoom('quote'), quoteID);
+
+        socket.on(event, handleQuoteUpdate);
 
         return () => {
-            socket.off('quote-status-updated', handleQuoteUpdate);
-            socket.emit('leave-quote-room', quoteID);
+            socket.off(event, handleQuoteUpdate);
+            socket.emit(socketEvents.leaveRoom('quote'), quoteID);
+            socket.disconnect();
         };
     }, [quoteID, user?.userID, refetch]);
 

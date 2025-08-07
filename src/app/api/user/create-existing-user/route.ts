@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         await UserModel.create({
-            userID: `WBU${nanoid(10)}`,
+            userID: `WBU${nanoid(10).toUpperCase()}`,
             name,
             username,
             email,
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return NextResponse.json(
             {
                 success: false,
