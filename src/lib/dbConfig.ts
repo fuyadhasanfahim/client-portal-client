@@ -6,7 +6,7 @@ export default async function dbConfig() {
 
         const connection = mongoose.connection;
 
-        connection.setMaxListeners(50);
+        connection.setMaxListeners(100);
 
         connection.on('connected', () => {
             console.log('Connected to Database successfully.');

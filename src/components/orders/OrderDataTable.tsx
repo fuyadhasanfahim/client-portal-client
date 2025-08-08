@@ -37,7 +37,6 @@ import OrderStats from './OrderStats';
 import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
 import { socket } from '@/lib/socket';
-import { socketEvents } from '@/utils/socket/socketEvents';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -80,24 +79,19 @@ export default function OrderDataTable({
     );
 
     useEffect(() => {
-        if (!id) return;
-
-        const event = socketEvents.entity.created('order');
-
-        function handleNewOrder() {
-            refetch();
-        }
-
         socket.connect();
-        socket.emit(socketEvents.joinRoom('user'), id);
-        socket.on(event, handleNewOrder);
+
+        socket.emit('join-admin-room');
+        const handleOrder = () => {
+            refetch();
+        };
+
+        socket.on('new-order', handleOrder);
 
         return () => {
-            socket.off(event, handleNewOrder);
-            socket.emit(socketEvents.leaveRoom('user'), id);
-            socket.disconnect();
+            socket.off('new-order', handleOrder);
         };
-    }, [id, refetch]);
+    }, [refetch]);
 
     const orders = data?.orders || [];
     const pagination = data?.pagination || {

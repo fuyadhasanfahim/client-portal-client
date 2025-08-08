@@ -123,7 +123,6 @@ export default function RootNewOrderPayment({
                 router.push('/orders');
             }
         } catch (err) {
-            console.log(err);
             ApiError(err);
         } finally {
             setIsProcessingPayLater(false);

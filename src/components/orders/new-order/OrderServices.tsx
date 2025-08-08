@@ -192,7 +192,6 @@ export default function OrderServices() {
                 userID,
                 services,
             });
-            console.log(response);
 
             if (response?.data?.success && response.data.orderID) {
                 toast.success(
@@ -204,7 +203,6 @@ export default function OrderServices() {
                 );
             }
         } catch (error) {
-            console.log(error);
             ApiError(error);
         }
     };

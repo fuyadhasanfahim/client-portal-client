@@ -16,7 +16,6 @@ import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { IQuote } from '@/types/quote.interface';
 import { useUpdateQuoteMutation } from '@/redux/features/quotes/quoteApi';
-import { socketEvents } from '@/utils/socket/socketEvents';
 
 interface SelectQuoteStatusProps {
     quote: IQuote;
@@ -59,47 +58,28 @@ export default function SelectQuoteStatus({
     };
 
     useEffect(() => {
-        if (!user?.id) return;
-
-        socket.connect();
-        socket.emit('join-user-room', user.id);
-
-        socket.on('new-notification', () => {
-            refetch();
-        });
-
-        return () => {
-            socket.off('new-notification');
-            socket.disconnect();
-        };
-    }, [user?.id, refetch]);
-
-    useEffect(() => {
         if (!quoteID || !user?.userID) return;
 
-        const event = socketEvents.entity.statusUpdated('quote');
-
-        function handleQuoteUpdate(updateData: {
-            quoteID: string;
-            status?: string;
-            updatedAt?: Date;
-        }) {
-            if (updateData.quoteID === quoteID) {
-                refetch();
-            }
-        }
-
         socket.connect();
 
-        socket.emit(socketEvents.joinRoom('user'), user.userID);
-        socket.emit(socketEvents.joinRoom('quote'), quoteID);
+        socket.emit('join-user-room', user.userID);
+        socket.emit('join-quote-room', quoteID);
 
-        socket.on(event, handleQuoteUpdate);
+        const handleNotification = () => {
+            refetch();
+        };
+
+        const handleOrderUpdate = () => {
+            refetch();
+        };
+
+        socket.on('new-notification', handleNotification);
+        socket.on('quote-updated', handleOrderUpdate);
 
         return () => {
-            socket.off(event, handleQuoteUpdate);
-            socket.emit(socketEvents.leaveRoom('quote'), quoteID);
-            socket.disconnect();
+            socket.off('new-notification', handleNotification);
+            socket.off('quote-updated', handleOrderUpdate);
+            socket.emit('leave-quote-room', quoteID);
         };
     }, [quoteID, user?.userID, refetch]);
 

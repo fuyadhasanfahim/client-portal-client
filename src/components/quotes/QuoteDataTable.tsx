@@ -36,7 +36,6 @@ import QuoteStats from './QuoteStats';
 import SelectQuoteStatus from './SelectQuoteStatus';
 import { useGetQuotesQuery } from '@/redux/features/quotes/quoteApi';
 import { IQuote } from '@/types/quote.interface';
-import { socketEvents } from '@/utils/socket/socketEvents';
 import { socket } from '@/lib/socket';
 
 const sortOptions = [
@@ -80,24 +79,19 @@ export default function QuoteDataTable({
     );
 
     useEffect(() => {
-        if (!id) return;
-
-        const event = socketEvents.entity.created('quote');
-
-        function handleNewQuote() {
-            refetch();
-        }
-
         socket.connect();
-        socket.emit(socketEvents.joinRoom('user'), id);
-        socket.on(event, handleNewQuote);
+
+        const handleQuote = () => {
+            refetch();
+        };
+        socket.emit('join-admin-room');
+        
+        socket.on('new-quote', handleQuote);
 
         return () => {
-            socket.off(event, handleNewQuote);
-            socket.emit(socketEvents.leaveRoom('user'), id);
-            socket.disconnect();
+            socket.off('new-quote', handleQuote);
         };
-    }, [id, refetch]);
+    }, [refetch, id]);
 
     const quotes = data?.quotes || [];
     const pagination = data?.pagination || {
