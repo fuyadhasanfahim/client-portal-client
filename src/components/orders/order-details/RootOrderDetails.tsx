@@ -3,7 +3,7 @@
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
 import OrderDetailsCard from './OrderDetailsCard';
 import { Loader } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 

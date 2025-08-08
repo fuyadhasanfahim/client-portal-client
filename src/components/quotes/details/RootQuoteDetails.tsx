@@ -2,7 +2,7 @@
 
 import QuoteDetailsCard from './QuoteDetailsCard';
 import { Loader } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { useGetQuoteByIDQuery } from '@/redux/features/quotes/quoteApi';
