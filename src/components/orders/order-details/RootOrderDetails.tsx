@@ -24,7 +24,7 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         if (!user?.id) return;
 
         socket.connect();
-        socket.emit('join', user.id);
+        socket.emit('join-user-room', user.id);
 
         socket.on('new-notification', () => {
             refetch();
@@ -32,7 +32,6 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
 
         return () => {
             socket.off('new-notification');
-            socket.disconnect();
         };
     }, [user?.id, refetch]);
 
@@ -40,7 +39,6 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         if (!orderID || !user?.userID) return;
 
         const statusUpdatedEvent = socketEvents.entity.statusUpdated('order');
-        const joinUserRoomEvent = socketEvents.joinRoom('user');
         const joinOrderRoomEvent = socketEvents.joinRoom('order');
         const leaveOrderRoomEvent = socketEvents.leaveRoom('order');
 
@@ -54,15 +52,12 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
             }
         }
 
-        socket.connect();
-        socket.emit(joinUserRoomEvent, user.userID);
         socket.emit(joinOrderRoomEvent, orderID);
         socket.on(statusUpdatedEvent, handleOrderUpdate);
 
         return () => {
             socket.off(statusUpdatedEvent, handleOrderUpdate);
             socket.emit(leaveOrderRoomEvent, orderID);
-            socket.disconnect();
         };
     }, [orderID, user?.userID, refetch, isSubmitting]);
 

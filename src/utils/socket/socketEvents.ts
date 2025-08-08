@@ -1,6 +1,6 @@
 export const socketEvents = {
-    joinRoom: (entity: string) => `${entity}:join-room`,
-    leaveRoom: (entity: string) => `${entity}:leave-room`,
+    joinRoom: (entity: string) => `join-${entity}-room`,
+    leaveRoom: (entity: string) => `leave-${entity}-room`,
 
     entity: {
         created: (entity: string) => `${entity}:created`,

@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface INotification {
     _id: string;
@@ -58,9 +60,13 @@ export function SiteHeader({
         if (!user?.id) return;
 
         socket.connect();
-        socket.emit('join', user.id);
+
+        socket.on('connect', () => {
+            socket.emit('join-user-room', user.id);
+        });
 
         socket.on('new-notification', () => {
+            console.log('notification received');
             refetch();
         });
 
@@ -98,10 +104,21 @@ export function SiteHeader({
                 <div className="flex items-center gap-2">
                     <DropdownMenu open={open} onOpenChange={setOpen}>
                         <DropdownMenuTrigger asChild>
-                            <Button className="group relative p-2 rounded-lg bg-transparent hover:bg-slate-100 transition-all duration-200  active:scale-95">
+                            <Button
+                                variant={'outline'}
+                                size={'icon'}
+                                className="relative"
+                            >
                                 <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-100 transition-colors" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white leading-none px-1 shadow-lg">
+                                    <span
+                                        className={cn(
+                                            'absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white leading-none px-1 shadow-lg',
+                                            unreadCount !== 0
+                                                ? 'animate-pulse'
+                                                : ''
+                                        )}
+                                    >
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}
@@ -119,9 +136,9 @@ export function SiteHeader({
                                         Notifications
                                     </span>
                                     {unreadCount > 0 && (
-                                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+                                        <Badge variant={'destructive'}>
                                             {unreadCount} new
-                                        </span>
+                                        </Badge>
                                     )}
                                 </div>
                             </DropdownMenuLabel>

@@ -11,7 +11,7 @@ export function useSocketEvents() {
         if (!user.userID) return;
 
         socket.connect();
-        socket.emit('join-room', user.userID);
+        socket.emit('join-user-room', user.userID);
 
         return () => {
             socket.disconnect();

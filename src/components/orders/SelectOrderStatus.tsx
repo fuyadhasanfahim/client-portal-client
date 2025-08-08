@@ -61,7 +61,7 @@ export default function SelectOrderStatus({
         if (!user?.id) return;
 
         socket.connect();
-        socket.emit('join', user.id);
+        socket.emit('join-user-room', user.id);
 
         socket.on('new-notification', () => {
             refetch();
