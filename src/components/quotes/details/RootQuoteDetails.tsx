@@ -6,12 +6,9 @@ import { useEffect, useState } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { useGetQuoteByIDQuery } from '@/redux/features/quotes/quoteApi';
-import { socketEvents } from '@/utils/socket/socketEvents';
 
 export default function RootQuoteDetails({ quoteID }: { quoteID: string }) {
     const { user } = useLoggedInUser();
-
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const { data, isLoading, isError, refetch } = useGetQuoteByIDQuery(
         quoteID,
@@ -21,50 +18,30 @@ export default function RootQuoteDetails({ quoteID }: { quoteID: string }) {
     );
 
     useEffect(() => {
-        if (!user?.id) return;
-
-        socket.connect();
-        socket.emit('join-user-room', user.id);
-
-        socket.on('new-notification', () => {
-            refetch();
-        });
-
-        return () => {
-            socket.off('new-notification');
-            socket.disconnect();
-        };
-    }, [user?.id, refetch]);
-
-    useEffect(() => {
         if (!quoteID || !user?.userID) return;
 
-        const statusUpdatedEvent = socketEvents.entity.statusUpdated('quote');
-        const joinUserRoomEvent = socketEvents.joinRoom('user');
-        const joinQuoteRoomEvent = socketEvents.joinRoom('quote');
-        const leaveQuoteRoomEvent = socketEvents.leaveRoom('quote');
-
-        function handleQuoteUpdate(updateData: {
-            quoteID: string;
-            status?: string;
-            updatedAt?: Date;
-        }) {
-            if (updateData.quoteID === quoteID && !isSubmitting) {
-                refetch();
-            }
-        }
-
         socket.connect();
-        socket.emit(joinUserRoomEvent, user.userID);
-        socket.emit(joinQuoteRoomEvent, quoteID);
-        socket.on(statusUpdatedEvent, handleQuoteUpdate);
+
+        socket.emit('join-user-room', user.userID);
+        socket.emit('join-quote-room', quoteID);
+
+        const handleNotification = () => {
+            refetch();
+        };
+
+        const handleOrderUpdate = () => {
+            refetch();
+        };
+
+        socket.on('new-notification', handleNotification);
+        socket.on('quote-updated', handleOrderUpdate);
 
         return () => {
-            socket.off(statusUpdatedEvent, handleQuoteUpdate);
-            socket.emit(leaveQuoteRoomEvent, quoteID);
-            socket.disconnect();
+            socket.off('new-notification', handleNotification);
+            socket.off('quote-updated', handleOrderUpdate);
+            socket.emit('leave-quote-room', quoteID);
         };
-    }, [quoteID, user?.userID, refetch, isSubmitting]);
+    }, [quoteID, user?.userID, refetch]);
 
     if (!data && !isError && isLoading) {
         return (
@@ -86,7 +63,6 @@ export default function RootQuoteDetails({ quoteID }: { quoteID: string }) {
         return (
             <QuoteDetailsCard
                 quote={data.data}
-                setIsSubmitting={setIsSubmitting}
             />
         );
     }

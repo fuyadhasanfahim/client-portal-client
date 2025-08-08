@@ -6,12 +6,9 @@ import { Loader } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
-import { socketEvents } from '@/utils/socket/socketEvents';
 
 export default function RootOrderDetails({ orderID }: { orderID: string }) {
     const { user } = useLoggedInUser();
-
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const { data, isLoading, isError, refetch } = useGetOrderByIDQuery(
         orderID,
@@ -21,45 +18,30 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
     );
 
     useEffect(() => {
-        if (!user?.id) return;
-
-        socket.connect();
-        socket.emit('join-user-room', user.id);
-
-        socket.on('new-notification', () => {
-            refetch();
-        });
-
-        return () => {
-            socket.off('new-notification');
-        };
-    }, [user?.id, refetch]);
-
-    useEffect(() => {
         if (!orderID || !user?.userID) return;
 
-        const statusUpdatedEvent = socketEvents.entity.statusUpdated('order');
-        const joinOrderRoomEvent = socketEvents.joinRoom('order');
-        const leaveOrderRoomEvent = socketEvents.leaveRoom('order');
+        socket.connect();
 
-        function handleOrderUpdate(updateData: {
-            orderID: string;
-            status?: string;
-            updatedAt?: Date;
-        }) {
-            if (updateData.orderID === orderID && !isSubmitting) {
-                refetch();
-            }
-        }
+        socket.emit('join-user-room', user.userID);
+        socket.emit('join-order-room', orderID);
 
-        socket.emit(joinOrderRoomEvent, orderID);
-        socket.on(statusUpdatedEvent, handleOrderUpdate);
+        const handleNotification = () => {
+            refetch();
+        };
+
+        const handleOrderUpdate = () => {
+            refetch();
+        };
+
+        socket.on('new-notification', handleNotification);
+        socket.on('order-updated', handleOrderUpdate);
 
         return () => {
-            socket.off(statusUpdatedEvent, handleOrderUpdate);
-            socket.emit(leaveOrderRoomEvent, orderID);
+            socket.off('new-notification', handleNotification);
+            socket.off('order-updated', handleOrderUpdate);
+            socket.emit('leave-order-room', orderID);
         };
-    }, [orderID, user?.userID, refetch, isSubmitting]);
+    }, [orderID, user?.userID, refetch]);
 
     if (!data && !isError && isLoading) {
         return (
@@ -81,7 +63,6 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         return (
             <OrderDetailsCard
                 order={data.data}
-                setIsSubmitting={setIsSubmitting}
             />
         );
     }

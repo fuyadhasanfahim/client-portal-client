@@ -36,14 +36,12 @@ interface QuoteDetailsPaymentAndDetailsProps {
     status: string;
     role: string;
     quoteID: string;
-    setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export default function OrderDetailsPaymentAndDetails({
     status,
     quoteID,
     role,
-    setIsSubmitting,
 }: QuoteDetailsPaymentAndDetailsProps) {
     const [downloadLink, setDownloadLink] = useState<string>('');
     const [instruction, setInstruction] = useState<string>('');
@@ -57,8 +55,6 @@ export default function OrderDetailsPaymentAndDetails({
 
     const handleDeliverQuote = async () => {
         try {
-            setIsSubmitting(true);
-
             const response = await deliverQuote({
                 quoteID,
                 downloadLink,
@@ -70,15 +66,11 @@ export default function OrderDetailsPaymentAndDetails({
             }
         } catch (error) {
             ApiError(error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
     const handleReviewQuote = async () => {
         try {
-            setIsSubmitting(true);
-
             const response = await reviewQuote({
                 quoteID,
                 instructions: instruction,
@@ -90,15 +82,11 @@ export default function OrderDetailsPaymentAndDetails({
             }
         } catch (error) {
             ApiError(error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
     const handleCompleteQuote = async () => {
         try {
-            setIsSubmitting(true);
-
             const response = await completeOrder({
                 quoteID,
             });
@@ -109,8 +97,6 @@ export default function OrderDetailsPaymentAndDetails({
             }
         } catch (error) {
             ApiError(error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 

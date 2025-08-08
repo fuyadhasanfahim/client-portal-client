@@ -66,7 +66,6 @@ export function SiteHeader({
         });
 
         socket.on('new-notification', () => {
-            console.log('notification received');
             refetch();
         });
 

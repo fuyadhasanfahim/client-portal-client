@@ -9,13 +9,7 @@ import getLoggedInUser from '@/utils/getLoggedInUser';
 import React from 'react';
 import { IQuote } from '@/types/quote.interface';
 
-export default function QuoteDetailsCard({
-    quote,
-    setIsSubmitting,
-}: {
-    quote: IQuote;
-    setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+export default function QuoteDetailsCard({ quote }: { quote: IQuote }) {
     const { user } = getLoggedInUser();
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto p-6">
@@ -46,7 +40,6 @@ export default function QuoteDetailsCard({
                         role={user.role}
                         quoteID={quote.quoteID}
                         status={quote.status}
-                        setIsSubmitting={setIsSubmitting}
                     />
                 )}
 

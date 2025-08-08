@@ -11,10 +11,8 @@ import React from 'react';
 
 export default function OrderDetailsCard({
     order,
-    setIsSubmitting,
 }: {
     order: IOrder;
-    setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
     const { user } = getLoggedInUser();
     return (
@@ -46,7 +44,6 @@ export default function OrderDetailsCard({
                     role={user.role}
                     paymentStatus={order.paymentStatus}
                     orderID={order.orderID}
-                    setIsSubmitting={setIsSubmitting}
                 />
                 <OrderDetailsInvoice order={order} user={user} />
             </div>
