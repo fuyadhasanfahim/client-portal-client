@@ -86,45 +86,48 @@ export default function RootInvitation() {
                 <div>
                     <Label className="mb-2 block">Select Services</Label>
                     <div className="space-y-3 max-h-96 overflow-y-auto border p-3 rounded-md">
-                        {data.data?.map((service: any) => {
-                            const selected = selectedServices.find(
-                                (s) => s.name === service.name
-                            );
-                            return (
-                                <div
-                                    key={service.name}
-                                    className="space-y-2 border-b pb-2"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={service.name}
-                                            checked={!!selected}
-                                            onCheckedChange={() =>
-                                                handleServiceToggle(service)
-                                            }
-                                        />
-                                        <Label htmlFor={service.name}>
-                                            {service.name}
-                                        </Label>
-                                    </div>
-                                    {selected && (
-                                        <div className="pl-6">
-                                            <Input
-                                                type="number"
-                                                placeholder="Enter price"
-                                                value={selected.price || ''}
-                                                onChange={(e) =>
-                                                    handlePriceChange(
-                                                        service.name,
-                                                        e.target.value
-                                                    )
+                        {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            data.data?.map((service: any) => {
+                                const selected = selectedServices.find(
+                                    (s) => s.name === service.name
+                                );
+                                return (
+                                    <div
+                                        key={service.name}
+                                        className="space-y-2 border-b pb-2"
+                                    >
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={service.name}
+                                                checked={!!selected}
+                                                onCheckedChange={() =>
+                                                    handleServiceToggle(service)
                                                 }
                                             />
+                                            <Label htmlFor={service.name}>
+                                                {service.name}
+                                            </Label>
                                         </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                        {selected && (
+                                            <div className="pl-6">
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Enter price"
+                                                    value={selected.price || ''}
+                                                    onChange={(e) =>
+                                                        handlePriceChange(
+                                                            service.name,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        }
                     </div>
                 </div>
 
