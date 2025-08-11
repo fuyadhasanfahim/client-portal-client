@@ -26,22 +26,11 @@ import {
 import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
 import { IService } from '@/types/service.interface';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { ISanitizedUser } from '@/types/user.interface';
 
 export default function OrderServices() {
     const { user } = useLoggedInUser();
-    const {
-        userID,
-        isExistingUser,
-        services: userServices,
-    }: {
-        userID: string;
-        isExistingUser: boolean;
-        services?: {
-            _id: string;
-            name: string;
-            price: number;
-        }[];
-    } = user;
+    const { userID, isExistingUser, services: userServices }: ISanitizedUser = user;
 
     const [selectedServices, setSelectedServices] = useState<
         IOrderServiceSelection[]
@@ -280,7 +269,7 @@ export default function OrderServices() {
                                         className="font-semibold text-center hover:underline cursor-pointer"
                                         onClick={() => setMore(!more)}
                                     >
-                                        More
+                                        Or
                                     </h2>
                                 </CardContent>
                                 {more && (

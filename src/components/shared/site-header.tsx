@@ -51,6 +51,7 @@ export function SiteHeader({
     const { data, isLoading, refetch } = useGetNotificationsQuery(user.id, {
         skip: !user.id,
     });
+
     const [updateNotification] = useUpdateNotificationMutation();
 
     const notifications: INotification[] =
@@ -136,7 +137,7 @@ export function SiteHeader({
                                     </span>
                                     {unreadCount > 0 && (
                                         <Badge variant={'destructive'}>
-                                            {unreadCount} new
+                                            {unreadCount} New
                                         </Badge>
                                     )}
                                 </div>

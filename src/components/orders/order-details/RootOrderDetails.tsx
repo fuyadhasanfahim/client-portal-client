@@ -1,6 +1,9 @@
 'use client';
 
-import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
+import {
+    useGetOrderByIDQuery,
+    useGetRevisionsQuery,
+} from '@/redux/features/orders/ordersApi';
 import OrderDetailsCard from './OrderDetailsCard';
 import { Loader } from 'lucide-react';
 import { useEffect } from 'react';
@@ -17,31 +20,36 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         }
     );
 
+    const {
+        data: revisionsData,
+        isLoading: isRevisionLoading,
+        refetch: refetchRevision,
+    } = useGetRevisionsQuery(orderID, { skip: !orderID });
+    console.log(revisionsData?.revision);
+
     useEffect(() => {
         if (!orderID || !user?.userID) return;
 
-        socket.connect();
+        if (!socket.connected) socket.connect();
 
         socket.emit('join-user-room', user.userID);
         socket.emit('join-order-room', orderID);
 
-        const handleNotification = () => {
-            refetch();
-        };
-
-        const handleOrderUpdate = () => {
-            refetch();
-        };
+        const handleNotification = () => refetch();
+        const handleOrderUpdate = () => refetch();
+        const handleRevisionUpdate = () => refetchRevision();
 
         socket.on('new-notification', handleNotification);
         socket.on('order-updated', handleOrderUpdate);
+        socket.on('revision-updated', handleRevisionUpdate);
 
         return () => {
             socket.off('new-notification', handleNotification);
             socket.off('order-updated', handleOrderUpdate);
+            socket.off('revision-updated', handleRevisionUpdate);
             socket.emit('leave-order-room', orderID);
         };
-    }, [orderID, user?.userID, refetch]);
+    }, [orderID, user?.userID, refetch, refetchRevision]);
 
     if (!data && !isError && isLoading) {
         return (
@@ -63,6 +71,7 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         return (
             <OrderDetailsCard
                 order={data.data}
+                revision={revisionsData?.revision}
             />
         );
     }

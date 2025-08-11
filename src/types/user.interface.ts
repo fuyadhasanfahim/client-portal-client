@@ -54,7 +54,11 @@ export interface ISanitizedUser {
     role: UserRole;
     isEmailVerified: boolean;
     isExistingUser: boolean;
-    services?: string[];
+    services?: {
+        _id: string;
+        name: string;
+        price: number;
+    }[];
     lastLogin: Date;
     image?: string;
     provider: string;

@@ -97,11 +97,18 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
+            getRevisions: builder.query({
+                query: (orderID) => ({
+                    url: `orders/get-revisions/${orderID}`,
+                    method: 'GET',
+                }),
+                providesTags: ['Orders'],
+            }),
             completeOrder: builder.mutation({
                 query: (orderID) => ({
                     url: `orders/complete-order`,
                     method: 'PUT',
-                    body: orderID,
+                    body: { orderID },
                 }),
                 invalidatesTags: ['Orders'],
             }),
@@ -143,6 +150,7 @@ export const {
     useUpdateOrderMutation,
     useDeliverOrderMutation,
     useReviewOrderMutation,
+    useGetRevisionsQuery,
     useCompleteOrderMutation,
     useGetOrdersByStatusQuery,
     useGetOrdersByUserIDQuery,
