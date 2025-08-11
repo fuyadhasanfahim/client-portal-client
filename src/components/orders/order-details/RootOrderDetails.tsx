@@ -22,7 +22,6 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
 
     const {
         data: revisionsData,
-        isLoading: isRevisionLoading,
         refetch: refetchRevision,
     } = useGetRevisionsQuery(orderID, { skip: !orderID });
     console.log(revisionsData?.revision);

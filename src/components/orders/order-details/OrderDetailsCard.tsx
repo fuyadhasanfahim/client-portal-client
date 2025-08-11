@@ -9,7 +9,6 @@ import OrderDetailsInvoice from './OrderDetailsInvoice';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import React from 'react';
 import OrderDetailsRevisions from './OrderDetailsRevisions';
-import { useGetRevisionsQuery } from '@/redux/features/orders/ordersApi';
 import { IRevision } from '@/types/revision.interface';
 
 export default function OrderDetailsCard({
