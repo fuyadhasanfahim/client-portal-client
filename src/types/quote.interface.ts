@@ -33,6 +33,7 @@ export interface IQuoteServiceSelection {
 export interface IQuoteDetails {
     deliveryDate?: Date;
     downloadLink?: string;
+    deliveryLink?: string;
     images?: number;
     returnFileFormat?: string[];
     backgroundOption?: string[];
@@ -48,6 +49,7 @@ export interface IQuote extends Document {
     user: IQuoteUser;
     services: IQuoteServiceSelection[];
     details?: IQuoteDetails;
+    isRevision?: boolean;
     status:
         | 'pending'
         | 'in-progress'

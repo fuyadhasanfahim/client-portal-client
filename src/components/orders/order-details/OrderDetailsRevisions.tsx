@@ -1,12 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { IRevision, IRevisionMessage } from '@/types/revision.interface';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Loader2,
+    Send,
+    MessageCircle,
+    Clock,
+    CheckCircle2,
+    AlertCircle,
+    XCircle,
+    User,
+    Shield,
+} from 'lucide-react';
+import { useSendRevisionMessageMutation } from '@/redux/features/orders/ordersApi';
+import useLoggedInUser from '@/utils/getLoggedInUser';
+import ApiError from '@/components/shared/ApiError';
+import toast from 'react-hot-toast';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type Props = {
-    revision: IRevision;
+    revision: IRevision | null | undefined;
     className?: string;
 };
 
@@ -16,59 +34,447 @@ const timeAgo = (d?: Date | string) => {
     return formatDistanceToNow(date, { addSuffix: true });
 };
 
-const StatusPill = ({ s }: { s: IRevision['status'] }) => (
-    <span
-        className={cn(
-            'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-            s === 'open' && 'bg-emerald-50 text-emerald-700',
-            s === 'in-review' && 'bg-amber-50 text-amber-700',
-            s === 'closed' && 'bg-gray-100 text-gray-700'
-        )}
-    >
-        {s}
-    </span>
-);
+const StatusPill = ({ s }: { s: IRevision['status'] }) => {
+    const statusConfig = {
+        open: {
+            icon: AlertCircle,
+            bg: 'bg-gradient-to-r from-emerald-50 to-emerald-100',
+            text: 'text-emerald-700',
+            border: 'border-emerald-200',
+            dot: 'bg-emerald-500',
+        },
+        'in-review': {
+            icon: Clock,
+            bg: 'bg-gradient-to-r from-amber-50 to-orange-100',
+            text: 'text-amber-700',
+            border: 'border-amber-200',
+            dot: 'bg-amber-500',
+        },
+        closed: {
+            icon: CheckCircle2,
+            bg: 'bg-gradient-to-r from-gray-50 to-slate-100',
+            text: 'text-gray-600',
+            border: 'border-gray-200',
+            dot: 'bg-gray-500',
+        },
+    };
 
-const Message = ({ m }: { m: IRevisionMessage }) => (
-    <div className="rounded-xl border p-3">
-        <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{m.senderName}</span>
-            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] uppercase tracking-wide">
-                {m.senderRole}
-            </span>
-            <span>•</span>
-            <span>{timeAgo(m.createdAt)}</span>
-        </div>
-        <p className="text-sm leading-6">{m.message}</p>
-    </div>
-);
+    const config = statusConfig[s];
+    const IconComponent = config.icon;
+
+    return (
+        <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border backdrop-blur-sm',
+                config.bg,
+                config.text,
+                config.border
+            )}
+        >
+            <div
+                className={cn(
+                    'w-1.5 h-1.5 rounded-full animate-pulse',
+                    config.dot
+                )}
+            />
+            <IconComponent className="w-3 h-3" />
+            <span className="capitalize">{s.replace('-', ' ')}</span>
+        </motion.div>
+    );
+};
+
+const Avatar = ({
+    role,
+    name,
+    image,
+}: {
+    role: string;
+    name: string;
+    image?: string;
+}) => {
+    const isAdmin = role === 'admin';
+
+    return (
+        <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative"
+        >
+            {image ? (
+                <img
+                    src={image}
+                    alt={name}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                />
+            ) : (
+                <div
+                    className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white',
+                        isAdmin
+                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'
+                            : 'bg-gradient-to-br from-green-500 to-cyan-600 text-white'
+                    )}
+                >
+                    {isAdmin ? (
+                        <Shield className="w-4 h-4" />
+                    ) : (
+                        <User className="w-4 h-4" />
+                    )}
+                </div>
+            )}
+
+            {/* Status indicator */}
+            <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className={cn(
+                    'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white',
+                    isAdmin
+                        ? 'bg-gradient-to-br from-purple-400 to-purple-600'
+                        : 'bg-gradient-to-br from-green-400 to-green-600'
+                )}
+            />
+        </motion.div>
+    );
+};
+
+const Message = ({
+    m,
+    isOwnMessage,
+}: {
+    m: IRevisionMessage;
+    isOwnMessage: boolean;
+}) => {
+    const isAdmin = m.senderRole === 'admin';
+
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            whileHover={{ y: -1 }}
+            transition={{
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+                layout: { duration: 0.2 },
+            }}
+            className={cn(
+                'flex gap-3 group',
+                isOwnMessage ? 'flex-row-reverse' : 'flex-row'
+            )}
+        >
+            <Avatar
+                role={m.senderRole}
+                name={m.senderName}
+                image={m.senderProfileImage}
+            />
+
+            <div
+                className={cn(
+                    'flex-1 max-w-[80%]',
+                    isOwnMessage
+                        ? 'flex flex-col items-end'
+                        : 'flex flex-col items-start'
+                )}
+            >
+                {/* Message header */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className={cn(
+                        'flex items-center gap-2 mb-1 text-xs',
+                        isOwnMessage ? 'flex-row-reverse' : 'flex-row'
+                    )}
+                >
+                    <span className="font-medium text-gray-900">
+                        {m.senderName}
+                    </span>
+                    <motion.span
+                        whileHover={{ scale: 1.05 }}
+                        className={cn(
+                            'px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider',
+                            isAdmin
+                                ? 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700'
+                                : 'bg-gradient-to-r from-green-100 to-cyan-100 text-green-700'
+                        )}
+                    >
+                        {m.senderRole}
+                    </motion.span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-gray-500">
+                        {timeAgo(m.createdAt)}
+                    </span>
+                </motion.div>
+
+                {/* Message bubble */}
+                <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                    className={cn(
+                        'relative rounded-2xl px-4 py-3 border backdrop-blur-sm transition-all duration-200',
+                        isOwnMessage
+                            ? isAdmin
+                                ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-purple-200'
+                                : 'bg-gradient-to-br from-green-500 to-cyan-600 text-white border-green-200'
+                            : 'bg-white border-gray-200 text-gray-800 group-hover:border-gray-300'
+                    )}
+                >
+                    {/* Message tail */}
+                    <div
+                        className={cn(
+                            'absolute top-3 w-2 h-2 transform rotate-45',
+                            isOwnMessage
+                                ? isAdmin
+                                    ? 'right-[-4px] bg-gradient-to-br from-purple-500 to-indigo-600'
+                                    : 'right-[-4px] bg-gradient-to-br from-green-500 to-cyan-600'
+                                : 'left-[-4px] bg-white border-l border-t border-gray-200'
+                        )}
+                    />
+
+                    <p
+                        className={cn(
+                            'text-sm leading-relaxed whitespace-pre-wrap break-words',
+                            isOwnMessage ? 'text-white' : 'text-gray-800'
+                        )}
+                    >
+                        {m.message}
+                    </p>
+                </motion.div>
+            </div>
+        </motion.div>
+    );
+};
 
 export default function OrderDetailsRevisions({ revision, className }: Props) {
+    const { user } = useLoggedInUser();
+    const [input, setInput] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const [sendRevisionMessage, { isLoading }] =
+        useSendRevisionMessageMutation();
+
+    const scrollRef = useRef<HTMLUListElement | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const orderID = revision?.orderID;
+
     const messages = revision?.messages ?? [];
+
+    const sender = useMemo(
+        () => ({
+            senderID: user?.userID ?? '',
+            senderName: user?.name ?? 'User',
+            senderRole: (user?.role === 'admin' ? 'admin' : 'user') as
+                | 'user'
+                | 'admin',
+            senderProfileImage: user?.image ?? '',
+        }),
+        [user]
+    );
+
+    // Auto-scroll with smooth animation
+    useEffect(() => {
+        if (!scrollRef.current) return;
+
+        const scrollToBottom = () => {
+            if (!scrollRef.current) return;
+            scrollRef.current.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: 'smooth',
+            });
+        };
+
+        // Delay to allow message animation to complete
+        const timeoutId = setTimeout(scrollToBottom, 150);
+        return () => clearTimeout(timeoutId);
+    }, [messages.length]);
+
+    // Handle typing indicator
+    useEffect(() => {
+        const timeoutId = setTimeout(() => setIsTyping(false), 1000);
+        return () => clearTimeout(timeoutId);
+    }, [input]);
+
+    const handleSend = async () => {
+        const message = input.trim();
+        if (!message) return;
+        if (!orderID) {
+            toast.error('Missing order ID');
+            return;
+        }
+        if (!sender.senderID) {
+            toast.error('Missing sender');
+            return;
+        }
+
+        try {
+            await sendRevisionMessage({
+                orderID,
+                message,
+                senderID: sender.senderID,
+                senderName: sender.senderName,
+                senderRole: sender.senderRole,
+                senderProfileImage: sender.senderProfileImage,
+            }).unwrap();
+
+            setInput('');
+            textareaRef.current?.focus();
+        } catch (err) {
+            ApiError(err);
+        }
+    };
+
+    const onKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            handleSend();
+        }
+
+        if (!isTyping && input.length > 0) {
+            setIsTyping(true);
+        }
+    };
 
     if (!revision || messages.length === 0) {
         return (
-            <section
-                className={cn('rounded-2xl border bg-white p-5', className)}
+            <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, type: 'spring', stiffness: 100 }}
+                className={cn(
+                    'rounded-3xl border border-gray-200/60 bg-gradient-to-br from-white to-gray-50/30 backdrop-blur-sm',
+                    className
+                )}
             >
-                <h3 className="mb-2 text-base font-semibold">Revisions</h3>
-                <p className="text-sm text-muted-foreground">
-                    No revision messages yet.
-                </p>
-            </section>
+                <div className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <motion.div
+                            initial={{ rotate: 0 }}
+                            animate={{ rotate: 360 }}
+                            transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: 'linear',
+                            }}
+                        >
+                            <MessageCircle className="w-5 h-5 text-green-500" />
+                        </motion.div>
+                        <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                            Revisions
+                        </h3>
+                    </div>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-center py-8"
+                    >
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-100 to-cyan-100 rounded-full flex items-center justify-center">
+                            <MessageCircle className="w-8 h-8 text-green-500" />
+                        </div>
+                        <p className="text-gray-500 mb-6">
+                            No messages yet. Start the conversation!
+                        </p>
+                    </motion.div>
+
+                    {/* Reply composer */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                        className="space-y-3"
+                    >
+                        <div className="relative">
+                            <Textarea
+                                ref={textareaRef}
+                                placeholder="Type a message… (Ctrl/⌘ + Enter to send)"
+                                value={input}
+                                autoFocus
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={onKeyDown}
+                                className="min-h-[100px] resize-none rounded-2xl border-gray-200/60 bg-white/60 backdrop-blur-sm focus:bg-white transition-all duration-200 pr-12"
+                                disabled={!orderID || isLoading}
+                            />
+                            {isTyping && input && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    className="absolute bottom-3 right-3 flex items-center gap-1"
+                                >
+                                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" />
+                                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.1s]" />
+                                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                </motion.div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end">
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <Button
+                                    onClick={handleSend}
+                                    disabled={
+                                        !input.trim() || isLoading || !orderID
+                                    }
+                                    className="rounded-2xl bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white transition-all duration-200"
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="mr-2 h-4 w-4" />
+                                    )}
+                                    Send Message
+                                </Button>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                </div>
+            </motion.section>
         );
     }
 
     return (
-        <section className={cn('rounded-2xl border bg-white', className)}>
-            <div className="flex items-center justify-between border-b p-5">
-                <h3 className="text-base font-semibold">
-                    Revisions{' '}
-                    <span className="text-muted-foreground">
-                        ({messages.length})
-                    </span>
-                </h3>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, type: 'spring', stiffness: 100 }}
+            className={cn(
+                'rounded-3xl border border-gray-200/60 bg-gradient-to-br from-white to-gray-50/30 backdrop-blur-sm overflow-hidden',
+                className
+            )}
+        >
+            {/* Header */}
+            <motion.div
+                layout
+                className="flex items-center justify-between border-b border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/50 to-white/50 backdrop-blur-sm"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-cyan-600 rounded-2xl flex items-center justify-center">
+                        <MessageCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                            Revisions
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            {messages.length} messages
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs text-gray-500">
                     <StatusPill s={revision.status} />
                     <span>•</span>
                     <span>
@@ -80,15 +486,124 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                         )}
                     </span>
                 </div>
-            </div>
+            </motion.div>
 
-            <ul className="divide-y">
-                {messages.map((m, i) => (
-                    <li key={`${revision.orderID}-${i}`} className="p-5">
-                        <Message m={m} />
-                    </li>
-                ))}
+            {/* Messages */}
+            <ul
+                ref={scrollRef}
+                className="max-h-[400px] overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+            >
+                <AnimatePresence mode="popLayout">
+                    {messages.map((m, i) => (
+                        <motion.li
+                            layout
+                            key={`${revision.orderID}-${i}-${m.createdAt}`}
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 300,
+                                damping: 25,
+                                delay: i * 0.05,
+                            }}
+                        >
+                            <Message
+                                m={m}
+                                isOwnMessage={m.senderID === sender.senderID}
+                            />
+                        </motion.li>
+                    ))}
+                </AnimatePresence>
             </ul>
-        </section>
+
+            {/* Reply composer */}
+            <motion.div
+                layout
+                className="border-t border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/30 to-white/30 backdrop-blur-sm space-y-3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+            >
+                <div className="relative">
+                    <Textarea
+                        ref={textareaRef}
+                        placeholder="Type your message… (Ctrl/⌘ + Enter to send)"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={onKeyDown}
+                        className="min-h-[100px] resize-none rounded-2xl border-gray-200/60 bg-white/60 backdrop-blur-sm focus:bg-white transition-all duration-200 pr-12"
+                        disabled={!orderID || isLoading}
+                    />
+                    {isTyping && input && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="absolute bottom-3 right-3 flex items-center gap-1"
+                        >
+                            <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" />
+                            <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.1s]" />
+                            <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        </motion.div>
+                    )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <motion.div
+                        layout
+                        className="flex items-center gap-2 text-xs text-gray-500"
+                    >
+                        <Avatar
+                            role={sender.senderRole}
+                            name={sender.senderName}
+                            image={sender.senderProfileImage}
+                        />
+                        <span>
+                            Sending as{' '}
+                            <span className="font-medium text-gray-700">
+                                {sender.senderName}
+                            </span>
+                        </span>
+                    </motion.div>
+
+                    <div className="flex items-center gap-2">
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <Button
+                                variant="outline"
+                                onClick={() => setInput('')}
+                                disabled={isLoading || !input.trim()}
+                                className="rounded-xl border-gray-200 hover:bg-gray-50"
+                            >
+                                Clear
+                            </Button>
+                        </motion.div>
+
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <Button
+                                onClick={handleSend}
+                                disabled={
+                                    !input.trim() || isLoading || !orderID
+                                }
+                                className="rounded-xl bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white transition-all duration-200"
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Send className="mr-2 h-4 w-4" />
+                                )}
+                                Send
+                            </Button>
+                        </motion.div>
+                    </div>
+                </div>
+            </motion.div>
+        </motion.section>
     );
 }

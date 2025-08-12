@@ -38,6 +38,7 @@ export default function OrderDetailsCard({
                     services={order.services}
                     width={order.details?.width}
                     downloadLink={order.details?.downloadLink}
+                    deliveryLink={order.details?.deliveryLink}
                 />
                 <OrderDetailsRevisions revision={revision} />
             </div>
@@ -50,6 +51,7 @@ export default function OrderDetailsCard({
                     role={user.role}
                     paymentStatus={order.paymentStatus}
                     orderID={order.orderID}
+                    isRevision={order.isRevision}
                 />
                 <OrderDetailsInvoice order={order} user={user} />
             </div>

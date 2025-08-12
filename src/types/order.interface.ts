@@ -36,6 +36,7 @@ export interface IOrderServiceSelection {
 export interface IOrderDetails {
     deliveryDate?: Date;
     downloadLink?: string;
+    deliveryLink?: string;
     images?: number;
     returnFileFormat?: string[];
     backgroundOption?: string[];
@@ -51,6 +52,7 @@ export interface IOrder extends Document {
     user: IOrderUser;
     services: IOrderServiceSelection[];
     details?: IOrderDetails;
+    isRevision?: boolean;
     status:
         | 'pending'
         | 'in-progress'

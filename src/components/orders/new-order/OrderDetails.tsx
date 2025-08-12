@@ -107,7 +107,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                             orderID={orderID}
                             userID={user.userID}
                             required
-                            description="Upload your images or provide a download link"
+                            description="Upload your images Or provide a download link"
                         />
 
                         <FormField

@@ -13,7 +13,8 @@ export interface IRevisionMessage {
 
 export interface IRevision {
     _id: string;
-    orderID: string;
+    orderID?: string;
+    quoteID?: string;
     messages: IRevisionMessage[];
     status: IRevisionStatus;
     isSeenByAdmin: boolean;

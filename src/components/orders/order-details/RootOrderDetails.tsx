@@ -24,7 +24,6 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         data: revisionsData,
         refetch: refetchRevision,
     } = useGetRevisionsQuery(orderID, { skip: !orderID });
-    console.log(revisionsData?.revision);
 
     useEffect(() => {
         if (!orderID || !user?.userID) return;

@@ -138,6 +138,21 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Orders'],
             }),
+            sendRevisionMessage: builder.mutation({
+                query: (payload: {
+                    orderID: string;
+                    message: string;
+                    senderID: string;
+                    senderName: string;
+                    senderRole: 'user' | 'admin';
+                    senderProfileImage?: string;
+                }) => ({
+                    url: `orders/revision-message`,
+                    method: 'PUT',
+                    body: payload,
+                }),
+                invalidatesTags: ['Orders'],
+            }),
         };
     },
 });
@@ -154,4 +169,5 @@ export const {
     useCompleteOrderMutation,
     useGetOrdersByStatusQuery,
     useGetOrdersByUserIDQuery,
+    useSendRevisionMessageMutation,
 } = ordersApi;

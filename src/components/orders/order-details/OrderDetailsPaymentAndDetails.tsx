@@ -1,3 +1,5 @@
+'use client';
+
 import ApiError from '@/components/shared/ApiError';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +22,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -35,14 +36,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { IconPackage } from '@tabler/icons-react';
-import {
-    CheckCircle,
-    CreditCard,
-    Loader,
-    RefreshCw,
-    Send,
-    Truck,
-} from 'lucide-react';
+import { CheckCircle, CreditCard, Loader, Send, Truck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -53,6 +47,7 @@ interface OrderDetailsPaymentAndDetailsProps {
     paymentStatus?: string;
     role: string;
     orderID: string;
+    isRevision?: boolean;
 }
 
 export default function OrderDetailsPaymentAndDetails({
@@ -62,17 +57,25 @@ export default function OrderDetailsPaymentAndDetails({
     paymentId,
     paymentStatus,
     role,
+    isRevision = false,
 }: OrderDetailsPaymentAndDetailsProps) {
     const [downloadLink, setDownloadLink] = useState<string>('');
     const [instruction, setInstruction] = useState<string>('');
-    const [reviewOrComplete, setReviewOrComplete] = useState<string>('');
     const [showPaymentReminder, setShowPaymentReminder] = useState(false);
     const [clientSecret, setClientSecret] = useState('');
+
+    const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+    const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 
     const [deliverOrder, { isLoading }] = useDeliverOrderMutation();
     const [reviewOrder, { isLoading: isReviewDone }] = useReviewOrderMutation();
     const [completeOrder, { isLoading: isCompleted }] =
         useCompleteOrderMutation();
+    const [newOrderCheckout] = useNewOrderCheckoutMutation();
+
+    const stripePromise = loadStripe(
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+    );
 
     const handleDeliverOrder = async () => {
         try {
@@ -80,7 +83,6 @@ export default function OrderDetailsPaymentAndDetails({
                 orderID,
                 downloadLink,
             }).unwrap();
-
             if (response.success) {
                 setDownloadLink('');
                 toast.success(response.message);
@@ -92,14 +94,14 @@ export default function OrderDetailsPaymentAndDetails({
 
     const handleReviewOrder = async () => {
         try {
-            const response = await reviewOrder({
+            const res = await reviewOrder({
                 orderID,
                 instructions: instruction,
-            });
-
-            if (response.data.success) {
+            }).unwrap();
+            if (res.success) {
                 setInstruction('');
-                toast.success(response.data.message);
+                setReviewDialogOpen(false);
+                toast.success(res.message);
             }
         } catch (error) {
             ApiError(error);
@@ -108,20 +110,20 @@ export default function OrderDetailsPaymentAndDetails({
 
     const handleCompleteOrder = async () => {
         try {
-            const response = await completeOrder({
-                orderID,
-            });
-
-            if (response.data.success) {
-                setInstruction('');
-                toast.success(response.data.message);
+            const res = (await completeOrder(orderID).unwrap)
+                ? await completeOrder(orderID).unwrap()
+                : await completeOrder({ orderID }).unwrap();
+            if (res.success) {
+                setCompleteDialogOpen(false);
+                toast.success(res.message);
+                if (paymentStatus === 'pay-later' && !paymentId) {
+                    setShowPaymentReminder(true);
+                }
             }
         } catch (error) {
             ApiError(error);
         }
     };
-
-    const [newOrderCheckout] = useNewOrderCheckoutMutation();
 
     useEffect(() => {
         if (paymentStatus === 'pay-later') {
@@ -132,31 +134,24 @@ export default function OrderDetailsPaymentAndDetails({
                         paymentOption: 'pay-now',
                         paymentMethod: 'card-payment',
                     }).unwrap();
-
-                    if (res?.success) {
-                        setClientSecret(res.data);
-                    }
+                    if (res?.success) setClientSecret(res.data);
                 } catch (err) {
                     ApiError(err);
                 }
             };
-
             createSession();
         }
     }, [newOrderCheckout, paymentStatus, orderID]);
-
-    const stripePromise = loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-    );
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <IconPackage size={24} />{' '}
+                    <IconPackage size={24} />
                     <span className="text-2xl">Order Overview</span>
                 </CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-3 text-sm">
                 <Badge variant="outline" className="bg-blue-100 text-blue-800">
                     {status}
@@ -168,6 +163,7 @@ export default function OrderDetailsPaymentAndDetails({
                     <strong>Payment ID:</strong> {paymentId || 'N/A'}
                 </p>
             </CardContent>
+
             {role !== 'user' &&
                 (status === 'in-progress' || status === 'in-revision') && (
                     <CardFooter className="border-t">
@@ -237,134 +233,106 @@ export default function OrderDetailsPaymentAndDetails({
                 )}
 
             {role === 'user' && status === 'delivered' && (
-                <CardFooter className="border-t">
-                    <Dialog>
+                <CardFooter className="border-t flex flex-col gap-3">
+                    {!isRevision && (
+                        <Dialog
+                            open={reviewDialogOpen}
+                            onOpenChange={setReviewDialogOpen}
+                        >
+                            <DialogTrigger asChild>
+                                <Button
+                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                                    onClick={() => setReviewDialogOpen(true)}
+                                >
+                                    <Send className="h-4 w-4" />
+                                    Request Revision
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[500px]">
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        Request a Revision
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Tell us what needs to be changed.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-2 py-2">
+                                    <Label htmlFor="instruction">
+                                        Revision Instructions
+                                    </Label>
+                                    <Textarea
+                                        id="instruction"
+                                        placeholder="What needs to be changed?"
+                                        value={instruction}
+                                        onChange={(e) =>
+                                            setInstruction(e.target.value)
+                                        }
+                                        className="min-h-[140px]"
+                                    />
+                                </div>
+                                <DialogFooter>
+                                    <Button
+                                        className="bg-yellow-500 hover:bg-yellow-600"
+                                        disabled={
+                                            isReviewDone || !instruction.trim()
+                                        }
+                                        onClick={handleReviewOrder}
+                                    >
+                                        {isReviewDone ? (
+                                            <Loader className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Send className="h-4 w-4" />
+                                        )}
+                                        Submit Revision
+                                    </Button>
+                                    <DialogClose asChild>
+                                        <Button variant="secondary">
+                                            Cancel
+                                        </Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+
+                    <Dialog
+                        open={completeDialogOpen}
+                        onOpenChange={setCompleteDialogOpen}
+                    >
                         <DialogTrigger asChild>
                             <Button
                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                                disabled={isReviewDone || isCompleted}
+                                onClick={() => setCompleteDialogOpen(true)}
                             >
-                                {isReviewDone || isCompleted ? (
-                                    <div className="flex items-center gap-2">
-                                        <Loader className="h-4 w-4 animate-spin" />
-                                        Processing...
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4" />
-                                        Complete/Request Revision
-                                    </div>
-                                )}
+                                <CheckCircle className="h-4 w-4" />
+                                Confirm Order Completion
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
+                        <DialogContent className="sm:max-w-[440px]">
                             <DialogHeader>
-                                <DialogTitle className="text-lg">
-                                    Order Feedback
-                                </DialogTitle>
+                                <DialogTitle>Confirm Completion</DialogTitle>
                                 <DialogDescription>
-                                    {reviewOrComplete === 'in-revision'
-                                        ? 'Provide details for revision'
-                                        : 'Confirm order completion'}
+                                    You’re about to mark this order as{' '}
+                                    <b>completed</b>. This will close the
+                                    revision thread.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-6 py-4">
-                                <RadioGroup
-                                    value={reviewOrComplete}
-                                    onValueChange={setReviewOrComplete}
-                                    className="grid grid-cols-2 gap-4"
-                                >
-                                    <div>
-                                        <RadioGroupItem
-                                            value="in-revision"
-                                            id="in-revision"
-                                            className="peer sr-only"
-                                        />
-                                        <Label
-                                            htmlFor="in-revision"
-                                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-emerald-500 [&:has([data-state=checked])]:border-emerald-500"
-                                        >
-                                            <RefreshCw className="mb-2 h-6 w-6 text-yellow-500" />
-                                            Request Revision
-                                        </Label>
-                                    </div>
-                                    <div>
-                                        <RadioGroupItem
-                                            value="complete"
-                                            id="complete"
-                                            className="peer sr-only"
-                                        />
-                                        <Label
-                                            htmlFor="complete"
-                                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-emerald-500 [&:has([data-state=checked])]:border-emerald-500"
-                                        >
-                                            <CheckCircle className="mb-2 h-6 w-6 text-emerald-500" />
-                                            Complete Order
-                                        </Label>
-                                    </div>
-                                </RadioGroup>
-
-                                {reviewOrComplete === 'in-revision' && (
-                                    <div className="space-y-2">
-                                        <Label
-                                            htmlFor="instruction"
-                                            className="text-sm font-medium"
-                                        >
-                                            Revision Instructions
-                                        </Label>
-                                        <Textarea
-                                            id="instruction"
-                                            placeholder="What needs to be changed?"
-                                            value={instruction}
-                                            onChange={(e) =>
-                                                setInstruction(e.target.value)
-                                            }
-                                            className="min-h-[120px]"
-                                        />
-                                    </div>
-                                )}
-                            </div>
                             <DialogFooter>
-                                <DialogClose asChild>
-                                    {reviewOrComplete === 'in-revision' ? (
-                                        <Button
-                                            type="submit"
-                                            className="bg-yellow-500 hover:bg-yellow-600"
-                                            disabled={
-                                                isReviewDone || !instruction
-                                            }
-                                            onClick={handleReviewOrder}
-                                        >
-                                            <Send className="h-4 w-4" />
-                                            Submit Revision Request
-                                        </Button>
+                                <Button
+                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                    disabled={isCompleted}
+                                    onClick={handleCompleteOrder}
+                                >
+                                    {isCompleted ? (
+                                        <Loader className="h-4 w-4 animate-spin" />
                                     ) : (
-                                        <Button
-                                            type="submit"
-                                            className="bg-emerald-600 hover:bg-emerald-700"
-                                            disabled={
-                                                reviewOrComplete !== 'complete'
-                                            }
-                                            onClick={() => {
-                                                handleCompleteOrder();
-
-                                                if (
-                                                    reviewOrComplete ===
-                                                        'complete' &&
-                                                    paymentStatus ===
-                                                        'pay-later' &&
-                                                    !paymentId
-                                                ) {
-                                                    setShowPaymentReminder(
-                                                        true
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <CheckCircle className="h-4 w-4" />
-                                            Confirm Completion
-                                        </Button>
+                                        <CheckCircle className="h-4 w-4" />
                                     )}
+                                    Confirm Completion
+                                </Button>
+                                <DialogClose asChild>
+                                    <Button variant="secondary">Cancel</Button>
                                 </DialogClose>
                             </DialogFooter>
                         </DialogContent>
@@ -379,10 +347,8 @@ export default function OrderDetailsPaymentAndDetails({
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                                    <div className="flex items-center gap-2">
-                                        <CreditCard className="h-4 w-4" />
-                                        Proceed to Payment
-                                    </div>
+                                    <CreditCard className="mr-2 h-4 w-4" />
+                                    Proceed to Payment
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl p-0">
@@ -431,7 +397,7 @@ export default function OrderDetailsPaymentAndDetails({
                     </DialogHeader>
                     <DialogFooter>
                         <Button
-                            variant={'secondary'}
+                            variant="secondary"
                             onClick={() => setShowPaymentReminder(false)}
                         >
                             Okay, Got It

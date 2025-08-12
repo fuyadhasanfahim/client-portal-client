@@ -21,6 +21,7 @@ interface OrderDetailsServiceListProps {
     backgroundColor?: string[];
     instructions?: string;
     downloadLink?: string;
+    deliveryLink?: string;
 }
 
 export default function OrderDetailsServiceList({
@@ -34,6 +35,7 @@ export default function OrderDetailsServiceList({
     instructions,
     backgroundColor,
     downloadLink,
+    deliveryLink,
 }: OrderDetailsServiceListProps) {
     return (
         <Card>
@@ -140,13 +142,27 @@ export default function OrderDetailsServiceList({
                     <strong>Download Link:</strong>{' '}
                     {downloadLink ? (
                         <Link
-                            href={`${process.env
-                                .NEXT_PUBLIC_SERVER_API!}${downloadLink}`}
+                            href={downloadLink!}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
                         >
                             Download Images
+                        </Link>
+                    ) : (
+                        'N/A'
+                    )}
+                </div>
+                <div>
+                    <strong>Delivery Link:</strong>{' '}
+                    {deliveryLink ? (
+                        <Link
+                            href={deliveryLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                        >
+                            Download Delivery Images
                         </Link>
                     ) : (
                         'N/A'
