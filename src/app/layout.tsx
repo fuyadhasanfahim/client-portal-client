@@ -1,5 +1,7 @@
 import './globals.css';
-import Providers from './Providers';
+import NextAuthProvider from './NextAuthProvider';
+import { Toaster } from 'react-hot-toast';
+import ReduxProvider from './ReduxProvider';
 
 export default function RootLayout({
     children,
@@ -15,8 +17,12 @@ export default function RootLayout({
                 />
             </head>
             <body className={`antialiased`}>
-                {children}
-                <Providers>{children}</Providers>
+                <NextAuthProvider>
+                    <ReduxProvider>
+                        {children}
+                        <Toaster position="bottom-right" reverseOrder={false} />
+                    </ReduxProvider>
+                </NextAuthProvider>
             </body>
         </html>
     );
