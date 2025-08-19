@@ -28,9 +28,9 @@ export async function GET(req: NextRequest) {
         );
 
         return NextResponse.redirect(url);
-    } catch (e: any) {
+    } catch (e) {
         return NextResponse.json(
-            { message: e?.message || 'initiate failed' },
+            { message: e instanceof Error && e.message || 'initiate failed' },
             { status: 500 }
         );
     }

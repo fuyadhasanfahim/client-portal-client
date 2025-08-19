@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { IconInnerShadowTop } from '@tabler/icons-react';
 import { NavMain } from '@/components/shared/nav-main';
 import {
     Sidebar,
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { sidebarItems } from '@/data/sidebar';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function AppSidebar(
     props: React.ComponentProps<typeof Sidebar> & {
@@ -34,16 +34,19 @@ export function AppSidebar(
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
-                            className="data-[slot=sidebar-menu-button]:!p-1.5"
+                            className="data-[slot=sidebar-menu-button]:!p-1.5 flex items-center justify-center my-4 hover:bg-transparent"
                         >
                             <Link
                                 href={'/dashboard'}
                                 className="cursor-pointer flex items-center gap-2 text-xl"
                             >
-                                <IconInnerShadowTop className="!size-5" />
-                                <span className="font-semibold">
-                                    Client Portal
-                                </span>
+                                <Image
+                                    src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1755089700/ba0yt6pzc8u6xmxuqir5.png"
+                                    alt="Web Briks Logo"
+                                    width={200}
+                                    height={60}
+                                    className="h-12 w-auto"
+                                />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

@@ -13,7 +13,6 @@ import {
     Clock,
     CheckCircle2,
     AlertCircle,
-    XCircle,
     User,
     Shield,
 } from 'lucide-react';
@@ -104,6 +103,7 @@ const Avatar = ({
             className="relative"
         >
             {image ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                     src={image}
                     alt={name}

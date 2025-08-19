@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { cn } from '@/lib/utils';
@@ -21,7 +22,6 @@ interface SelectQuoteStatusProps {
     quote: IQuote;
     role: string;
     quoteID: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     refetch?: any;
 }
 

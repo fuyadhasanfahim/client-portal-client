@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import {
@@ -24,7 +26,6 @@ export async function POST(req: NextRequest) {
 
         const s3 = await s3ForBucket();
 
-        // folder: {prefix}/{orders|quotes}/{userID}/{id}/{uuid}/file
         const keyBase = `${basePrefix}/${kind}/${userID}/${id}/${crypto.randomUUID()}`;
         const objectKey = `${keyBase}/${fileName}`;
 

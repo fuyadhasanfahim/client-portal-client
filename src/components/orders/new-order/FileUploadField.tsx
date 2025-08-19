@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useDropzone } from 'react-dropzone';
@@ -89,7 +90,7 @@ export default function FileUploadField({
         return () => {
             previewUrls.forEach((u) => URL.revokeObjectURL(u));
         };
-    }, []);
+    }, [previewUrls]);
 
     useEffect(() => {
         if (uploadState === 'uploading') {
@@ -548,6 +549,7 @@ export default function FileUploadField({
                                                         key={i}
                                                         className="relative overflow-hidden rounded-xl border bg-background"
                                                     >
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                         <img
                                                             src={src}
                                                             alt={`preview-${i}`}

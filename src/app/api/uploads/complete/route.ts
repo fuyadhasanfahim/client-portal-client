@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server';
 import {
     s3ForBucket,
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
             bucket: res.Bucket,
             key: res.Key,
         });
-    } catch (e: any) {
+    } catch (e) {
         try {
             await s3.send(
                 new AbortMultipartUploadCommand({
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
             );
         } catch {}
         return NextResponse.json(
-            { message: e?.message || 'complete failed' },
+            { message: (e instanceof Error && e.message) || 'complete failed' },
             { status: 500 }
         );
     }

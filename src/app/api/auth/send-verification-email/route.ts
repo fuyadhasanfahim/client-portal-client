@@ -3,7 +3,7 @@ import { sendEmail } from '@/lib/nodemailer';
 import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
-import { createEmailVerificationEmail } from '@/components/shared/EmailTemplate';
+import { createEmailVerificationEmail } from '@/components/shared/renderEmail';
 
 export async function POST(req: NextRequest) {
     try {

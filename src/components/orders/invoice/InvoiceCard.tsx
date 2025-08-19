@@ -2,19 +2,15 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send, Printer } from 'lucide-react';
+import { Loader2, Printer } from 'lucide-react';
 import { useGetOrderByIDQuery } from '@/redux/features/orders/ordersApi';
-import getLoggedInUser from '@/utils/getLoggedInUser';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import toast from 'react-hot-toast';
 import InvoiceTemplate from './InvoiceTemplate';
 import { useGetPaymentByOrderIDQuery } from '@/redux/features/payments/paymentApi';
-import { useSendInvoiceMutation } from '@/redux/features/invoice/invoiceApi';
-import ApiError from '@/components/shared/ApiError';
 
 export default function InvoiceCard({ orderID }: { orderID: string }) {
-    const { user } = getLoggedInUser();
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     const { data, isLoading } = useGetOrderByIDQuery(orderID, {
@@ -24,23 +20,9 @@ export default function InvoiceCard({ orderID }: { orderID: string }) {
         useGetPaymentByOrderIDQuery(orderID, {
             skip: !orderID,
         });
-    const [sendInvoice, { isLoading: isInvoiceSending }] =
-        useSendInvoiceMutation({});
 
     const order = !isLoading ? data?.data : {};
     const payment = !isPaymentDataLoading ? paymentData.data : {};
-
-    const handleSendInvoice = async () => {
-        if (!order) return;
-        try {
-            await sendInvoice(orderID).unwrap();
-            toast.success(
-                `Invoice for order #${orderID} has been sent to ${order.user?.email}`
-            );
-        } catch (error) {
-            ApiError(error)
-        }
-    };
 
     const generatePDF = async (): Promise<Blob> => {
         if (typeof window === 'undefined') {
@@ -131,21 +113,6 @@ export default function InvoiceCard({ orderID }: { orderID: string }) {
                     )}
                     {isGeneratingPDF ? 'Preparing...' : 'Print/Save PDF'}
                 </Button>
-
-                {user && user.role !== 'user' && (
-                    <Button
-                        onClick={handleSendInvoice}
-                        disabled={isInvoiceSending}
-                        className="gap-2"
-                    >
-                        {isInvoiceSending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Send className="h-4 w-4" />
-                        )}
-                        {isInvoiceSending ? 'Sending...' : 'Send to Client'}
-                    </Button>
-                )}
             </div>
 
             <InvoiceTemplate order={order} payment={payment} />
