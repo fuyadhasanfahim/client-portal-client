@@ -82,10 +82,10 @@ export const ordersApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Orders'],
             }),
             deliverOrder: builder.mutation({
-                query: ({ orderID, downloadLink }) => ({
+                query: ({ orderID, deliveryLink }) => ({
                     url: 'orders/deliver-order',
                     method: 'PUT',
-                    body: { orderID, downloadLink },
+                    body: { orderID, deliveryLink },
                 }),
                 invalidatesTags: ['Orders'],
             }),
@@ -105,10 +105,10 @@ export const ordersApi = apiSlice.injectEndpoints({
                 providesTags: ['Orders'],
             }),
             completeOrder: builder.mutation({
-                query: (orderID) => ({
+                query: ({orderID, deliveryLink}) => ({
                     url: `orders/complete-order`,
                     method: 'PUT',
-                    body: { orderID },
+                    body: { orderID, deliveryLink },
                 }),
                 invalidatesTags: ['Orders'],
             }),

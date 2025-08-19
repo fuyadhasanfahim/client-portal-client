@@ -52,6 +52,7 @@ export default function OrderDetailsCard({
                     paymentStatus={order.paymentStatus}
                     orderID={order.orderID}
                     isRevision={order.isRevision}
+                    deliveryLink={order.details?.deliveryLink}
                 />
                 <OrderDetailsInvoice order={order} user={user} />
             </div>

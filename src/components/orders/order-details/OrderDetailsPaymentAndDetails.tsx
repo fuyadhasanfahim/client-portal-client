@@ -47,6 +47,7 @@ interface OrderDetailsPaymentAndDetailsProps {
     paymentStatus?: string;
     role: string;
     orderID: string;
+    deliveryLink?: string;
     isRevision?: boolean;
 }
 
@@ -58,6 +59,7 @@ export default function OrderDetailsPaymentAndDetails({
     paymentStatus,
     role,
     isRevision = false,
+    deliveryLink,
 }: OrderDetailsPaymentAndDetailsProps) {
     const [downloadLink, setDownloadLink] = useState<string>('');
     const [instruction, setInstruction] = useState<string>('');
@@ -81,7 +83,7 @@ export default function OrderDetailsPaymentAndDetails({
         try {
             const response = await deliverOrder({
                 orderID,
-                downloadLink,
+                deliveryLink: downloadLink,
             }).unwrap();
             if (response.success) {
                 setDownloadLink('');
@@ -110,9 +112,7 @@ export default function OrderDetailsPaymentAndDetails({
 
     const handleCompleteOrder = async () => {
         try {
-            const res = (await completeOrder(orderID).unwrap)
-                ? await completeOrder(orderID).unwrap()
-                : await completeOrder({ orderID }).unwrap();
+            const res = await completeOrder({ orderID, deliveryLink }).unwrap();
             if (res.success) {
                 setCompleteDialogOpen(false);
                 toast.success(res.message);
