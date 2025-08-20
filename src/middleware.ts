@@ -13,7 +13,8 @@ export default withAuth(
             pathname.startsWith('/sign-up') ||
             pathname.startsWith('/forgot-password') ||
             pathname.startsWith('/reset-password') ||
-            pathname.startsWith('/invitation-form');
+            pathname.startsWith('/invitation-form') ||
+            pathname.startsWith('/api/auth');
 
         if ((isAuthenticated && isAuthPage) || pathname === '/') {
             return NextResponse.redirect(new URL('/dashboard', req.url));

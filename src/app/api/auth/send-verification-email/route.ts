@@ -3,7 +3,7 @@ import { sendEmail } from '@/lib/nodemailer';
 import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
 import { NextRequest, NextResponse } from 'next/server';
-import { createEmailVerificationEmail } from '@/components/shared/renderEmail';
+import { createEmailVerificationEmail } from '@/lib/renderEmail';
 
 export async function POST(req: NextRequest) {
     try {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         await user.save();
 
         const verificationUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/verify-email?token=${token}`;
-        const emailHtml = createEmailVerificationEmail(
+        const emailHtml = await createEmailVerificationEmail(
             user.name || 'User',
             email,
             verificationUrl

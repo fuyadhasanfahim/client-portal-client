@@ -32,13 +32,13 @@ export function AppSidebar(
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            className="data-[slot=sidebar-menu-button]:!p-1.5 flex items-center justify-center my-4 hover:bg-transparent"
+                        <Link
+                            href={'/dashboard'}
+                            className="cursor-pointer flex items-center gap-2 text-xl"
                         >
-                            <Link
-                                href={'/dashboard'}
-                                className="cursor-pointer flex items-center gap-2 text-xl"
+                            <SidebarMenuButton
+                                asChild
+                                className="w-[200px] h-[60px] mx-auto"
                             >
                                 <Image
                                     src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1755089700/ba0yt6pzc8u6xmxuqir5.png"
@@ -47,8 +47,8 @@ export function AppSidebar(
                                     height={60}
                                     className="h-12 w-auto"
                                 />
-                            </Link>
-                        </SidebarMenuButton>
+                            </SidebarMenuButton>
+                        </Link>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>

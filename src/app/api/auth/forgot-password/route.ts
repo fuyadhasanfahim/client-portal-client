@@ -3,7 +3,7 @@ import { generateToken } from '@/utils/generateToken';
 import { sendEmail } from '@/lib/nodemailer';
 import dbConfig from '@/lib/dbConfig';
 import UserModel from '@/models/user.model';
-import { createPasswordResetEmail } from '@/components/shared/renderEmail';
+import { createPasswordResetEmail } from '@/lib/renderEmail';
 
 export async function POST(req: NextRequest) {
     try {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         await user.save();
 
         const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;
-        const emailHtml = createPasswordResetEmail(
+        const emailHtml = await createPasswordResetEmail(
             user.name || 'User',
             email,
             resetUrl

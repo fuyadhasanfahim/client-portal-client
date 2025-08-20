@@ -19,6 +19,14 @@ export default async function Layout({
 }) {
     const user = await getUserData();
 
+    if (!user) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p className="text-lg">Loading...</p>
+            </div>
+        );
+    }
+
     const userData = {
         id: user.userID,
         name: user.name,
