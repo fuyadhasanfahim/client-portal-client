@@ -104,10 +104,10 @@ export default function QuoteDetailsSummary({ quote }: { quote: IQuote }) {
 
                         <Card className="group">
                             <CardContent className="flex items-center gap-4">
-                                <div className="p-2 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
+                                <div className="p-2 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
                                     <IconClock
                                         size={24}
-                                        className="text-green-600"
+                                        className="text-orange-600"
                                     />
                                 </div>
                                 <div className="flex-1">

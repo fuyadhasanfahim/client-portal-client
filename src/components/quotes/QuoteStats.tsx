@@ -37,7 +37,7 @@ export default function QuoteStats({
                 quotes.filter((quote) => ['completed'].includes(quote.status))
                     .length,
             icon: IconClock,
-            color: 'from-green-500 to-teal-600',
+            color: 'from-orange-500 to-teal-600',
             change: '+8%',
         },
         {

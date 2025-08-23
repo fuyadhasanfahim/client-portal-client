@@ -282,14 +282,14 @@ export default function RootReportPage() {
                         </div>
                         <div className="flex items-center text-xs text-muted-foreground mt-1">
                             {trend > 0 ? (
-                                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                                <TrendingUp className="h-3 w-3 text-orange-500 mr-1" />
                             ) : (
                                 <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
                             )}
                             <span
                                 className={
                                     trend > 0
-                                        ? 'text-green-500'
+                                        ? 'text-orange-500'
                                         : 'text-red-500'
                                 }
                             >

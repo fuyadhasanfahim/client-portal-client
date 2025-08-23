@@ -13,7 +13,7 @@ export default function OrderPaymentStatus({
                 paymentStatus === 'paid' && 'text-green-500 border-green-500',
                 paymentStatus === 'refunded' && 'text-blue-500 border-blue-500',
                 paymentStatus === 'pending' &&
-                    'text-orange-500 border-orange-500',
+                    'text-green-500 border-green-500',
                 paymentStatus === 'pay-later' &&
                     'text-yellow-500 border-yellow-500'
             )}

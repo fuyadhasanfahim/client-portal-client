@@ -213,7 +213,7 @@ export default function ServicesDataTable() {
                                                     (type, idx) => (
                                                         <Badge
                                                             key={idx}
-                                                            className="bg-green-50 border border-green-300 text-green-800"
+                                                            className="bg-orange-50 border border-orange-300 text-orange-800"
                                                             variant="outline"
                                                         >
                                                             {type.title}

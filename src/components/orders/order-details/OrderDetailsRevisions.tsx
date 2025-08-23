@@ -114,8 +114,8 @@ const Avatar = ({
                     className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 border-white',
                         isAdmin
-                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white'
-                            : 'bg-gradient-to-br from-green-500 to-cyan-600 text-white'
+                            ? 'bg-primary text-white'
+                            : 'bg-teal-600 text-white'
                     )}
                 >
                     {isAdmin ? (
@@ -134,8 +134,8 @@ const Avatar = ({
                 className={cn(
                     'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white',
                     isAdmin
-                        ? 'bg-gradient-to-br from-purple-400 to-purple-600'
-                        : 'bg-gradient-to-br from-green-400 to-green-600'
+                        ? 'bg-primary text-primary'
+                        : 'bg-teal-600 text-primary'
                 )}
             />
         </motion.div>
@@ -200,9 +200,7 @@ const Message = ({
                         whileHover={{ scale: 1.05 }}
                         className={cn(
                             'px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider',
-                            isAdmin
-                                ? 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700'
-                                : 'bg-gradient-to-r from-green-100 to-cyan-100 text-green-700'
+                            isAdmin ? 'bg-primary' : 'bg-teal-600'
                         )}
                     >
                         {m.senderRole}
@@ -221,8 +219,8 @@ const Message = ({
                         'relative rounded-2xl px-4 py-3 border backdrop-blur-sm transition-all duration-200',
                         isOwnMessage
                             ? isAdmin
-                                ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-purple-200'
-                                : 'bg-gradient-to-br from-green-500 to-cyan-600 text-white border-green-200'
+                                ? 'bg-primary border-primary/20'
+                                : 'bg-teal-600 border-teal-200'
                             : 'bg-white border-gray-200 text-gray-800 group-hover:border-gray-300'
                     )}
                 >
@@ -233,7 +231,7 @@ const Message = ({
                             isOwnMessage
                                 ? isAdmin
                                     ? 'right-[-4px] bg-gradient-to-br from-purple-500 to-indigo-600'
-                                    : 'right-[-4px] bg-gradient-to-br from-green-500 to-cyan-600'
+                                    : 'right-[-4px] bg-gradient-to-br from-orange-500 to-cyan-600'
                                 : 'left-[-4px] bg-white border-l border-t border-gray-200'
                         )}
                     />
@@ -362,7 +360,7 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                                 ease: 'linear',
                             }}
                         >
-                            <MessageCircle className="w-5 h-5 text-green-500" />
+                            <MessageCircle className="w-5 h-5 text-orange-500" />
                         </motion.div>
                         <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                             Revisions
@@ -375,8 +373,8 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                         transition={{ delay: 0.2 }}
                         className="text-center py-8"
                     >
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-100 to-cyan-100 rounded-full flex items-center justify-center">
-                            <MessageCircle className="w-8 h-8 text-green-500" />
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-100 to-cyan-100 rounded-full flex items-center justify-center">
+                            <MessageCircle className="w-8 h-8 text-orange-500" />
                         </div>
                         <p className="text-gray-500 mb-6">
                             No messages yet. Start the conversation!
@@ -408,9 +406,9 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                                     exit={{ opacity: 0, scale: 0.8 }}
                                     className="absolute bottom-3 right-3 flex items-center gap-1"
                                 >
-                                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" />
-                                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.1s]" />
-                                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                    <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce" />
+                                    <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.1s]" />
+                                    <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.2s]" />
                                 </motion.div>
                             )}
                         </div>
@@ -425,7 +423,7 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                                     disabled={
                                         !input.trim() || isLoading || !orderID
                                     }
-                                    className="rounded-2xl bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white transition-all duration-200"
+                                    className="rounded-2xl bg-gradient-to-r from-orange-500 to-cyan-600 hover:from-orange-600 hover:to-cyan-700 text-white transition-all duration-200"
                                 >
                                     {isLoading ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -461,7 +459,7 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                 transition={{ duration: 0.3 }}
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-cyan-600 rounded-2xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-cyan-600 rounded-2xl flex items-center justify-center">
                         <MessageCircle className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -542,9 +540,9 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                             exit={{ opacity: 0, scale: 0.8 }}
                             className="absolute bottom-3 right-3 flex items-center gap-1"
                         >
-                            <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" />
-                            <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.1s]" />
-                            <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce" />
+                            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.1s]" />
+                            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.2s]" />
                         </motion.div>
                     )}
                 </div>
@@ -591,7 +589,7 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                                 disabled={
                                     !input.trim() || isLoading || !orderID
                                 }
-                                className="rounded-xl bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white transition-all duration-200"
+                                className="rounded-xl bg-gradient-to-r from-orange-500 to-cyan-600 hover:from-orange-600 hover:to-cyan-700 text-white transition-all duration-200"
                             >
                                 {isLoading ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

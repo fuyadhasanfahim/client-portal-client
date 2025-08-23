@@ -57,7 +57,7 @@ export default function ClientStats({
                 orders.filter((order) => ['canceled'].includes(order.status))
                     .length,
             icon: IconPackageOff,
-            color: 'from-orange-500 to-red-600',
+            color: 'from-red-500 to-red-600',
             change: '+23%',
         },
     ];

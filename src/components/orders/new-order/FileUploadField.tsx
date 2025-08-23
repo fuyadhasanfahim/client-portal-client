@@ -571,7 +571,7 @@ export default function FileUploadField({
                                         className="space-y-4"
                                     >
                                         <div className="flex justify-center">
-                                            <CheckCircle2 className="h-14 w-14 text-green-500" />
+                                            <CheckCircle2 className="h-14 w-14 text-orange-500" />
                                         </div>
                                         <div className="space-y-1">
                                             <h3 className="font-semibold text-green-700 dark:text-green-300">

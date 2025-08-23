@@ -35,7 +35,7 @@ export default function SelectedServicesCard({
                                 <Badge
                                     key={index}
                                     variant="outline"
-                                    className="border-primary text-primary bg-green-50"
+                                    className="border-primary text-primary bg-orange-50"
                                 >
                                     {option}
                                 </Badge>
@@ -72,7 +72,7 @@ export default function SelectedServicesCard({
                                     <Badge
                                         key={i}
                                         variant="outline"
-                                        className="border-primary text-primary bg-green-50"
+                                        className="border-primary text-primary bg-orange-50"
                                     >
                                         #{code}
                                     </Badge>

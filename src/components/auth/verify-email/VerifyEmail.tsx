@@ -82,7 +82,7 @@ export default function VerifyEmail() {
 
                     {status === 'success' && (
                         <div className="flex flex-col items-center space-y-4">
-                            <CheckCircle className="h-16 w-16 text-green-500" />
+                            <CheckCircle className="h-16 w-16 text-orange-500" />
                             <p className="text-center">
                                 Your email has been successfully verified. You
                                 can now log in to your account.

@@ -38,10 +38,10 @@ export function AppSidebar(
                         >
                             <SidebarMenuButton
                                 asChild
-                                className="w-[200px] h-[60px] mx-auto"
+                                className="w-[300px] h-[80px] mx-auto"
                             >
                                 <Image
-                                    src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1755089700/ba0yt6pzc8u6xmxuqir5.png"
+                                    src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1755925557/uigjdstdcvlsngrtxbrl.png"
                                     alt="Web Briks Logo"
                                     width={200}
                                     height={60}

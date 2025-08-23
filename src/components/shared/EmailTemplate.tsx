@@ -362,7 +362,7 @@ export const EmailTemplate: React.FC<EmailTemplateProps> = ({
                         <div className="logo-section">
                             <div className="logo-placeholder">
                                 <img
-                                    src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1755089700/ba0yt6pzc8u6xmxuqir5.png"
+                                    src="https://res.cloudinary.com/dny7zfbg9/image/upload/v1755925557/uigjdstdcvlsngrtxbrl.png"
                                     alt="WebBriks Logo"
                                     className="logo-image"
                                 />
