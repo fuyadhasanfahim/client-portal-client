@@ -87,7 +87,11 @@ export default function MessageContent({
                         </Avatar>
                         <span
                             className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${presenceDot(
-                                otherUser?.isOnline as any
+                                otherUser?.isOnline === true
+                                    ? 'online'
+                                    : otherUser?.isOnline === false
+                                    ? 'offline'
+                                    : undefined
                             )}`}
                         />
                     </div>

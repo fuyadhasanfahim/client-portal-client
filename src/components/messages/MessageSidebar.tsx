@@ -38,7 +38,7 @@ export default function MessageSidebar({ conversations }: Props) {
 
             <ul className="overflow-y-auto h-[calc(100vh-200px)]">
                 {conversations?.map((c) => {
-                    const other = c.participants.find((p) => p._id !== 'me')!;
+                    const other = c.participants.find((p) => p.userID !== 'me')!;
                     const href = `/messages/${c._id}`;
                     const active = pathname?.startsWith(href);
 
