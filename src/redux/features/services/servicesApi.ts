@@ -10,8 +10,16 @@ export const servicesApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Services'],
             }),
+            newService: build.mutation({
+                query: (data) => ({
+                    url: 'services/new-service',
+                    method: 'POST',
+                    body: data,
+                }),
+                invalidatesTags: ['Services'],
+            }),
         };
     },
 });
 
-export const { useGetServicesQuery } = servicesApi;
+export const { useGetServicesQuery, useNewServiceMutation } = servicesApi;

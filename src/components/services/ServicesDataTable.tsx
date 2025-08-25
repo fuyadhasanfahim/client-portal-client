@@ -1,25 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Search,
     ChevronLeft,
     ChevronRight,
-    // MoreHorizontal,
-    // Pencil,
-    // Trash2,
-    // CircleDashed,
-    // CircleCheckBig,
-    // TriangleAlert,
+    Ellipsis,
+    Edit2,
+    Eye,
+    Trash2,
 } from 'lucide-react';
-
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-// import {
-//     DropdownMenu,
-//     DropdownMenuContent,
-//     DropdownMenuItem,
-//     DropdownMenuTrigger,
-// } from '@/components/ui/dropdown-menu';
 import {
     Select,
     SelectContent,
@@ -27,83 +26,85 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-// import {
-//     Table,
-//     TableBody,
-//     TableCell,
-//     TableHead,
-//     TableHeader,
-//     TableRow,
-// } from '@/components/ui/table';
-// import { Badge } from '@/components/ui/badge';
-// import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
 import {
-    // useDeleteServiceMutation,
-    useGetServicesQuery,
-    // useUpdateServiceStatusMutation,
-} from '@/redux/features/services/servicesApi';
-// import { IService } from '@/types/service.interface';
-// import toast from 'react-hot-toast';
-// import ApiError from '../shared/ApiError';
-// import { useRouter } from 'next/navigation';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
+import { IService } from '@/types/service.interface';
+import Link from 'next/link';
 
 export default function ServicesDataTable() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [quantity, setQuantity] = useState(10);
-    // const router = useRouter();
+    const [limit, setLimit] = useState(10);
+    const [sortBy, setSortBy] = useState<'createdAt' | 'name' | 'price'>(
+        'createdAt'
+    );
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-    const { data, isLoading } = useGetServicesQuery({
-        params: { page: currentPage, quantity, searchQuery },
+    const { data, isLoading, isFetching } = useGetServicesQuery({
+        params: {
+            page: currentPage,
+            limit,
+            search: searchQuery,
+            sortBy,
+            sortOrder,
+
+            quantity: limit,
+            searchQuery,
+        },
     });
 
-    // const [deleteService] =
-    //     useDeleteServiceMutation();
-
-    // const [updateServiceStatus] =
-    //     useUpdateServiceStatusMutation();
-
-    // const services = data?.data || [];
-    const pagination = data?.pagination || { totalItems: 0, totalPages: 1 };
+    const services: IService[] = data?.services ?? data?.data?.services ?? [];
+    const paginationRaw = data?.data?.pagination ?? {};
+    const total = paginationRaw.total ?? paginationRaw.totalItems ?? 0;
+    const totalPages =
+        paginationRaw.totalPages ??
+        (total
+            ? Math.max(1, Math.ceil(total / (paginationRaw.limit ?? limit)))
+            : 1);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
         setCurrentPage(1);
     };
 
-    // const handleDelete = async (id: string) => {
-    //     try {
-    //         await deleteService(id).unwrap();
-    //         toast.success('Service deleted successfully');
-    //     } catch (error) {
-    //         ApiError(error);
-    //     }
-    // };
+    const pageStart = useMemo(
+        () => (total ? (currentPage - 1) * limit + 1 : 0),
+        [currentPage, limit, total]
+    );
+    const pageEnd = useMemo(
+        () => Math.min(currentPage * limit, total),
+        [currentPage, limit, total]
+    );
 
-    // const handleUpdateStatus = async ({
-    //     id,
-    //     status,
-    // }: {
-    //     id: string;
-    //     status: string;
-    // }) => {
-    //     try {
-    //         await updateServiceStatus({ id, status }).unwrap();
-    //         toast.success('Successfully updated the status.');
-    //     } catch (error) {
-    //         ApiError(error);
-    //     }
-    // };
+    const canPrev = currentPage > 1 && !isLoading && !isFetching;
+    const canNext = currentPage < totalPages && !isLoading && !isFetching;
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <form onSubmit={handleSearch} className="w-full">
-                    <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            {/* Toolbar */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <form onSubmit={handleSearch} className="w-full md:w-auto">
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Search services..."
+                            placeholder="Search services…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8"
@@ -111,115 +112,158 @@ export default function ServicesDataTable() {
                     </div>
                 </form>
 
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Show:</span>
-                    <Select
-                        value={quantity.toString()}
-                        onValueChange={(value) => setQuantity(Number(value))}
-                    >
-                        <SelectTrigger className="w-20 h-9">
-                            <SelectValue placeholder={quantity} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="25">25</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                            <SelectItem value="100">100</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Sort by:
+                        </span>
+                        <Select
+                            value={sortBy}
+                            onValueChange={(v) => {
+                                setSortBy(v as any);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-36 h-9">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="createdAt">
+                                    Created at
+                                </SelectItem>
+                                <SelectItem value="name">Name</SelectItem>
+                                <SelectItem value="price">Price</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={sortOrder}
+                            onValueChange={(v) => {
+                                setSortOrder(v as 'asc' | 'desc');
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-28 h-9">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="asc">Asc</SelectItem>
+                                <SelectItem value="desc">Desc</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Show:
+                        </span>
+                        <Select
+                            value={String(limit)}
+                            onValueChange={(value) => {
+                                setLimit(Number(value));
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-20 h-9">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="10">10</SelectItem>
+                                <SelectItem value="25">25</SelectItem>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
+            {/* Table */}
             <div className="rounded-md border overflow-hidden">
-                {/* <Table>
+                <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="font-medium text-center border-r">
+                            <TableHead className="font-medium border-r">
                                 Name
                             </TableHead>
-                            <TableHead className="font-medium text-center border-r">
+                            <TableHead className="font-medium border-r">
                                 Types
                             </TableHead>
-                            <TableHead className="font-medium text-center border-r">
-                                Pricing Tiers
+                            <TableHead className="font-medium border-r">
+                                Pricing
                             </TableHead>
-                            <TableHead className="font-medium text-center border-r">
-                                Accessible To
+                            <TableHead className="font-medium border-r text-center">
+                                Options
                             </TableHead>
-                            <TableHead className="font-medium text-center border-r">
-                                Status
+                            <TableHead className="font-medium border-r text-center">
+                                Inputs
                             </TableHead>
-                            <TableHead className="font-medium text-center w-20">
+                            <TableHead className="font-medium border-r">
+                                Instruction
+                            </TableHead>
+                            <TableHead className="font-medium border-r text-center">
+                                Disabled
+                            </TableHead>
+                            <TableHead className="font-medium text-center">
                                 Actions
                             </TableHead>
                         </TableRow>
                     </TableHeader>
+
                     <TableBody>
                         {isLoading ? (
-                            Array(5)
-                                .fill(0)
-                                .map((_, index) => (
-                                    <TableRow key={`skeleton-${index}`}>
-                                        {Array(6)
-                                            .fill(0)
-                                            .map((_, i) => (
-                                                <TableCell
-                                                    key={i}
-                                                    className="text-center"
-                                                >
-                                                    <Skeleton className="h-6 w-full mx-auto" />
-                                                </TableCell>
-                                            ))}
-                                    </TableRow>
-                                ))
+                            Array.from({ length: 6 }).map((_, r) => (
+                                <TableRow key={`sk-${r}`}>
+                                    {Array.from({ length: 8 }).map((_, c) => (
+                                        <TableCell
+                                            key={c}
+                                            className="border-r last:border-none"
+                                        >
+                                            <Skeleton className="h-6 w-full" />
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
                         ) : services.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={6}
-                                    className="h-24 text-center"
+                                    colSpan={8}
+                                    className="h-24 text-center text-muted-foreground border-r last:border-none"
                                 >
-                                    <div className="flex flex-col items-center justify-center space-y-2">
-                                        <Search className="h-8 w-8 text-gray-400" />
-                                        <p className="text-gray-500">
-                                            No services found
-                                        </p>
-                                    </div>
+                                    No services found
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            services.map((service: IService, index: number) => (
+                            services.map((service: IService) => (
                                 <TableRow
-                                    key={index}
-                                    className="hover:bg-slate-50 transition-colors"
+                                    key={service._id}
+                                    className="hover:bg-accent/50"
                                 >
+                                    {/* Name */}
                                     <TableCell className="font-medium border-r">
-                                        <span
-                                            className="text-primary font-semibold underline cursor-pointer"
-                                            onClick={() =>
-                                                router.push(
-                                                    `/services/update/${service._id!}`
-                                                )
-                                            }
-                                        >
-                                            {service.name}
-                                        </span>
+                                        {service.name}
                                     </TableCell>
 
-                                    <TableCell className="border-r text-sm text-gray-700">
-                                        <div className="flex flex-wrap gap-2">
+                                    {/* Types */}
+                                    <TableCell className="max-w-[280px] border-r">
+                                        <div className="flex flex-wrap gap-1.5">
                                             {(service.types ?? []).length >
                                             0 ? (
-                                                service.types?.map(
-                                                    (type, idx) => (
-                                                        <Badge
-                                                            key={idx}
-                                                            className="bg-orange-50 border border-orange-300 text-orange-800"
-                                                            variant="outline"
-                                                        >
-                                                            {type.title}
-                                                        </Badge>
-                                                    )
-                                                )
+                                                service.types!.map((t) => (
+                                                    <Badge
+                                                        key={t._id}
+                                                        variant="outline"
+                                                        className="bg-background"
+                                                    >
+                                                        {t.name}
+                                                        {typeof t.price ===
+                                                        'number'
+                                                            ? ` • $${t.price.toFixed(
+                                                                  2
+                                                              )}`
+                                                            : ''}
+                                                    </Badge>
+                                                ))
                                             ) : (
                                                 <span className="text-muted-foreground">
                                                     —
@@ -228,34 +272,31 @@ export default function ServicesDataTable() {
                                         </div>
                                     </TableCell>
 
-                                    <TableCell className="border-r">
-                                        <div className="flex flex-wrap gap-2">
+                                    {/* Pricing (complexities or base price) */}
+                                    <TableCell className="max-w-[280px] border-r">
+                                        <div className="flex flex-wrap gap-1.5">
                                             {(service.complexities ?? [])
                                                 .length > 0 ? (
-                                                service.complexities?.map(
-                                                    (tier) => (
+                                                service.complexities!.map(
+                                                    (c, i) => (
                                                         <Badge
-                                                            key={tier.label}
+                                                            key={i}
                                                             variant="outline"
-                                                            className="bg-slate-50"
+                                                            className="bg-background"
                                                         >
-                                                            <span className="font-medium">
-                                                                {tier.label}:
-                                                            </span>{' '}
-                                                            $
-                                                            {tier.price?.toFixed(
-                                                                2
-                                                            )}
+                                                            {c.name}: $
+                                                            {c.price.toFixed(2)}
                                                         </Badge>
                                                     )
                                                 )
                                             ) : (
                                                 <Badge
                                                     variant="outline"
-                                                    className="bg-slate-50"
+                                                    className="bg-background"
                                                 >
-                                                    {service.price
-                                                        ? `$${service.price?.toFixed(
+                                                    {typeof service.price ===
+                                                    'number'
+                                                        ? `$${service.price.toFixed(
                                                               2
                                                           )}`
                                                         : 'Free'}
@@ -264,131 +305,126 @@ export default function ServicesDataTable() {
                                         </div>
                                     </TableCell>
 
-                                    <TableCell className="font-medium border-r text-center">
-                                        {service.accessibleTo === 'All' ? (
-                                            service.accessibleTo
+                                    {/* Options */}
+                                    <TableCell className="text-center border-r">
+                                        {service.options ? (
+                                            <Badge
+                                                className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                variant="outline"
+                                            >
+                                                Yes
+                                            </Badge>
                                         ) : (
-                                            <span>
-                                                {service.accessibleTo}:{' '}
-                                                {service.accessList?.length ||
-                                                    0}
-                                            </span>
+                                            <Badge
+                                                className="bg-slate-50 text-slate-700 border-slate-200"
+                                                variant="outline"
+                                            >
+                                                No
+                                            </Badge>
                                         )}
                                     </TableCell>
 
-                                    <TableCell className="flex items-center justify-center border-r">
-                                        <Select
-                                            value={service.status}
-                                            onValueChange={(newStatus) =>
-                                                handleUpdateStatus({
-                                                    id: service._id!,
-                                                    status: newStatus,
-                                                })
-                                            }
-                                            disabled={isStatusUpdating}
-                                        >
-                                            <SelectTrigger className="border-none shadow-none">
-                                                <Badge
-                                                    variant="outline"
-                                                    className="gap-1"
-                                                >
-                                                    {service.status ===
-                                                    'Active' ? (
-                                                        <CircleCheckBig
-                                                            size={16}
-                                                            className="fill-primary text-white"
-                                                        />
-                                                    ) : service.status ===
-                                                      'Pending' ? (
-                                                        <CircleDashed
-                                                            size={16}
-                                                            className="bg-amber-600 rounded-full text-white"
-                                                        />
-                                                    ) : (
-                                                        <TriangleAlert
-                                                            size={16}
-                                                            className="fill-destructive text-white"
-                                                        />
-                                                    )}
-                                                    {service.status}
-                                                </Badge>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {[
-                                                    'Active',
-                                                    'Pending',
-                                                    'Inactive',
-                                                ].map((status) => (
-                                                    <SelectItem
-                                                        key={status}
-                                                        value={status}
-                                                    >
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="gap-1"
-                                                        >
-                                                            {status ===
-                                                            'Active' ? (
-                                                                <CircleCheckBig
-                                                                    size={16}
-                                                                    className="fill-primary text-white"
-                                                                />
-                                                            ) : status ===
-                                                              'Pending' ? (
-                                                                <CircleDashed
-                                                                    size={16}
-                                                                    className="bg-amber-600 rounded-full text-white"
-                                                                />
-                                                            ) : (
-                                                                <TriangleAlert
-                                                                    size={16}
-                                                                    className="fill-destructive text-white"
-                                                                />
-                                                            )}
-                                                            {status}
-                                                        </Badge>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    {/* Inputs */}
+                                    <TableCell className="text-center border-r">
+                                        {service.inputs ? (
+                                            <Badge
+                                                className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                variant="outline"
+                                            >
+                                                Yes
+                                            </Badge>
+                                        ) : (
+                                            <Badge
+                                                className="bg-slate-50 text-slate-700 border-slate-200"
+                                                variant="outline"
+                                            >
+                                                No
+                                            </Badge>
+                                        )}
                                     </TableCell>
 
+                                    {/* Instruction (truncated) */}
+                                    <TableCell className="max-w-[240px] border-r">
+                                        <span className="line-clamp-2 text-sm text-muted-foreground">
+                                            {service.instruction || '—'}
+                                        </span>
+                                    </TableCell>
+
+                                    {/* Disabled Options count */}
+                                    <TableCell className="text-center border-r">
+                                        <Badge
+                                            variant="outline"
+                                            className="bg-background"
+                                        >
+                                            {
+                                                (service.disabledOptions ?? [])
+                                                    .length
+                                            }
+                                        </Badge>
+                                    </TableCell>
                                     <TableCell className="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0"
+                                                    size={'icon'}
+                                                    variant={'link'}
                                                 >
-                                                    <span className="sr-only">
-                                                        Open menu
-                                                    </span>
-                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <Ellipsis />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        router.push(
-                                                            `/services/update/${service._id!}`
-                                                        )
-                                                    }
-                                                >
-                                                    <Pencil className="mr-2 h-4 w-4" />{' '}
-                                                    Edit
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel asChild>
+                                                    <Link
+                                                        href={`/services/details/${service._id}`}
+                                                        className="flex items-center gap-2 hover:underline"
+                                                    >
+                                                        <Eye size={16} />
+                                                        View
+                                                    </Link>
+                                                </DropdownMenuLabel>
+                                                <DropdownMenuItem asChild>
+                                                    <Link
+                                                        href={`/services/edit/${service._id}`}
+                                                        className="flex items-center gap-2 hover:underline"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                        Edit
+                                                    </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     variant="destructive"
-                                                    disabled={isDeleting}
-                                                    onClick={() =>
-                                                        handleDelete(
-                                                            service._id as string
-                                                        )
-                                                    }
+                                                    className="cursor-pointer"
                                                 >
-                                                    <Trash2 className="mr-2 h-4 w-4" />{' '}
-                                                    Delete
+                                                    <Dialog>
+                                                        <DialogTrigger className="flex items-center gap-2 hover:underline">
+                                                            <Trash2
+                                                                size={16}
+                                                                className="text-destructive"
+                                                            />
+                                                            Delete
+                                                        </DialogTrigger>
+                                                        <DialogContent>
+                                                            <DialogHeader>
+                                                                <DialogTitle>
+                                                                    Are you
+                                                                    absolutely
+                                                                    sure?
+                                                                </DialogTitle>
+                                                                <DialogDescription>
+                                                                    This action
+                                                                    cannot be
+                                                                    undone. This
+                                                                    will
+                                                                    permanently
+                                                                    delete your
+                                                                    account and
+                                                                    remove your
+                                                                    data from
+                                                                    our servers.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                        </DialogContent>
+                                                    </Dialog>
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -397,37 +433,46 @@ export default function ServicesDataTable() {
                             ))
                         )}
                     </TableBody>
-                </Table> */}
+                </Table>
             </div>
 
-            <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                    Showing{' '}
-                    {pagination.totalItems > 0
-                        ? `${currentPage - 1 + 1} to ${Math.min(
-                              currentPage * quantity,
-                              pagination.totalItems
-                          )}`
-                        : '0'}{' '}
-                    of {pagination.totalItems} entries
+            {/* Footer / Pagination */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                    {total > 0 ? (
+                        <>
+                            Showing{' '}
+                            <span className="font-medium">{pageStart}</span>–
+                            <span className="font-medium">{pageEnd}</span> of{' '}
+                            <span className="font-medium">{total}</span> entries
+                        </>
+                    ) : (
+                        'Showing 0 of 0 entries'
+                    )}
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        disabled={currentPage === 1 || isLoading}
+                        onClick={() =>
+                            setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={!canPrev}
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
+
+                    <span className="text-sm min-w-[90px] text-center">
+                        Page <span className="font-medium">{currentPage}</span>{' '}
+                        / {totalPages || 1}
+                    </span>
+
                     <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        disabled={
-                            currentPage === pagination.totalPages || isLoading
-                        }
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        disabled={!canNext}
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>

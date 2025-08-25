@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { IconPlus } from '@tabler/icons-react';
 import { Metadata } from 'next';
 import ServicesDataTable from '@/components/services/ServicesDataTable';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
     title: 'Services | Client Portal',
@@ -17,10 +18,12 @@ export default async function ServicesPage() {
                     Active Services
                 </h2>
 
-                <Button>
-                    <IconPlus />
-                    Add New Service
-                </Button>
+                <Link href={'/services/new-service'}>
+                    <Button>
+                        <IconPlus />
+                        Add New Service
+                    </Button>
+                </Link>
             </div>
 
             <ServicesDataTable />

@@ -55,7 +55,7 @@ export function SiteHeader({
     const [updateNotification] = useUpdateNotificationMutation();
 
     const notifications: INotification[] =
-        (!isLoading && data.notifications) || [];
+        (!isLoading && data && data?.notifications) || [];
 
     useEffect(() => {
         if (!user?.id) return;
