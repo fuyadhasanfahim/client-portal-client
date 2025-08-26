@@ -84,6 +84,8 @@ export default function ProfilePage() {
         );
     }
 
+    const MAX_IMAGE_BYTES = 1 * 1024 * 1024;
+
     const handleImageChange = async (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -95,8 +97,10 @@ export default function ProfilePage() {
             return;
         }
 
-        if (file.size > 10 * 1024 * 1024) {
-            toast.error('Image size should be less than 10MB');
+        if (file.size > MAX_IMAGE_BYTES) {
+            const mb = (file.size / (1024 * 1024)).toFixed(2);
+            toast.error(`Image size should be ≤ 1 MB (selected: ${mb} MB)`);
+            e.target.value = '';
             return;
         }
 
