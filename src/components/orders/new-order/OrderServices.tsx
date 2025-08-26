@@ -49,7 +49,7 @@ export default function OrderServices() {
     const { data, isLoading: isServiceLoading } = useGetServicesQuery([]);
     const [newOrder, { isLoading }] = useNewOrderMutation();
 
-    const services: IService[] = data?.data || [];
+    const services: IService[] = data?.data?.services || [];
 
     if (isServiceLoading) {
         return (

@@ -40,7 +40,7 @@ export default function RootNewQuote() {
     const { data, isLoading: isServiceLoading } = useGetServicesQuery([]);
     const [newQuote, { isLoading }] = useNewQuoteMutation();
 
-    const services: IService[] = data?.data || [];
+    const services: IService[] = data?.data?.services || [];
 
     if (isServiceLoading) {
         return (
@@ -154,7 +154,7 @@ export default function RootNewQuote() {
         }
 
         try {
-            console.log(userID)
+            console.log(userID);
             const response = await newQuote({
                 quoteStage: 'services-selected',
                 userID: userID!,
@@ -166,7 +166,7 @@ export default function RootNewQuote() {
                     'Quote created successfully. Redirecting to details page...'
                 );
                 setSelectedServices([]);
-                
+
                 router.push(
                     `/quotes/new-quote/details/${response.data.quoteID}`
                 );

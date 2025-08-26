@@ -10,10 +10,33 @@ export const servicesApi = apiSlice.injectEndpoints({
                 }),
                 providesTags: ['Services'],
             }),
+            getService: build.query({
+                query: (serviceID) => ({
+                    url: `services/get-service/${serviceID}`,
+                    method: 'GET',
+                }),
+                providesTags: ['Services'],
+            }),
             newService: build.mutation({
-                query: (data) => ({
+                query: (body) => ({
                     url: 'services/new-service',
                     method: 'POST',
+                    body,
+                }),
+                invalidatesTags: ['Services'],
+            }),
+            deleteService: build.mutation({
+                query: (serviceID) => ({
+                    url: `services/delete-service/${serviceID}`,
+                    method: 'DELETE',
+                    params: { serviceID },
+                }),
+                invalidatesTags: ['Services'],
+            }),
+            editService: build.mutation({
+                query: ({ serviceID, data }) => ({
+                    url: `services/edit-service/${serviceID}`,
+                    method: 'PUT',
                     body: data,
                 }),
                 invalidatesTags: ['Services'],
@@ -22,4 +45,10 @@ export const servicesApi = apiSlice.injectEndpoints({
     },
 });
 
-export const { useGetServicesQuery, useNewServiceMutation } = servicesApi;
+export const {
+    useGetServicesQuery,
+    useGetServiceQuery,
+    useNewServiceMutation,
+    useDeleteServiceMutation,
+    useEditServiceMutation,
+} = servicesApi;

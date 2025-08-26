@@ -41,46 +41,14 @@ import {
     useGetServicesQuery,
     useNewServiceMutation,
 } from '@/redux/features/services/servicesApi';
-
 import { MultiSelect } from '@/components/shared/multi-select';
 import ApiError from '@/components/shared/ApiError';
 import toast from 'react-hot-toast';
-import type { IService } from '@/types/service.interface';
+import {
+    ServiceFormValues,
+    serviceSchema,
+} from '@/validations/new-service.schema';
 
-/* ------------------------ Zod Schemas ------------------------ */
-/** Treat '', null, undefined as undefined; else parse number >= 0 */
-const numberOptional = z.preprocess((v) => {
-    if (v === '' || v === null || v === undefined) return undefined;
-    if (typeof v === 'string' && v.trim() === '') return undefined;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
-}, z.number().min(0, 'Price must be ≥ 0').optional());
-
-const complexitySchema = z.object({
-    name: z.string().min(1, 'Complexity name is required'),
-    price: z.coerce.number().min(0, 'Price must be ≥ 0'),
-});
-
-const typeSchema = z.object({
-    name: z.string().min(1, 'Type name is required'),
-    price: numberOptional,
-    complexities: z.array(complexitySchema).optional(),
-});
-
-const serviceSchema = z.object({
-    name: z.string().min(1, 'Service name is required'),
-    price: numberOptional,
-    complexities: z.array(complexitySchema).optional(),
-    types: z.array(typeSchema).optional(),
-    options: z.boolean(),
-    inputs: z.boolean(),
-    instruction: z.string().optional(),
-    disabledOptions: z.array(z.string().min(1)).optional(),
-});
-
-type ServiceFormValues = z.infer<typeof serviceSchema>;
-
-/* ------------------------ Child: TypeItem ------------------------ */
 function TypeItem({
     index,
     control,
@@ -119,7 +87,9 @@ function TypeItem({
                         type="number"
                         step="0.01"
                         placeholder="e.g., 99.99"
-                        {...register(`types.${index}.price` as const)}
+                        {...register(`types.${index}.price` as const, {
+                            valueAsNumber: true,
+                        })}
                     />
                     <FormMessage>
                         {errors.types?.[index]?.price?.message as string}
@@ -214,7 +184,7 @@ function TypeItem({
     );
 }
 
-/* ------------------------ Page ------------------------ */
+/* ---------------- Page ---------------- */
 export default function RootNewService() {
     const router = useRouter();
     const [submitting, setSubmitting] = React.useState(false);
@@ -231,38 +201,30 @@ export default function RootNewService() {
             disabledOptions: [],
         },
         mode: 'onChange',
+        resolver: zodResolver(serviceSchema),
     });
 
     const rootComplexities = useFieldArray({
         control: form.control,
         name: 'complexities',
     });
+    const typesArray = useFieldArray({ control: form.control, name: 'types' });
 
-    const typesArray = useFieldArray({
-        control: form.control,
-        name: 'types',
-    });
-
-    // Fetch services for MultiSelect (names)
+    // for MultiSelect options
     const { data: allServicesData, isLoading: isServicesLoading } =
         useGetServicesQuery({
             params: {
                 page: 1,
                 limit: 1000,
-                search: '',
                 sortBy: 'name',
                 sortOrder: 'asc',
-                quantity: 1000,
-                searchQuery: '',
-                // If your API supports it, you can also pass { namesOnly: true }
             },
         });
 
-    // Robust name extraction (supports {services}, {data: services}, or {names})
     const serviceNameOptions = React.useMemo(() => {
-        const namesFromPayload = (d: any): string[] => {
+        const names: string[] = (() => {
+            const d: any = allServicesData;
             if (!d) return [];
-            if (Array.isArray(d.names)) return d.names; // namesOnly mode
             const arr = Array.isArray(d.services)
                 ? d.services
                 : Array.isArray(d.data?.services)
@@ -270,15 +232,11 @@ export default function RootNewService() {
                 : Array.isArray(d.data)
                 ? d.data
                 : [];
-            if (arr.length && typeof arr[0] === 'string')
-                return arr as string[];
-            return (arr as IService[])
-                .map((s) => s?.name)
-                .filter(Boolean) as string[];
-        };
-        const names = namesFromPayload(allServicesData);
-        const uniq = Array.from(new Set(names));
-        return uniq.map((n) => ({ label: n, value: n }));
+            if (!arr.length) return [];
+            if (typeof arr[0] === 'string') return arr as string[];
+            return arr.map((s: any) => s?.name).filter(Boolean);
+        })();
+        return Array.from(new Set(names)).map((n) => ({ label: n, value: n }));
     }, [allServicesData]);
 
     const [newService, { isLoading }] = useNewServiceMutation();
@@ -286,9 +244,23 @@ export default function RootNewService() {
     const onSubmit = async (values: ServiceFormValues) => {
         setSubmitting(true);
         try {
-            const res = await newService(values).unwrap();
+            const payload: ServiceFormValues = {
+                ...values,
+                complexities: values.complexities ?? [],
+                types:
+                    values.types?.map((t) => ({
+                        ...t,
+                        complexities: t.complexities ?? [],
+                    })) ?? [],
+                disabledOptions: values.disabledOptions ?? [],
+            };
+            console.log('Frontend values:', payload);
+
+            const res = await newService(payload).unwrap();
+
             if (!res?.success)
                 throw new Error(res?.message || 'Failed to create service');
+
             toast.success(res.message || 'Service created successfully.');
             form.reset();
             router.back();
@@ -350,10 +322,13 @@ export default function RootNewService() {
                                                         placeholder="e.g., 0.05"
                                                         value={
                                                             field.value ?? ''
-                                                        } // keep UI blank for undefined
+                                                        }
                                                         onChange={(e) =>
                                                             field.onChange(
-                                                                e.target.value
+                                                                Number(
+                                                                    e.target
+                                                                        .value
+                                                                )
                                                             )
                                                         }
                                                         onBlur={field.onBlur}
@@ -604,7 +579,6 @@ export default function RootNewService() {
                                 <h3 className="text-lg font-semibold">
                                     Disabled Options (Optional)
                                 </h3>
-
                                 <Controller
                                     control={form.control}
                                     name="disabledOptions"

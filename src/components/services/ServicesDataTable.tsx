@@ -16,7 +16,6 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +29,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -44,9 +42,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
+import {
+    useGetServicesQuery,
+    useDeleteServiceMutation,
+} from '@/redux/features/services/servicesApi';
 import { IService } from '@/types/service.interface';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function ServicesDataTable() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +67,7 @@ export default function ServicesDataTable() {
             sortBy,
             sortOrder,
 
+            // (Looks like your API also tolerates these)
             quantity: limit,
             searchQuery,
         },
@@ -96,6 +99,22 @@ export default function ServicesDataTable() {
     const canPrev = currentPage > 1 && !isLoading && !isFetching;
     const canNext = currentPage < totalPages && !isLoading && !isFetching;
 
+    // -------- Delete flow
+    const [toDelete, setToDelete] = useState<IService | null>(null);
+    const [deleteService, { isLoading: isDeleting }] =
+        useDeleteServiceMutation();
+
+    const confirmDelete = async () => {
+        if (!toDelete?._id) return;
+        try {
+            await deleteService(toDelete._id).unwrap();
+            toast.success('Service deleted');
+            setToDelete(null);
+        } catch (e: any) {
+            toast.error(e?.data?.message || 'Failed to delete service');
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Toolbar */}
@@ -125,7 +144,7 @@ export default function ServicesDataTable() {
                             }}
                         >
                             <SelectTrigger className="w-36 h-9">
-                                <SelectValue />
+                                <SelectValue placeholder="Sort field" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="createdAt">
@@ -144,7 +163,7 @@ export default function ServicesDataTable() {
                             }}
                         >
                             <SelectTrigger className="w-28 h-9">
-                                <SelectValue />
+                                <SelectValue placeholder="Order" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="asc">Asc</SelectItem>
@@ -165,7 +184,7 @@ export default function ServicesDataTable() {
                             }}
                         >
                             <SelectTrigger className="w-20 h-9">
-                                <SelectValue />
+                                <SelectValue placeholder="Rows" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="10">10</SelectItem>
@@ -213,10 +232,10 @@ export default function ServicesDataTable() {
                     <TableBody>
                         {isLoading ? (
                             Array.from({ length: 6 }).map((_, r) => (
-                                <TableRow key={`sk-${r}`}>
+                                <TableRow key={`sk-row-${r}`}>
                                     {Array.from({ length: 8 }).map((_, c) => (
                                         <TableCell
-                                            key={c}
+                                            key={`sk-cell-${r}-${c}`}
                                             className="border-r last:border-none"
                                         >
                                             <Skeleton className="h-6 w-full" />
@@ -234,9 +253,9 @@ export default function ServicesDataTable() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            services.map((service: IService) => (
+                            services.map((service) => (
                                 <TableRow
-                                    key={service._id}
+                                    key={service._id || service.name}
                                     className="hover:bg-accent/50"
                                 >
                                     {/* Name */}
@@ -249,21 +268,26 @@ export default function ServicesDataTable() {
                                         <div className="flex flex-wrap gap-1.5">
                                             {(service.types ?? []).length >
                                             0 ? (
-                                                service.types!.map((t) => (
-                                                    <Badge
-                                                        key={t._id}
-                                                        variant="outline"
-                                                        className="bg-background"
-                                                    >
-                                                        {t.name}
-                                                        {typeof t.price ===
-                                                        'number'
-                                                            ? ` • $${t.price.toFixed(
-                                                                  2
-                                                              )}`
-                                                            : ''}
-                                                    </Badge>
-                                                ))
+                                                (service.types ?? []).map(
+                                                    (t, idx) => (
+                                                        <Badge
+                                                            key={
+                                                                t._id ||
+                                                                `${service._id}-type-${t.name}-${idx}`
+                                                            }
+                                                            variant="outline"
+                                                            className="bg-background"
+                                                        >
+                                                            {t.name}
+                                                            {typeof t.price ===
+                                                            'number'
+                                                                ? ` • $${t.price.toFixed(
+                                                                      2
+                                                                  )}`
+                                                                : ''}
+                                                        </Badge>
+                                                    )
+                                                )
                                             ) : (
                                                 <span className="text-muted-foreground">
                                                     —
@@ -277,18 +301,21 @@ export default function ServicesDataTable() {
                                         <div className="flex flex-wrap gap-1.5">
                                             {(service.complexities ?? [])
                                                 .length > 0 ? (
-                                                service.complexities!.map(
-                                                    (c, i) => (
-                                                        <Badge
-                                                            key={i}
-                                                            variant="outline"
-                                                            className="bg-background"
-                                                        >
-                                                            {c.name}: $
-                                                            {c.price.toFixed(2)}
-                                                        </Badge>
-                                                    )
-                                                )
+                                                (
+                                                    service.complexities ?? []
+                                                ).map((c, idx) => (
+                                                    <Badge
+                                                        key={
+                                                            (c as any)._id ||
+                                                            `${service._id}-cx-${c.name}-${idx}`
+                                                        }
+                                                        variant="outline"
+                                                        className="bg-background"
+                                                    >
+                                                        {c.name}: $
+                                                        {c.price.toFixed(2)}
+                                                    </Badge>
+                                                ))
                                             ) : (
                                                 <Badge
                                                     variant="outline"
@@ -362,69 +389,51 @@ export default function ServicesDataTable() {
                                             }
                                         </Badge>
                                     </TableCell>
+
+                                    {/* Actions */}
                                     <TableCell className="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
-                                                    size={'icon'}
-                                                    variant={'link'}
+                                                    size="icon"
+                                                    variant="link"
                                                 >
                                                     <Ellipsis />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuLabel asChild>
+                                                <DropdownMenuItem asChild>
                                                     <Link
                                                         href={`/services/details/${service._id}`}
-                                                        className="flex items-center gap-2 hover:underline"
+                                                        className="flex items-center gap-2"
                                                     >
                                                         <Eye size={16} />
                                                         View
                                                     </Link>
-                                                </DropdownMenuLabel>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem asChild>
                                                     <Link
                                                         href={`/services/edit/${service._id}`}
-                                                        className="flex items-center gap-2 hover:underline"
+                                                        className="flex items-center gap-2"
                                                     >
                                                         <Edit2 size={16} />
                                                         Edit
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    variant="destructive"
-                                                    className="cursor-pointer"
+                                                    onSelect={(e) => {
+                                                        e.preventDefault(); // keep menu from closing weirdly on some platforms
+                                                        setToDelete(service);
+                                                    }}
+                                                    className="text-destructive cursor-pointer"
+                                                    aria-disabled={
+                                                        isDeleting &&
+                                                        toDelete?._id ===
+                                                            service._id
+                                                    }
                                                 >
-                                                    <Dialog>
-                                                        <DialogTrigger className="flex items-center gap-2 hover:underline">
-                                                            <Trash2
-                                                                size={16}
-                                                                className="text-destructive"
-                                                            />
-                                                            Delete
-                                                        </DialogTrigger>
-                                                        <DialogContent>
-                                                            <DialogHeader>
-                                                                <DialogTitle>
-                                                                    Are you
-                                                                    absolutely
-                                                                    sure?
-                                                                </DialogTitle>
-                                                                <DialogDescription>
-                                                                    This action
-                                                                    cannot be
-                                                                    undone. This
-                                                                    will
-                                                                    permanently
-                                                                    delete your
-                                                                    account and
-                                                                    remove your
-                                                                    data from
-                                                                    our servers.
-                                                                </DialogDescription>
-                                                            </DialogHeader>
-                                                        </DialogContent>
-                                                    </Dialog>
+                                                    <Trash2 size={16} />
+                                                    Delete
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -478,6 +487,43 @@ export default function ServicesDataTable() {
                     </Button>
                 </div>
             </div>
+
+            {/* Shared Delete Dialog */}
+            <Dialog
+                open={!!toDelete}
+                onOpenChange={(open) => !open && setToDelete(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete service?</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. It will permanently
+                            remove{' '}
+                            <span className="font-medium">
+                                {toDelete?.name}
+                            </span>
+                            .
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setToDelete(null)}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Deleting…' : 'Delete'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
