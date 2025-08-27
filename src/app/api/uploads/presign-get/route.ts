@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { s3ForBucket, bucket } from '@/lib/aws/s3';
 import { GetObjectCommand } from '@aws-sdk/client-s3';

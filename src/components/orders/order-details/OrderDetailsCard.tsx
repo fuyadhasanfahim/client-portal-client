@@ -49,6 +49,7 @@ export default function OrderDetailsCard({
                     status={order.status}
                     total={order.total}
                     role={user.role}
+                    userID={user.userID}
                     paymentStatus={order.paymentStatus}
                     orderID={order.orderID}
                     isRevision={order.isRevision}

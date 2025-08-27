@@ -38,8 +38,8 @@ import { IconPackage } from '@tabler/icons-react';
 import { CheckCircle, CreditCard, Loader, Send, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import DeliveryLinkUploader from './DeliveryLinkUploader';
 
-// Create Stripe once (recommended)
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
 
@@ -48,8 +48,9 @@ interface OrderDetailsPaymentAndDetailsProps {
     total?: number;
     paymentId?: string;
     paymentStatus?: string;
-    role: string; // 'user' | 'admin' etc.
+    role: string;
     orderID: string;
+    userID: string;
     deliveryLink?: string;
     isRevision?: boolean;
 }
@@ -63,18 +64,15 @@ export default function OrderDetailsPaymentAndDetails({
     role,
     isRevision = false,
     deliveryLink,
+    userID,
 }: OrderDetailsPaymentAndDetailsProps) {
-    const [downloadLink, setDownloadLink] = useState<string>('');
     const [instruction, setInstruction] = useState<string>('');
     const [showPaymentReminder, setShowPaymentReminder] = useState(false);
     const [clientSecret, setClientSecret] = useState('');
 
     const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
-    const [deliverDialogOpen, setDeliverDialogOpen] = useState(false);
 
-    const [deliverOrder, { isLoading: isDelivering }] =
-        useDeliverOrderMutation();
     const [reviewOrder, { isLoading: isReviewing }] = useReviewOrderMutation();
     const [completeOrder, { isLoading: isCompleting }] =
         useCompleteOrderMutation();
@@ -93,37 +91,6 @@ export default function OrderDetailsPaymentAndDetails({
         () => (typeof total === 'number' ? total.toFixed(2) : 'N/A'),
         [total]
     );
-
-    async function handleDeliverOrder() {
-        try {
-            // Simple URL sanity check
-            if (!downloadLink.trim()) {
-                toast.error('Please provide a download link.');
-                return;
-            }
-            try {
-                // eslint-disable-next-line no-new
-                new URL(downloadLink);
-            } catch {
-                toast.error('Please provide a valid URL.');
-                return;
-            }
-
-            const response = await deliverOrder({
-                orderID,
-                deliveryLink: downloadLink,
-            }).unwrap();
-            console.log(response)
-
-            if (response.success) {
-                setDownloadLink('');
-                setDeliverDialogOpen(false);
-                toast.success(response.message);
-            }
-        } catch (error) {
-            ApiError(error);
-        }
-    }
 
     async function handleReviewOrder() {
         try {
@@ -214,80 +181,7 @@ export default function OrderDetailsPaymentAndDetails({
             </CardContent>
 
             {canDeliver && (
-                <CardFooter className="border-t">
-                    <Dialog
-                        open={deliverDialogOpen}
-                        onOpenChange={setDeliverDialogOpen}
-                    >
-                        <DialogTrigger asChild>
-                            <Button
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                                disabled={isDelivering}
-                            >
-                                {isDelivering ? (
-                                    <span className="flex items-center gap-2">
-                                        <Loader className="h-4 w-4 animate-spin" />
-                                        Processing…
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-2">
-                                        <Truck className="h-4 w-4" />
-                                        Deliver Now
-                                    </span>
-                                )}
-                            </Button>
-                        </DialogTrigger>
-
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle className="text-lg">
-                                    Add Delivery Details
-                                </DialogTitle>
-                                <DialogDescription>
-                                    Provide the download link for the completed
-                                    work.
-                                </DialogDescription>
-                            </DialogHeader>
-
-                            <div className="grid gap-4 py-4">
-                                <div className="space-y-2">
-                                    <Label
-                                        htmlFor="downloadLink"
-                                        className="text-sm font-medium"
-                                    >
-                                        Download Link
-                                    </Label>
-                                    <Input
-                                        id="downloadLink"
-                                        placeholder="https://example.com/download"
-                                        value={downloadLink}
-                                        onChange={(e) =>
-                                            setDownloadLink(e.target.value)
-                                        }
-                                        type="url"
-                                        className="w-full"
-                                    />
-                                </div>
-                            </div>
-
-                            <DialogFooter>
-                                <Button
-                                    type="button"
-                                    className="bg-indigo-600 hover:bg-indigo-700"
-                                    onClick={handleDeliverOrder}
-                                    disabled={isDelivering}
-                                >
-                                    {isDelivering ? (
-                                        <Loader className="h-4 w-4 animate-spin" />
-                                    ) : null}
-                                    <span className="ml-2">
-                                        Confirm Delivery
-                                    </span>
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </CardFooter>
+                <DeliveryLinkUploader orderID={orderID} userID={userID} />
             )}
 
             {role === 'user' && status === 'delivered' && (

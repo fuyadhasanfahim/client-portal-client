@@ -17,6 +17,8 @@ import {
     Image as ImageIcon,
     ExternalLink,
     Clipboard,
+    FileText,
+    Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +35,9 @@ type Props = {
     orderID?: string;
     userID: string;
     quoteID?: string;
+    mode?: 'order' | 'quote' | 'delivery';
+    title?: string;
+    uploader?: 'admin' | 'user';
 };
 
 type InitiateResponse = {
@@ -53,6 +58,9 @@ export default function FileUploadField({
     orderID,
     userID,
     quoteID,
+    mode,
+    title,
+    uploader,
 }: Props) {
     const {
         setValue,
@@ -70,7 +78,7 @@ export default function FileUploadField({
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     const currentValue = watch('downloadLink');
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const canceledRef = useRef(false);
 
@@ -84,6 +92,12 @@ export default function FileUploadField({
                 withCredentials: false,
             }),
         []
+    );
+
+    // Decide mode on the client (UI/accept types). Server still re-validates.
+    const effectiveMode = useMemo<'order' | 'quote' | 'delivery'>(
+        () => (typeof mode === 'string' ? mode : orderID ? 'order' : 'quote'),
+        [mode, orderID]
     );
 
     useEffect(() => {
@@ -124,6 +138,17 @@ export default function FileUploadField({
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
     };
 
+    const absoluteUrl = (path: string) => {
+        const base =
+            process.env.NEXT_PUBLIC_BASE_URL ||
+            (typeof window !== 'undefined' ? window.location.origin : '');
+        try {
+            return new URL(path, base).toString();
+        } catch {
+            return `${base}${path}`;
+        }
+    };
+
     const makePreviewUrls = useCallback(
         (files: File[]) => {
             // revoke old
@@ -137,11 +162,34 @@ export default function FileUploadField({
     );
 
     const doUpload = async (files: File[]) => {
-        const isOrder = !!orderID;
-        const kind = isOrder ? 'orders' : 'quotes';
-        const id = isOrder ? orderID : quoteID;
+        // timestamps & title slug
+        const dateStr = new Date();
+        const today = `${dateStr.getFullYear()}-${String(
+            dateStr.getMonth() + 1
+        ).padStart(2, '0')}-${String(dateStr.getDate()).padStart(2, '0')}`;
+        const timeStr = `${String(dateStr.getHours()).padStart(2, '0')}${String(
+            dateStr.getMinutes()
+        ).padStart(2, '0')}${String(dateStr.getSeconds()).padStart(2, '0')}`;
+        const titleSlug =
+            (title || '')
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .trim()
+                .replace(/\s+/g, '-') || timeStr;
 
-        if (!userID || !id) throw new Error('Missing userID or id');
+        // legacy kind/id for non-delivery flows (server will use these)
+        const kind =
+            effectiveMode === 'delivery'
+                ? 'deliveries'
+                : effectiveMode === 'order'
+                ? 'orders'
+                : 'quotes';
+        const legacyId =
+            effectiveMode === 'delivery'
+                ? `${orderID}/${today}/${titleSlug}` // client-only convenience; server ignores when mode='delivery'
+                : orderID || quoteID;
+
+        if (!userID || !legacyId) throw new Error('Missing userID or id');
 
         setUploadState('uploading');
         setUploadProgress(0);
@@ -159,15 +207,30 @@ export default function FileUploadField({
 
                 const file = files[idx];
 
+                // Build payload: for deliveries, use the *new* fields the server expects
+                const payload =
+                    effectiveMode === 'delivery'
+                        ? {
+                              fileName: file.name,
+                              fileType: file.type || 'application/octet-stream',
+                              fileSize: file.size,
+                              userID, // optional for metadata; server path is derived from orderID/date/title
+                              mode: 'delivery' as const,
+                              orderID,
+                              title,
+                              uploader, // 'admin' ideally; server should re-check role
+                          }
+                        : {
+                              fileName: file.name,
+                              fileType: file.type || 'application/octet-stream',
+                              fileSize: file.size,
+                              userID,
+                              kind, // 'orders' | 'quotes'
+                              id: orderID || quoteID,
+                          };
+
                 const init = await api
-                    .post<InitiateResponse>('/api/uploads/initiate', {
-                        fileName: file.name,
-                        fileType: file.type || 'application/octet-stream',
-                        fileSize: file.size,
-                        userID,
-                        kind,
-                        id,
-                    })
+                    .post<InitiateResponse>('/api/uploads/initiate', payload)
                     .then((r) => r.data);
 
                 const { uploadId, objectKey, parts, partSize, folderPath } =
@@ -242,15 +305,21 @@ export default function FileUploadField({
                 files: stored,
             };
 
-            const linkToSet =
-                result.files.length === 1
-                    ? result.files[0].url
-                    : result.folderPath;
+            // Delivery => zip the whole folder for a single auto-download link.
+            const zipName = `order-${orderID}-${today}${
+                title ? '-' + titleSlug : ''
+            }.zip`;
 
-            setValue(
-                'downloadLink',
-                `${process.env.NEXT_PUBLIC_BASE_URL!}${linkToSet}`
-            );
+            const linkToSet =
+                effectiveMode === 'delivery'
+                    ? `/api/files/zip?prefix=${encodeURIComponent(
+                          result.folderPath
+                      )}&name=${encodeURIComponent(zipName)}`
+                    : result.files.length === 1
+                    ? result.files[0].url
+                    : result.folderPath; // (keep legacy multi-file behavior for orders/quotes)
+
+            setValue('downloadLink', absoluteUrl(linkToSet));
             setValue('images', result.files.length);
             setUploadState('success');
             setUploadProgress(100);
@@ -290,24 +359,28 @@ export default function FileUploadField({
     const onCopy = async (text: string) => {
         try {
             await navigator.clipboard.writeText(text);
-            toast.success('Link copied');
+            toast.success('Link copied to clipboard!');
         } catch {
-            toast.error('Failed to copy');
+            toast.error('Failed to copy link');
         }
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        accept: {
-            'image/*': [
-                '.jpeg',
-                '.jpg',
-                '.png',
-                '.gif',
-                '.bmp',
-                '.tiff',
-                '.webp',
-            ],
-        },
+        // For deliveries, accept anything; for order/quote, images only (previous behavior)
+        accept:
+            effectiveMode === 'delivery'
+                ? undefined
+                : {
+                      'image/*': [
+                          '.jpeg',
+                          '.jpg',
+                          '.png',
+                          '.gif',
+                          '.bmp',
+                          '.tiff',
+                          '.webp',
+                      ],
+                  },
         multiple: true,
         maxSize: 5 * 1024 * 1024 * 1024,
         disabled: useExternalLink || uploadState === 'uploading',
@@ -345,31 +418,36 @@ export default function FileUploadField({
         setValue('images', 0);
     };
 
+    // Helper to determine if current value is likely an image URL
+    const isImageUrl = (url: string) => {
+        return /\.(jpg|jpeg|png|gif|bmp|tiff|webp)(\?|$)/i.test(url);
+    };
+
     return (
-        <div className="space-y-5">
-            <div className="space-y-1">
-                <label className="flex items-center gap-2 text-sm font-semibold">
-                    <ImageIcon className="h-4 w-4" />
+        <div className="space-y-5 max-w-5xl h-[80vh] overflow-y-auto">
+            <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <ImageIcon className="h-4 w-4 text-primary" />
                     {label}
-                    {required && <span className="text-red-500">*</span>}
+                    {required && <span className="text-destructive">*</span>}
                 </label>
                 {description && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                         {description}
                     </p>
                 )}
             </div>
 
-            <div className="inline-flex items-center rounded-xl bg-muted p-1">
+            <div className="inline-flex items-center rounded-xl bg-muted/60 p-1.5 shadow-sm">
                 <button
                     type="button"
                     disabled={uploadState === 'uploading'}
                     onClick={() => setUseExternalLink(false)}
                     className={cn(
-                        'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition',
+                        'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200',
                         !useExternalLink
-                            ? 'bg-background shadow-sm'
-                            : 'opacity-70 hover:opacity-100'
+                            ? 'bg-background shadow-md text-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                     )}
                 >
                     <UploadCloud className="h-4 w-4" />
@@ -380,10 +458,10 @@ export default function FileUploadField({
                     disabled={uploadState === 'uploading'}
                     onClick={() => setUseExternalLink(true)}
                     className={cn(
-                        'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition',
+                        'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200',
                         useExternalLink
-                            ? 'bg-background shadow-sm'
-                            : 'opacity-70 hover:opacity-100'
+                            ? 'bg-background shadow-md text-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                     )}
                 >
                     <LinkIcon className="h-4 w-4" />
@@ -392,10 +470,10 @@ export default function FileUploadField({
             </div>
 
             {useExternalLink ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                     <Input
                         placeholder="https://dropbox.com/... or https://drive.google.com/..."
-                        className="h-12 text-base"
+                        className="h-12 text-base border-2 focus:border-primary transition-colors"
                         {...register('downloadLink', {
                             validate: (value) => {
                                 if (!value && required)
@@ -414,7 +492,7 @@ export default function FileUploadField({
                         disabled={uploadState === 'uploading'}
                     />
                     {errors['downloadLink'] && (
-                        <p className="flex items-center gap-2 text-sm text-destructive">
+                        <p className="flex items-center gap-2 text-sm text-destructive font-medium">
                             <AlertCircle className="h-4 w-4" />
                             {(errors['downloadLink']?.message as string) || ''}
                         </p>
@@ -427,7 +505,7 @@ export default function FileUploadField({
                         animate={{
                             boxShadow:
                                 uploadState === 'uploading'
-                                    ? '0 0 0 2px hsl(var(--primary)/.25)'
+                                    ? '0 0 0 2px hsl(var(--primary)/.3)'
                                     : '0 0 0 0 rgba(0,0,0,0)',
                         }}
                         className="rounded-2xl"
@@ -435,31 +513,37 @@ export default function FileUploadField({
                         <div
                             {...getRootProps()}
                             className={cn(
-                                'relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all',
+                                'relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300',
                                 isDragActive
-                                    ? 'border-primary bg-primary/10'
-                                    : 'border-muted-foreground/30',
+                                    ? 'border-primary bg-primary/10 scale-[1.02]'
+                                    : 'border-muted-foreground/30 hover:border-muted-foreground/50',
                                 uploadState === 'uploading' &&
-                                    'opacity-70 pointer-events-none'
+                                    'opacity-70 pointer-events-none',
+                                uploadState === 'success' &&
+                                    'border-green-300 bg-green-50/50 dark:bg-green-950/20',
+                                uploadState === 'error' &&
+                                    'border-red-300 bg-red-50/50 dark:bg-red-950/20'
                             )}
                         >
                             <input {...getInputProps()} />
 
-                            <AnimatePresence mode="popLayout">
+                            <AnimatePresence mode="wait">
                                 {uploadState === 'uploading' && (
                                     <motion.div
                                         key="uploading"
-                                        initial={{ opacity: 0, y: 6 }}
+                                        initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 6 }}
+                                        exit={{ opacity: 0, y: -8 }}
                                         className="space-y-6"
                                     >
                                         <div className="flex justify-center">
-                                            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                            <div className="p-3 rounded-full bg-primary/10">
+                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                            </div>
                                         </div>
 
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between text-sm font-medium">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between text-sm font-semibold">
                                                 <span>
                                                     Uploading{' '}
                                                     {uploadedFiles.length} file
@@ -468,11 +552,13 @@ export default function FileUploadField({
                                                         : ''}
                                                     …
                                                 </span>
-                                                <span>{uploadProgress}%</span>
+                                                <span className="text-primary">
+                                                    {uploadProgress}%
+                                                </span>
                                             </div>
                                             <Progress
                                                 value={uploadProgress}
-                                                className="h-2"
+                                                className="h-2.5"
                                             />
                                             <div className="flex justify-between text-xs text-muted-foreground">
                                                 <span>
@@ -495,6 +581,7 @@ export default function FileUploadField({
                                             variant="outline"
                                             size="sm"
                                             onClick={abortUpload}
+                                            className="hover:bg-destructive hover:text-destructive-foreground"
                                         >
                                             <Square className="mr-2 h-4 w-4" />
                                             Cancel upload
@@ -505,23 +592,23 @@ export default function FileUploadField({
                                 {(uploadState === 'idle' || !uploadState) && (
                                     <motion.div
                                         key="idle"
-                                        initial={{ opacity: 0, y: 6 }}
+                                        initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 6 }}
+                                        exit={{ opacity: 0, y: -8 }}
                                         className="space-y-4"
                                     >
                                         <div className="flex justify-center">
                                             <div
                                                 className={cn(
-                                                    'p-4 rounded-full transition-colors',
+                                                    'p-4 rounded-full transition-all duration-300',
                                                     isDragActive
-                                                        ? 'bg-primary/15'
-                                                        : 'bg-muted'
+                                                        ? 'bg-primary/20 scale-110'
+                                                        : 'bg-muted/70'
                                                 )}
                                             >
                                                 <UploadCloud
                                                     className={cn(
-                                                        'h-9 w-9',
+                                                        'h-9 w-9 transition-colors',
                                                         isDragActive
                                                             ? 'text-primary'
                                                             : 'text-muted-foreground'
@@ -529,33 +616,44 @@ export default function FileUploadField({
                                                 />
                                             </div>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <h3 className="font-semibold text-foreground">
+                                        <div className="space-y-2">
+                                            <h3 className="font-semibold text-foreground text-lg">
                                                 {isDragActive
                                                     ? 'Drop your files here'
-                                                    : 'Upload your images'}
+                                                    : 'Upload your files'}
                                             </h3>
-                                            <p className="text-sm text-muted-foreground">
-                                                Drag & drop or click to browse —
-                                                JPEG, PNG, GIF, BMP, TIFF, WEBP
-                                                (max 5GB each)
+                                            <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+                                                {effectiveMode === 'delivery'
+                                                    ? 'Drag & drop or click to browse — up to 5GB per file'
+                                                    : 'Drag & drop or click to browse — JPEG, PNG, GIF, BMP, TIFF, WEBP (max 5GB each)'}
                                             </p>
                                         </div>
 
                                         {previewUrls.length > 0 && (
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-6">
                                                 {previewUrls.map((src, i) => (
-                                                    <div
+                                                    <motion.div
                                                         key={i}
-                                                        className="relative overflow-hidden rounded-xl border bg-background"
+                                                        initial={{
+                                                            opacity: 0,
+                                                            scale: 0.8,
+                                                        }}
+                                                        animate={{
+                                                            opacity: 1,
+                                                            scale: 1,
+                                                        }}
+                                                        className="relative overflow-hidden rounded-xl border bg-background shadow-sm hover:shadow-md transition-shadow"
                                                     >
                                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                                         <img
                                                             src={src}
-                                                            alt={`preview-${i}`}
+                                                            alt={`Preview ${
+                                                                i + 1
+                                                            }`}
                                                             className="h-28 w-full object-cover"
                                                         />
-                                                    </div>
+                                                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+                                                    </motion.div>
                                                 ))}
                                             </div>
                                         )}
@@ -565,16 +663,29 @@ export default function FileUploadField({
                                 {uploadState === 'success' && (
                                     <motion.div
                                         key="success"
-                                        initial={{ opacity: 0, y: 6 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 6 }}
+                                        initial={{
+                                            opacity: 0,
+                                            y: 8,
+                                            scale: 0.95,
+                                        }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -8 }}
                                         className="space-y-4"
                                     >
                                         <div className="flex justify-center">
-                                            <CheckCircle2 className="h-14 w-14 text-orange-500" />
+                                            <motion.div
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                transition={{
+                                                    delay: 0.1,
+                                                    type: 'spring',
+                                                }}
+                                            >
+                                                <CheckCircle2 className="h-14 w-14 text-green-500" />
+                                            </motion.div>
                                         </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-semibold text-green-700 dark:text-green-300">
+                                        <div className="space-y-2">
+                                            <h3 className="font-semibold text-green-700 dark:text-green-400 text-lg">
                                                 Upload complete!
                                             </h3>
                                             <p className="text-sm text-muted-foreground">
@@ -582,7 +693,8 @@ export default function FileUploadField({
                                                 {uploadedFiles.length > 1
                                                     ? 's'
                                                     : ''}{' '}
-                                                uploaded successfully.
+                                                uploaded successfully in{' '}
+                                                {formatTime(uploadTime)}.
                                             </p>
                                         </div>
                                     </motion.div>
@@ -591,27 +703,28 @@ export default function FileUploadField({
                                 {uploadState === 'error' && (
                                     <motion.div
                                         key="error"
-                                        initial={{ opacity: 0, y: 6 }}
+                                        initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 6 }}
+                                        exit={{ opacity: 0, y: -8 }}
                                         className="space-y-4"
                                     >
                                         <div className="flex justify-center">
-                                            <AlertCircle className="h-14 w-14 text-red-500" />
+                                            <AlertCircle className="h-14 w-14 text-destructive" />
                                         </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-semibold text-red-700 dark:text-red-300">
+                                        <div className="space-y-2">
+                                            <h3 className="font-semibold text-destructive text-lg">
                                                 Upload failed
                                             </h3>
-                                            <p className="text-sm text-muted-foreground">
+                                            <p className="text-sm text-muted-foreground bg-destructive/10 rounded-lg p-3">
                                                 {errorMessage}
                                             </p>
                                         </div>
-                                        <div className="flex gap-2 justify-center">
+                                        <div className="flex gap-3 justify-center">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={resetUpload}
+                                                className="hover:bg-primary hover:text-primary-foreground"
                                             >
                                                 Try again
                                             </Button>
@@ -619,8 +732,9 @@ export default function FileUploadField({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={handleRemove}
+                                                className="hover:bg-destructive/10 hover:text-destructive"
                                             >
-                                                <X className="h-4 w-4 mr-1" />
+                                                <X className="h-4 w-4 mr-2" />
                                                 Clear
                                             </Button>
                                         </div>
@@ -631,21 +745,52 @@ export default function FileUploadField({
                     </motion.div>
 
                     {currentValue && uploadState !== 'uploading' && (
-                        <div className="flex items-center gap-3 p-3 rounded-xl border bg-muted/40">
-                            <FilePlus2 className="h-5 w-5 text-primary flex-shrink-0" />
-                            <span
-                                className="truncate flex-1 text-sm"
-                                title={currentValue}
-                            >
-                                {currentValue}
-                            </span>
+                        <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-3 p-4 rounded-xl border bg-gradient-to-r from-muted/40 to-muted/20 shadow-sm"
+                        >
+                            <div className="flex-shrink-0">
+                                {isImageUrl(currentValue) ? (
+                                    <ImageIcon className="h-5 w-5 text-primary" />
+                                ) : effectiveMode === 'delivery' ? (
+                                    <Download className="h-5 w-5 text-primary" />
+                                ) : (
+                                    <FileText className="h-5 w-5 text-primary" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p
+                                    className="truncate text-sm font-medium"
+                                    title={currentValue}
+                                >
+                                    {currentValue.length > 60
+                                        ? `...${currentValue.slice(-57)}`
+                                        : currentValue}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {uploadedFiles.length > 0
+                                        ? `${uploadedFiles.length} file${
+                                              uploadedFiles.length > 1
+                                                  ? 's'
+                                                  : ''
+                                          } • ${formatFileSize(
+                                              uploadedFiles.reduce(
+                                                  (acc, f) => acc + f.size,
+                                                  0
+                                              )
+                                          )}`
+                                        : 'External link'}
+                                </p>
+                            </div>
                             <div className="flex items-center gap-1">
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 hover:bg-primary/10"
                                     onClick={() => onCopy(currentValue)}
+                                    title="Copy link"
                                 >
                                     <Clipboard className="h-4 w-4" />
                                 </Button>
@@ -653,10 +798,11 @@ export default function FileUploadField({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 hover:bg-primary/10"
                                     onClick={() =>
                                         window.open(currentValue, '_blank')
                                     }
+                                    title="Open in new tab"
                                 >
                                     <ExternalLink className="h-4 w-4" />
                                 </Button>
@@ -664,13 +810,14 @@ export default function FileUploadField({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                                     onClick={handleRemove}
+                                    title="Remove"
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
-                        </div>
+                        </motion.div>
                     )}
                 </div>
             )}
