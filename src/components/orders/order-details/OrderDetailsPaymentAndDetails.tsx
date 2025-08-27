@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card';
 import {
     Dialog,
-    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -37,15 +36,19 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import { IconPackage } from '@tabler/icons-react';
 import { CheckCircle, CreditCard, Loader, Send, Truck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+
+// Create Stripe once (recommended)
+const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = pk ? loadStripe(pk) : null;
 
 interface OrderDetailsPaymentAndDetailsProps {
     status: string;
     total?: number;
     paymentId?: string;
     paymentStatus?: string;
-    role: string;
+    role: string; // 'user' | 'admin' etc.
     orderID: string;
     deliveryLink?: string;
     isRevision?: boolean;
@@ -68,34 +71,66 @@ export default function OrderDetailsPaymentAndDetails({
 
     const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+    const [deliverDialogOpen, setDeliverDialogOpen] = useState(false);
 
-    const [deliverOrder, { isLoading }] = useDeliverOrderMutation();
-    const [reviewOrder, { isLoading: isReviewDone }] = useReviewOrderMutation();
-    const [completeOrder, { isLoading: isCompleted }] =
+    const [deliverOrder, { isLoading: isDelivering }] =
+        useDeliverOrderMutation();
+    const [reviewOrder, { isLoading: isReviewing }] = useReviewOrderMutation();
+    const [completeOrder, { isLoading: isCompleting }] =
         useCompleteOrderMutation();
     const [newOrderCheckout] = useNewOrderCheckoutMutation();
 
-    const stripePromise = loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+    const canDeliver =
+        role !== 'user' &&
+        (status === 'in-progress' || status === 'in-revision');
+
+    const needsPayLaterCheckout =
+        role === 'user' &&
+        status === 'completed' &&
+        paymentStatus === 'pay-later';
+
+    const totalDisplay = useMemo(
+        () => (typeof total === 'number' ? total.toFixed(2) : 'N/A'),
+        [total]
     );
 
-    const handleDeliverOrder = async () => {
+    async function handleDeliverOrder() {
         try {
+            // Simple URL sanity check
+            if (!downloadLink.trim()) {
+                toast.error('Please provide a download link.');
+                return;
+            }
+            try {
+                // eslint-disable-next-line no-new
+                new URL(downloadLink);
+            } catch {
+                toast.error('Please provide a valid URL.');
+                return;
+            }
+
             const response = await deliverOrder({
                 orderID,
                 deliveryLink: downloadLink,
             }).unwrap();
+            console.log(response)
+
             if (response.success) {
                 setDownloadLink('');
+                setDeliverDialogOpen(false);
                 toast.success(response.message);
             }
         } catch (error) {
             ApiError(error);
         }
-    };
+    }
 
-    const handleReviewOrder = async () => {
+    async function handleReviewOrder() {
         try {
+            if (!instruction.trim()) {
+                toast.error('Please write your revision instructions.');
+                return;
+            }
             const res = await reviewOrder({
                 orderID,
                 instructions: instruction,
@@ -108,14 +143,16 @@ export default function OrderDetailsPaymentAndDetails({
         } catch (error) {
             ApiError(error);
         }
-    };
+    }
 
-    const handleCompleteOrder = async () => {
+    async function handleCompleteOrder() {
         try {
             const res = await completeOrder({ orderID, deliveryLink }).unwrap();
             if (res.success) {
                 setCompleteDialogOpen(false);
                 toast.success(res.message);
+
+                // If pay-later and no existing payment, remind the user.
                 if (paymentStatus === 'pay-later' && !paymentId) {
                     setShowPaymentReminder(true);
                 }
@@ -123,25 +160,36 @@ export default function OrderDetailsPaymentAndDetails({
         } catch (error) {
             ApiError(error);
         }
-    };
+    }
 
+    // Prepare Stripe checkout session when on pay-later flow
     useEffect(() => {
-        if (paymentStatus === 'pay-later') {
-            const createSession = async () => {
-                try {
-                    const res = await newOrderCheckout({
-                        orderID,
-                        paymentOption: 'pay-now',
-                        paymentMethod: 'card-payment',
-                    }).unwrap();
-                    if (res?.success) setClientSecret(res.data);
-                } catch (err) {
-                    ApiError(err);
-                }
-            };
-            createSession();
+        if (paymentStatus !== 'pay-later') return;
+        if (!stripePromise) {
+            console.warn('Stripe publishable key is missing.');
+            return;
         }
-    }, [newOrderCheckout, paymentStatus, orderID]);
+        if (clientSecret) return; // already created
+
+        (async () => {
+            try {
+                const res = await newOrderCheckout({
+                    orderID,
+                    paymentOption: 'pay-now',
+                    paymentMethod: 'card-payment',
+                }).unwrap();
+
+                // Expect: { success: true, data: "<client_secret>" }
+                if (res?.success && typeof res.data === 'string') {
+                    setClientSecret(res.data);
+                } else {
+                    toast.error('Could not prepare payment session.');
+                }
+            } catch (err) {
+                ApiError(err);
+            }
+        })();
+    }, [newOrderCheckout, paymentStatus, orderID, clientSecret]);
 
     return (
         <Card>
@@ -156,81 +204,91 @@ export default function OrderDetailsPaymentAndDetails({
                 <Badge variant="outline" className="bg-blue-100 text-blue-800">
                     {status}
                 </Badge>
+
                 <p>
-                    <strong>Total Price:</strong> ${total || 'N/A'}
+                    <strong>Total Price:</strong> ${totalDisplay}
                 </p>
                 <p>
-                    <strong>Payment ID:</strong> {paymentId || 'N/A'}
+                    <strong>Payment ID:</strong> {paymentId ?? 'N/A'}
                 </p>
             </CardContent>
 
-            {role !== 'user' &&
-                (status === 'in-progress' || status === 'in-revision') && (
-                    <CardFooter className="border-t">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <div className="flex items-center gap-2">
-                                            <Loader className="h-4 w-4 animate-spin" />
-                                            Processing...
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <Truck className="h-4 w-4" />
-                                            Deliver Now
-                                        </div>
-                                    )}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
-                                <DialogHeader>
-                                    <DialogTitle className="text-lg">
-                                        Add Delivery Details
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        Provide the download link for the
-                                        completed work
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label
-                                            htmlFor="downloadLink"
-                                            className="text-sm font-medium"
-                                        >
-                                            Download Link
-                                        </Label>
-                                        <Input
-                                            id="downloadLink"
-                                            placeholder="https://example.com/download"
-                                            value={downloadLink}
-                                            onChange={(e) =>
-                                                setDownloadLink(e.target.value)
-                                            }
-                                            type="url"
-                                            className="w-full"
-                                        />
-                                    </div>
+            {canDeliver && (
+                <CardFooter className="border-t">
+                    <Dialog
+                        open={deliverDialogOpen}
+                        onOpenChange={setDeliverDialogOpen}
+                    >
+                        <DialogTrigger asChild>
+                            <Button
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                                disabled={isDelivering}
+                            >
+                                {isDelivering ? (
+                                    <span className="flex items-center gap-2">
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                        Processing…
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Truck className="h-4 w-4" />
+                                        Deliver Now
+                                    </span>
+                                )}
+                            </Button>
+                        </DialogTrigger>
+
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle className="text-lg">
+                                    Add Delivery Details
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Provide the download link for the completed
+                                    work.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="grid gap-4 py-4">
+                                <div className="space-y-2">
+                                    <Label
+                                        htmlFor="downloadLink"
+                                        className="text-sm font-medium"
+                                    >
+                                        Download Link
+                                    </Label>
+                                    <Input
+                                        id="downloadLink"
+                                        placeholder="https://example.com/download"
+                                        value={downloadLink}
+                                        onChange={(e) =>
+                                            setDownloadLink(e.target.value)
+                                        }
+                                        type="url"
+                                        className="w-full"
+                                    />
                                 </div>
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button
-                                            type="submit"
-                                            className="bg-indigo-600 hover:bg-indigo-700"
-                                            onClick={handleDeliverOrder}
-                                        >
-                                            Confirm Delivery
-                                        </Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    </CardFooter>
-                )}
+                            </div>
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                    onClick={handleDeliverOrder}
+                                    disabled={isDelivering}
+                                >
+                                    {isDelivering ? (
+                                        <Loader className="h-4 w-4 animate-spin" />
+                                    ) : null}
+                                    <span className="ml-2">
+                                        Confirm Delivery
+                                    </span>
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
+            )}
 
             {role === 'user' && status === 'delivered' && (
                 <CardFooter className="border-t flex flex-col gap-3">
@@ -244,10 +302,13 @@ export default function OrderDetailsPaymentAndDetails({
                                     className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
                                     onClick={() => setReviewDialogOpen(true)}
                                 >
-                                    <Send className="h-4 w-4" />
-                                    Request Revision
+                                    <span className="flex items-center gap-2">
+                                        <Send className="h-4 w-4" />
+                                        Request Revision
+                                    </span>
                                 </Button>
                             </DialogTrigger>
+
                             <DialogContent className="sm:max-w-[500px]">
                                 <DialogHeader>
                                     <DialogTitle>
@@ -257,6 +318,7 @@ export default function OrderDetailsPaymentAndDetails({
                                         Tell us what needs to be changed.
                                     </DialogDescription>
                                 </DialogHeader>
+
                                 <div className="grid gap-2 py-2">
                                     <Label htmlFor="instruction">
                                         Revision Instructions
@@ -271,26 +333,32 @@ export default function OrderDetailsPaymentAndDetails({
                                         className="min-h-[140px]"
                                     />
                                 </div>
+
                                 <DialogFooter>
                                     <Button
                                         className="bg-yellow-500 hover:bg-yellow-600"
                                         disabled={
-                                            isReviewDone || !instruction.trim()
+                                            isReviewing || !instruction.trim()
                                         }
                                         onClick={handleReviewOrder}
                                     >
-                                        {isReviewDone ? (
+                                        {isReviewing ? (
                                             <Loader className="h-4 w-4 animate-spin" />
                                         ) : (
                                             <Send className="h-4 w-4" />
                                         )}
-                                        Submit Revision
+                                        <span className="ml-2">
+                                            Submit Revision
+                                        </span>
                                     </Button>
-                                    <DialogClose asChild>
-                                        <Button variant="secondary">
-                                            Cancel
-                                        </Button>
-                                    </DialogClose>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() =>
+                                            setReviewDialogOpen(false)
+                                        }
+                                    >
+                                        Cancel
+                                    </Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
@@ -305,10 +373,13 @@ export default function OrderDetailsPaymentAndDetails({
                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                                 onClick={() => setCompleteDialogOpen(true)}
                             >
-                                <CheckCircle className="h-4 w-4" />
-                                Confirm Order Completion
+                                <span className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4" />
+                                    Confirm Order Completion
+                                </span>
                             </Button>
                         </DialogTrigger>
+
                         <DialogContent className="sm:max-w-[440px]">
                             <DialogHeader>
                                 <DialogTitle>Confirm Completion</DialogTitle>
@@ -321,67 +392,76 @@ export default function OrderDetailsPaymentAndDetails({
                             <DialogFooter>
                                 <Button
                                     className="bg-emerald-600 hover:bg-emerald-700"
-                                    disabled={isCompleted}
+                                    disabled={isCompleting}
                                     onClick={handleCompleteOrder}
                                 >
-                                    {isCompleted ? (
+                                    {isCompleting ? (
                                         <Loader className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <CheckCircle className="h-4 w-4" />
                                     )}
-                                    Confirm Completion
+                                    <span className="ml-2">
+                                        Confirm Completion
+                                    </span>
                                 </Button>
-                                <DialogClose asChild>
-                                    <Button variant="secondary">Cancel</Button>
-                                </DialogClose>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setCompleteDialogOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 </CardFooter>
             )}
 
-            {role === 'user' &&
-                status === 'completed' &&
-                paymentStatus === 'pay-later' && (
-                    <CardFooter className="border-t px-6 py-4">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                                    <CreditCard className="mr-2 h-4 w-4" />
+            {needsPayLaterCheckout && (
+                <CardFooter className="border-t px-6 py-4">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                                <span className="flex items-center gap-2">
+                                    <CreditCard className="h-4 w-4" />
                                     Proceed to Payment
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl p-0">
-                                <ScrollArea className="h-[75vh]">
-                                    <div className="p-6">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-xl">
-                                                Complete Payment
-                                            </DialogTitle>
-                                            <DialogDescription>
-                                                Your order is complete but
-                                                pending payment. Please proceed
-                                                with the payment.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                    </div>
-                                    {clientSecret ? (
-                                        <EmbeddedCheckoutProvider
-                                            stripe={stripePromise}
-                                            options={{ clientSecret }}
-                                        >
-                                            <EmbeddedCheckout className="w-full" />
-                                        </EmbeddedCheckoutProvider>
-                                    ) : (
-                                        <div className="flex h-64 items-center justify-center">
-                                            <Loader className="h-8 w-8 animate-spin text-purple-500" />
+                                </span>
+                            </Button>
+                        </DialogTrigger>
+
+                        <DialogContent className="max-w-2xl p-0">
+                            <ScrollArea className="h-[75vh]">
+                                <div className="p-6">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-xl">
+                                            Complete Payment
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Your order is complete but pending
+                                            payment. Please proceed with the
+                                            payment.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                </div>
+
+                                {clientSecret && stripePromise ? (
+                                    <EmbeddedCheckoutProvider
+                                        stripe={stripePromise}
+                                        options={{ clientSecret }}
+                                    >
+                                        <div className="px-6 pb-6">
+                                            <EmbeddedCheckout />
                                         </div>
-                                    )}
-                                </ScrollArea>
-                            </DialogContent>
-                        </Dialog>
-                    </CardFooter>
-                )}
+                                    </EmbeddedCheckoutProvider>
+                                ) : (
+                                    <div className="flex h-64 items-center justify-center">
+                                        <Loader className="h-8 w-8 animate-spin text-purple-500" />
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
+            )}
 
             <Dialog
                 open={showPaymentReminder}

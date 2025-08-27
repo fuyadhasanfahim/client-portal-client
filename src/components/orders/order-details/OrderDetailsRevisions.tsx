@@ -103,7 +103,6 @@ const Avatar = ({
             className="relative"
         >
             {image ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                     src={image}
                     alt={name}
@@ -154,98 +153,79 @@ const Message = ({
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            whileHover={{ y: -1 }}
-            transition={{
-                type: 'spring',
-                stiffness: 300,
-                damping: 30,
-                layout: { duration: 0.2 },
-            }}
-            className={cn(
-                'flex gap-3 group',
-                isOwnMessage ? 'flex-row-reverse' : 'flex-row'
-            )}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            className={`flex items-start gap-3 ${
+                isOwnMessage ? 'justify-end' : ''
+            }`}
+            role="listitem"
         >
-            <Avatar
-                role={m.senderRole}
-                name={m.senderName}
-                image={m.senderProfileImage}
-            />
+            {!isOwnMessage && (
+                <Avatar
+                    role={m.senderRole}
+                    name={m.senderName}
+                    image={m.senderProfileImage}
+                />
+            )}
 
             <div
-                className={cn(
-                    'flex-1 max-w-[80%]',
-                    isOwnMessage
-                        ? 'flex flex-col items-end'
-                        : 'flex flex-col items-start'
-                )}
+                className={`flex flex-col gap-1 ${
+                    isOwnMessage ? 'items-end' : 'items-start'
+                }`}
             >
-                {/* Message header */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className={cn(
-                        'flex items-center gap-2 mb-1 text-xs',
-                        isOwnMessage ? 'flex-row-reverse' : 'flex-row'
-                    )}
+                {/* Header */}
+                <div
+                    className={`flex items-center gap-2 text-xs ${
+                        isOwnMessage && 'flex-row-reverse'
+                    }`}
                 >
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
                         {m.senderName}
                     </span>
-                    <motion.span
-                        whileHover={{ scale: 1.05 }}
-                        className={cn(
-                            'px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider',
-                            isAdmin ? 'bg-primary' : 'bg-teal-600'
-                        )}
+                    <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                            isAdmin
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-teal-500 text-white'
+                        }`}
                     >
                         {m.senderRole}
-                    </motion.span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-500">
+                    </span>
+                    <span className="text-slate-400">•</span>
+                    <span className="text-slate-500 dark:text-slate-400">
                         {timeAgo(m.createdAt)}
                     </span>
-                </motion.div>
+                </div>
 
-                {/* Message bubble */}
-                <motion.div
-                    whileHover={{ scale: 1.01 }}
-                    transition={{ type: 'spring', stiffness: 400 }}
-                    className={cn(
-                        'relative rounded-2xl px-4 py-3 border backdrop-blur-sm transition-all duration-200',
+                {/* Bubble */}
+                <div
+                    className={`relative max-w-[75%] rounded-2xl px-4 py-3 border ${
                         isOwnMessage
-                            ? isAdmin
-                                ? 'bg-primary border-primary/20'
-                                : 'bg-teal-600 border-teal-200'
-                            : 'bg-white border-gray-200 text-gray-800 group-hover:border-gray-300'
-                    )}
+                            ? 'bg-orange-500 text-white border-transparent shadow-sm'
+                            : 'bg-white text-slate-900 border-slate-200 shadow-sm dark:bg-slate-900 dark:text-slate-100'
+                    }`}
                 >
-                    {/* Message tail */}
                     <div
-                        className={cn(
-                            'absolute top-3 w-2 h-2 transform rotate-45',
+                        className={`absolute top-3 w-2 h-2 rotate-45 ${
                             isOwnMessage
-                                ? isAdmin
-                                    ? 'right-[-4px] bg-gradient-to-br from-purple-500 to-indigo-600'
-                                    : 'right-[-4px] bg-gradient-to-br from-orange-500 to-cyan-600'
-                                : 'left-[-4px] bg-white border-l border-t border-gray-200'
-                        )}
+                                ? 'right-[-4px] bg-orange-500'
+                                : 'left-[-4px] bg-white border-l border-t border-slate-200 dark:bg-slate-900'
+                        }`}
                     />
-
-                    <p
-                        className={cn(
-                            'text-sm leading-relaxed whitespace-pre-wrap break-words',
-                            isOwnMessage ? 'text-white' : 'text-gray-800'
-                        )}
-                    >
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                         {m.message}
                     </p>
-                </motion.div>
+                </div>
             </div>
+
+            {isOwnMessage && (
+                <Avatar
+                    role={m.senderRole}
+                    name={m.senderName}
+                    image={m.senderProfileImage}
+                />
+            )}
         </motion.div>
     );
 };
@@ -275,7 +255,6 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
         [user]
     );
 
-    // Auto-scroll with smooth animation
     useEffect(() => {
         if (!scrollRef.current) return;
 
@@ -287,12 +266,10 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
             });
         };
 
-        // Delay to allow message animation to complete
         const timeoutId = setTimeout(scrollToBottom, 150);
         return () => clearTimeout(timeoutId);
     }, [messages.length]);
 
-    // Handle typing indicator
     useEffect(() => {
         const timeoutId = setTimeout(() => setIsTyping(false), 1000);
         return () => clearTimeout(timeoutId);
@@ -459,7 +436,7 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
                 transition={{ duration: 0.3 }}
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-cyan-600 rounded-2xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
                         <MessageCircle className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -516,92 +493,94 @@ export default function OrderDetailsRevisions({ revision, className }: Props) {
             </ul>
 
             {/* Reply composer */}
-            <motion.div
-                layout
-                className="border-t border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/30 to-white/30 backdrop-blur-sm space-y-3"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-            >
-                <div className="relative">
-                    <Textarea
-                        ref={textareaRef}
-                        placeholder="Type your message… (Ctrl/⌘ + Enter to send)"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={onKeyDown}
-                        className="min-h-[100px] resize-none rounded-2xl border-gray-200/60 bg-white/60 backdrop-blur-sm focus:bg-white transition-all duration-200 pr-12"
-                        disabled={!orderID || isLoading}
-                    />
-                    {isTyping && input && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            className="absolute bottom-3 right-3 flex items-center gap-1"
-                        >
-                            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce" />
-                            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.1s]" />
-                            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                        </motion.div>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <motion.div
-                        layout
-                        className="flex items-center gap-2 text-xs text-gray-500"
-                    >
-                        <Avatar
-                            role={sender.senderRole}
-                            name={sender.senderName}
-                            image={sender.senderProfileImage}
+            {revision.status !== 'closed' && (
+                <motion.div
+                    layout
+                    className="border-t border-gray-200/60 p-6 bg-gradient-to-r from-gray-50/30 to-white/30 backdrop-blur-sm space-y-3"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                    <div className="relative">
+                        <Textarea
+                            ref={textareaRef}
+                            placeholder="Type your message… (Ctrl/⌘ + Enter to send)"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={onKeyDown}
+                            className="min-h-[100px] resize-none rounded-2xl border-gray-200/60 bg-white/60 backdrop-blur-sm focus:bg-white transition-all duration-200 pr-12"
+                            disabled={!orderID || isLoading}
                         />
-                        <span>
-                            Sending as{' '}
-                            <span className="font-medium text-gray-700">
-                                {sender.senderName}
-                            </span>
-                        </span>
-                    </motion.div>
-
-                    <div className="flex items-center gap-2">
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <Button
-                                variant="outline"
-                                onClick={() => setInput('')}
-                                disabled={isLoading || !input.trim()}
-                                className="rounded-xl border-gray-200 hover:bg-gray-50"
+                        {isTyping && input && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="absolute bottom-3 right-3 flex items-center gap-1"
                             >
-                                Clear
-                            </Button>
-                        </motion.div>
-
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <Button
-                                onClick={handleSend}
-                                disabled={
-                                    !input.trim() || isLoading || !orderID
-                                }
-                                className="rounded-xl bg-gradient-to-r from-orange-500 to-cyan-600 hover:from-orange-600 hover:to-cyan-700 text-white transition-all duration-200"
-                            >
-                                {isLoading ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Send className="mr-2 h-4 w-4" />
-                                )}
-                                Send
-                            </Button>
-                        </motion.div>
+                                <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce" />
+                                <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.1s]" />
+                                <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                            </motion.div>
+                        )}
                     </div>
-                </div>
-            </motion.div>
+
+                    <div className="flex items-center justify-between">
+                        <motion.div
+                            layout
+                            className="flex items-center gap-2 text-xs text-gray-500"
+                        >
+                            <Avatar
+                                role={sender.senderRole}
+                                name={sender.senderName}
+                                image={sender.senderProfileImage}
+                            />
+                            <span>
+                                Sending as{' '}
+                                <span className="font-medium text-gray-700">
+                                    {sender.senderName}
+                                </span>
+                            </span>
+                        </motion.div>
+
+                        <div className="flex items-center gap-2">
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setInput('')}
+                                    disabled={isLoading || !input.trim()}
+                                    className="rounded-xl border-gray-200 hover:bg-gray-50"
+                                >
+                                    Clear
+                                </Button>
+                            </motion.div>
+
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <Button
+                                    onClick={handleSend}
+                                    disabled={
+                                        !input.trim() || isLoading || !orderID
+                                    }
+                                    className="rounded-xl bg-gradient-to-r from-orange-500 to-cyan-600 hover:from-orange-600 hover:to-cyan-700 text-white transition-all duration-200"
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="mr-2 h-4 w-4" />
+                                    )}
+                                    Send
+                                </Button>
+                            </motion.div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
         </motion.section>
     );
 }
