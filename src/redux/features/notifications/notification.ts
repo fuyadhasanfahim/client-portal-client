@@ -4,10 +4,10 @@ export const notificationApi = apiSlice.injectEndpoints({
     endpoints(builder) {
         return {
             getNotifications: builder.query({
-                query: (userID) => ({
+                query: ({ userID, page, limit }) => ({
                     url: `notifications/get-notifications`,
                     method: 'GET',
-                    params: { userID },
+                    params: { userID, page, limit },
                 }),
                 providesTags: ['Notifications'],
             }),
@@ -18,9 +18,20 @@ export const notificationApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Notifications'],
             }),
+            markAllNotificationsAsRead: builder.mutation({
+                query: (userID) => ({
+                    url: `notifications/mark-all-as-read-notification`,
+                    method: 'PUT',
+                    body: { userID },
+                }),
+                invalidatesTags: ['Notifications'],
+            }),
         };
     },
 });
 
-export const { useGetNotificationsQuery, useUpdateNotificationMutation } =
-    notificationApi;
+export const {
+    useGetNotificationsQuery,
+    useUpdateNotificationMutation,
+    useMarkAllNotificationsAsReadMutation,
+} = notificationApi;
