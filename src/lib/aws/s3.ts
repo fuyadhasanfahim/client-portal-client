@@ -61,6 +61,10 @@ export async function bucketBaseUrl(): Promise<string> {
     return `https://${bucket}.s3.${region}.amazonaws.com`;
 }
 
+export function bucketName(): string {
+    return bucket; // or process.env.AWS_S3_BUCKET!
+}
+
 export {
     CreateMultipartUploadCommand,
     UploadPartCommand,

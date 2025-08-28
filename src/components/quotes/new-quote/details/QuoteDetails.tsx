@@ -33,8 +33,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { IOrderDetails } from '@/types/order.interface';
 import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
 import useLoggedInUser from '@/utils/getLoggedInUser';
-import FileUploadField from '@/components/orders/new-order/FileUploadField';
 import { NewQuoteDetailsSchema } from '@/validations/quote-details.schema';
+import FileUploadField from '@/components/shared/FileUploadField';
 
 export default function QuoteDetails({ quoteID }: { quoteID: string }) {
     const { user } = useLoggedInUser();
@@ -56,6 +56,7 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
     });
 
     const router = useRouter();
+    const downloadLink = form.watch('downloadLink');
 
     const [newQuote, { isLoading }] = useNewQuoteMutation();
 
@@ -103,11 +104,24 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
 
                     <CardContent className="space-y-6">
                         <FileUploadField
-                            label="Download Link"
-                            quoteID={quoteID}
-                            userID={user.userID}
+                            label="Assets"
+                            description="Upload your images or paste a download link"
+                            refType="order"
+                            refId={quoteID}
+                            userID={user?.userID ?? ''}
+                            as={user.role}
+                            accept={['image/*', 'application/zip']}
+                            multiple
+                            maxFileSizeMB={4096}
                             required
-                            description="Upload your images Or provide a download link"
+                            defaultLink={downloadLink}
+                            onCompleted={(link: string) => {
+                                form.setValue('downloadLink', link, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                                toast.success('Assets link saved.');
+                            }}
                         />
 
                         <FormField

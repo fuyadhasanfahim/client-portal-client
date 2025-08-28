@@ -39,6 +39,7 @@ import { CheckCircle, CreditCard, Loader, Send, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import DeliveryLinkUploader from './DeliveryLinkUploader';
+import { tagClientUploadsForOrderCompletion } from '@/lib/storage/tagging';
 
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
@@ -119,7 +120,6 @@ export default function OrderDetailsPaymentAndDetails({
                 setCompleteDialogOpen(false);
                 toast.success(res.message);
 
-                // If pay-later and no existing payment, remind the user.
                 if (paymentStatus === 'pay-later' && !paymentId) {
                     setShowPaymentReminder(true);
                 }
@@ -129,14 +129,13 @@ export default function OrderDetailsPaymentAndDetails({
         }
     }
 
-    // Prepare Stripe checkout session when on pay-later flow
     useEffect(() => {
         if (paymentStatus !== 'pay-later') return;
         if (!stripePromise) {
             console.warn('Stripe publishable key is missing.');
             return;
         }
-        if (clientSecret) return; // already created
+        if (clientSecret) return;
 
         (async () => {
             try {
@@ -146,7 +145,6 @@ export default function OrderDetailsPaymentAndDetails({
                     paymentMethod: 'card-payment',
                 }).unwrap();
 
-                // Expect: { success: true, data: "<client_secret>" }
                 if (res?.success && typeof res.data === 'string') {
                     setClientSecret(res.data);
                 } else {
@@ -159,7 +157,7 @@ export default function OrderDetailsPaymentAndDetails({
     }, [newOrderCheckout, paymentStatus, orderID, clientSecret]);
 
     return (
-        <Card>
+        <Card className='max-h-[80vh] '>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <IconPackage size={24} />

@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader, Trash2 } from 'lucide-react';
+import { ArrowRight, Loader, Trash2, CheckCircle2 } from 'lucide-react';
 import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
@@ -34,10 +34,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { IOrderDetails } from '@/types/order.interface';
 import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
 import useLoggedInUser from '@/utils/getLoggedInUser';
-import FileUploadField from './FileUploadField';
+import FileUploadField from '@/components/shared/FileUploadField';
 
 export default function OrderDetails({ orderID }: { orderID: string }) {
     const { user } = useLoggedInUser();
+    const router = useRouter();
 
     const form = useForm<z.infer<typeof NewOrderDetailsSchema>>({
         resolver: zodResolver(NewOrderDetailsSchema),
@@ -55,14 +56,14 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
         },
     });
 
-    const router = useRouter();
+    const { control, handleSubmit, watch, setValue } = form;
 
     const [newOrder, { isLoading }] = useNewOrderMutation();
 
     const onSubmit = async (data: Partial<IOrderDetails>) => {
         try {
             const response = await newOrder({
-                userID: user.userID,
+                userID: user?.userID,
                 orderStage: 'details-provided',
                 orderID,
                 details: data as IOrderDetails,
@@ -77,18 +78,14 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
         }
     };
 
-    const resizingEnabled = form.watch('imageResizing');
-    const backgroundOption = form.watch('backgroundOption');
+    const resizingEnabled = watch('imageResizing');
+    const backgroundOption = watch('backgroundOption');
+    const downloadLink = watch('downloadLink');
 
     return (
         <Card>
             <Form {...form}>
-                <form
-                    onSubmit={form.handleSubmit(onSubmit, (error) =>
-                        console.log(error)
-                    )}
-                    className="space-y-6"
-                >
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <CardHeader>
                         <CardTitle className="text-2xl">
                             Order Details
@@ -102,16 +99,46 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                     </CardHeader>
 
                     <CardContent className="space-y-6">
-                        <FileUploadField
-                            label="Download Link"
-                            orderID={orderID}
-                            userID={user.userID}
-                            required
-                            description="Upload your images Or provide a download link"
-                        />
+                        <div className="rounded-md border p-3">
+                            <FileUploadField
+                                label="Assets"
+                                description="Upload your images or paste a download link"
+                                refType="order"
+                                refId={orderID}
+                                userID={user?.userID ?? ''}
+                                as={user.role}
+                                accept={['image/*', 'application/zip']}
+                                multiple
+                                maxFileSizeMB={4096}
+                                required
+                                defaultLink={downloadLink}
+                                onCompleted={(link: string) => {
+                                    setValue('downloadLink', link, {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                    });
+                                    toast.success('Assets link saved.');
+                                }}
+                            />
+
+                            {downloadLink && (
+                                <p className="mt-2 text-xs text-green-600 break-all flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Saved link:&nbsp;
+                                    <a
+                                        href={downloadLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="underline"
+                                    >
+                                        {downloadLink}
+                                    </a>
+                                </p>
+                            )}
+                        </div>
 
                         <FormField
-                            control={form.control}
+                            control={control}
                             name="images"
                             render={({ field }) => (
                                 <FormItem>
@@ -141,14 +168,14 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         />
 
                         <DateAndTimePicker
-                            control={form.control}
+                            control={control}
                             name="deliveryDate"
                             label="Delivery date and time"
                         />
 
-                        <div className="grid grid-cols-2 items-center gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-4">
                             <FormField
-                                control={form.control}
+                                control={control}
                                 name="returnFileFormat"
                                 render={({ field }) => (
                                     <FormItem>
@@ -187,7 +214,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                             />
 
                             <FormField
-                                control={form.control}
+                                control={control}
                                 name="backgroundOption"
                                 render={({ field }) => (
                                     <FormItem>
@@ -219,7 +246,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
 
                         {backgroundOption?.includes('Colored') && (
                             <FormField
-                                control={form.control}
+                                control={control}
                                 name="backgroundColor"
                                 render={({ field }) => (
                                     <FormItem>
@@ -232,7 +259,10 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                         <FormControl>
                                             <div className="space-y-2">
                                                 {(field.value ?? []).map(
-                                                    (color, index) => (
+                                                    (
+                                                        color: string,
+                                                        index: number
+                                                    ) => (
                                                         <div
                                                             key={index}
                                                             className="flex items-center gap-2"
@@ -243,17 +273,17 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                                 onChange={(
                                                                     e
                                                                 ) => {
-                                                                    const newColors =
+                                                                    const next =
                                                                         [
                                                                             ...(field.value ??
                                                                                 []),
                                                                         ];
-                                                                    newColors[
+                                                                    next[
                                                                         index
                                                                     ] =
                                                                         e.target.value;
                                                                     field.onChange(
-                                                                        newColors
+                                                                        next
                                                                     );
                                                                 }}
                                                                 className="h-10 w-10 !rounded-full p-0 border-none"
@@ -265,17 +295,17 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                                 onChange={(
                                                                     e
                                                                 ) => {
-                                                                    const newColors =
+                                                                    const next =
                                                                         [
                                                                             ...(field.value ??
                                                                                 []),
                                                                         ];
-                                                                    newColors[
+                                                                    next[
                                                                         index
                                                                     ] =
                                                                         e.target.value;
                                                                     field.onChange(
-                                                                        newColors
+                                                                        next
                                                                     );
                                                                 }}
                                                             />
@@ -284,17 +314,17 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                                 variant="outline"
                                                                 className="bg-red-50 text-destructive border-destructive"
                                                                 onClick={() => {
-                                                                    const newColors =
+                                                                    const next =
                                                                         [
                                                                             ...(field.value ??
                                                                                 []),
                                                                         ];
-                                                                    newColors.splice(
+                                                                    next.splice(
                                                                         index,
                                                                         1
                                                                     );
                                                                     field.onChange(
-                                                                        newColors
+                                                                        next
                                                                     );
                                                                 }}
                                                             >
@@ -307,13 +337,13 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    onClick={() => {
+                                                    onClick={() =>
                                                         field.onChange([
                                                             ...(field.value ??
                                                                 []),
                                                             '#FFFFFF',
-                                                        ]);
-                                                    }}
+                                                        ])
+                                                    }
                                                 >
                                                     Add Color
                                                 </Button>
@@ -326,7 +356,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         )}
 
                         <FormField
-                            control={form.control}
+                            control={control}
                             name="imageResizing"
                             render={({ field }) => (
                                 <FormItem>
@@ -349,9 +379,9 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         />
 
                         {resizingEnabled && (
-                            <div className="grid grid-cols-2 items-center gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-6">
                                 <FormField
-                                    control={form.control}
+                                    control={control}
                                     name="width"
                                     render={({ field }) => (
                                         <FormItem>
@@ -382,7 +412,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                     )}
                                 />
                                 <FormField
-                                    control={form.control}
+                                    control={control}
                                     name="height"
                                     render={({ field }) => (
                                         <FormItem>
@@ -416,7 +446,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         )}
 
                         <FormField
-                            control={form.control}
+                            control={control}
                             name="instructions"
                             render={({ field }) => (
                                 <FormItem>

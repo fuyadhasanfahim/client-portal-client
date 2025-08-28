@@ -18,8 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Truck, CheckCircle2 } from 'lucide-react';
 import ApiError from '@/components/shared/ApiError';
-import { useDeliverOrderMutation } from '@/redux/features/orders/ordersApi';
 import FileUploadField from '@/components/shared/FileUploadField';
+import { useDeliverQuoteMutation } from '@/redux/features/quotes/quoteApi';
 
 type FormValues = {
     deliveryLink: string;
@@ -27,10 +27,10 @@ type FormValues = {
 };
 
 export default function DeliveryLinkUploader({
-    orderID,
+    quoteID,
     userID,
 }: {
-    orderID: string;
+    quoteID: string;
     userID: string;
 }) {
     const methods = useForm<FormValues>({
@@ -41,7 +41,7 @@ export default function DeliveryLinkUploader({
     const [deliverDialogOpen, setDeliverDialogOpen] = useState(false);
     const [deliveryTitle, setDeliveryTitle] = useState('');
 
-    const [deliverOrder, { isLoading }] = useDeliverOrderMutation();
+    const [deliverQuote, { isLoading }] = useDeliverQuoteMutation();
     const deliveryLink = watch('deliveryLink');
 
     async function deliverNow(link: string) {
@@ -51,10 +51,10 @@ export default function DeliveryLinkUploader({
                 return;
             }
 
-            const response = await deliverOrder({
-                orderID,
+            const response = await deliverQuote({
+                quoteID,
                 deliveryLink: link,
-                title: deliveryTitle || undefined, // if your API supports it
+                title: deliveryTitle || undefined,
             }).unwrap();
 
             if ((response as any)?.success) {
@@ -133,15 +133,14 @@ export default function DeliveryLinkUploader({
                             />
                         </div>
 
-                        {/* Upload or link field — ADMIN delivery */}
                         <div className="rounded-md border p-3">
                             <FileUploadField
                                 label="Assets"
                                 description="Upload your images or paste a download link"
-                                refType="order"
-                                refId={orderID}
+                                refType="quote"
+                                refId={quoteID}
                                 userID={userID}
-                                as="admin" // IMPORTANT: deliveries are uploaded by admin
+                                as="admin"
                                 accept={['image/*', 'application/zip']}
                                 multiple
                                 maxFileSizeMB={4096}
