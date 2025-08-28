@@ -109,18 +109,28 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
                             refType="order"
                             refId={quoteID}
                             userID={user?.userID ?? ''}
-                            as={user.role}
+                            as="client"
                             accept={['image/*', 'application/zip']}
                             multiple
                             maxFileSizeMB={4096}
                             required
                             defaultLink={downloadLink}
                             onCompleted={(link: string) => {
-                                form.setValue('downloadLink', link, {
+                                form.setValue(
+                                    'downloadLink',
+                                    `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
+                                    {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                    }
+                                );
+                                toast.success('Assets link saved.');
+                            }}
+                            onImagesCount={(count: number) => {
+                                form.setValue('images', count, {
                                     shouldDirty: true,
                                     shouldValidate: true,
                                 });
-                                toast.success('Assets link saved.');
                             }}
                         />
 

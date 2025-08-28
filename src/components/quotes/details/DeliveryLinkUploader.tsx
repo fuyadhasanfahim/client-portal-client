@@ -147,7 +147,7 @@ export default function DeliveryLinkUploader({
                                 required
                                 defaultLink={deliveryLink}
                                 onCompleted={(link: string) => {
-                                    setValue('deliveryLink', link, {
+                                    setValue('deliveryLink', `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`, {
                                         shouldDirty: true,
                                     });
                                     void deliverNow(link);

@@ -133,7 +133,6 @@ export default function DeliveryLinkUploader({
                             />
                         </div>
 
-                        {/* Upload or link field — ADMIN delivery */}
                         <div className="rounded-md border p-3">
                             <FileUploadField
                                 label="Assets"
@@ -141,21 +140,20 @@ export default function DeliveryLinkUploader({
                                 refType="order"
                                 refId={orderID}
                                 userID={userID}
-                                as="admin" // IMPORTANT: deliveries are uploaded by admin
+                                as="admin"
                                 accept={['image/*', 'application/zip']}
                                 multiple
                                 maxFileSizeMB={4096}
                                 required
                                 defaultLink={deliveryLink}
                                 onCompleted={(link: string) => {
-                                    setValue('deliveryLink', link, {
+                                    setValue('deliveryLink', `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`, {
                                         shouldDirty: true,
                                     });
                                     void deliverNow(link);
                                 }}
                             />
 
-                            {/* Preview of what will be sent */}
                             {deliveryLink ? (
                                 <p className="mt-2 text-xs text-muted-foreground break-all flex items-center gap-1">
                                     <CheckCircle2 className="h-3 w-3" />

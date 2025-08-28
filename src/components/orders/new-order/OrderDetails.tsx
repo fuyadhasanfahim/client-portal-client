@@ -85,7 +85,12 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
     return (
         <Card>
             <Form {...form}>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                    onSubmit={handleSubmit(onSubmit, (errors) => {
+                        console.log('Validation errors:', errors);
+                    })}
+                    className="space-y-6"
+                >
                     <CardHeader>
                         <CardTitle className="text-2xl">
                             Order Details
@@ -106,18 +111,28 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                 refType="order"
                                 refId={orderID}
                                 userID={user?.userID ?? ''}
-                                as={user.role}
+                                as="client"
                                 accept={['image/*', 'application/zip']}
                                 multiple
                                 maxFileSizeMB={4096}
                                 required
-                                defaultLink={downloadLink}
+                                defaultLink={form.watch('downloadLink')}
                                 onCompleted={(link: string) => {
-                                    setValue('downloadLink', link, {
+                                    form.setValue(
+                                        'downloadLink',
+                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
+                                        {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        }
+                                    );
+                                    toast.success('Assets link saved.');
+                                }}
+                                onImagesCount={(count: number) => {
+                                    form.setValue('images', count, {
                                         shouldDirty: true,
                                         shouldValidate: true,
                                     });
-                                    toast.success('Assets link saved.');
                                 }}
                             />
 
