@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (
         !['order', 'quote'].includes(refType) ||
         !refId ||
-        !['client', 'admin'].includes(as)
+        !['user', 'admin'].includes(as)
     ) {
         return NextResponse.json({ error: 'Bad request' }, { status: 400 });
     }
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             : undefined;
 
     const basePrefix =
-        as === 'client'
+        as === 'user'
             ? clientPrefix({ userID, refType, refId, batchId })
             : adminPrefix({ userID, refType, refId, revision: revision! });
 

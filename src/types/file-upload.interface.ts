@@ -1,5 +1,5 @@
 export type RefType = 'order' | 'quote';
-export type UploadedBy = 'client' | 'admin';
+export type UploadedBy = 'user' | 'admin';
 
 export interface IFileItem {
     key: string;

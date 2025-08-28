@@ -1,87 +1,60 @@
 import { Schema, model, models } from 'mongoose';
-import {
-    IMessage,
-    IMessageUser,
-    IConversation,
-    IUserTypingStatus,
-} from '@/types/message.interface';
+import { IAttachment, IMessage, IReaction } from '@/types/message.interface.js';
 
-// User message model
-const AttachmentSchema = new Schema(
+const attachmentSchema = new Schema<IAttachment>(
     {
-        type: { type: String, enum: ['image', 'file'], required: true },
         url: { type: String, required: true },
-        name: { type: String },
+        mimeType: { type: String, required: true },
+        name: String,
+        sizeBytes: Number,
+        width: Number,
+        height: Number,
+        durationSec: Number,
+        thumbnailUrl: String,
+        uploadedAt: { type: Date, required: true },
     },
     { _id: false }
 );
 
-const MessageUserSchema = new Schema<IMessageUser>(
+const reactionSchema = new Schema<IReaction>(
     {
-        userID: { type: String, required: true },
-        name: { type: String, required: true },
-        email: { type: String, required: true },
-        image: { type: String, required: true },
-        role: { type: String },
-        isOnline: { type: Boolean, default: false },
+        emoji: { type: String, required: true },
+        userId: { type: String, required: true, index: true },
     },
     { _id: false }
 );
 
-const MessageSchema = new Schema<IMessage>(
+const messageSchema = new Schema<IMessage>(
     {
-        conversationID: { type: String, required: true },
-        sender: { type: MessageUserSchema, required: true },
-        content: { type: String, required: true },
+        conversationID: { type: String, required: true, index: true },
+        authorId: { type: String, required: true, index: true },
+        text: String,
+        sentAt: { type: Date, default: Date.now, index: true },
         status: {
             type: String,
-            enum: ['sent', 'delivered', 'seen'],
-            default: 'sent',
+            enum: ['sending', 'sent', 'delivered', 'read', 'failed'],
+            default: 'sending',
+            index: true,
         },
-        attachments: [AttachmentSchema],
-    },
-    { timestamps: true }
-);
-
-export const MessageModel =
-    models?.Message || model<IMessage>('Message', MessageSchema);
-
-// User conversation model
-const ConversationSchema = new Schema<IConversation>(
-    {
-        participants: [{ type: String, required: true }],
-        unreadCounts: {
+        attachments: [attachmentSchema],
+        replyToId: String,
+        editedAt: Date,
+        deletedAt: Date,
+        reactions: [reactionSchema],
+        readBy: {
             type: Map,
-            of: Number,
-            default: {},
-        },
-        readBy: [{ type: String }],
-        lastMessage: { type: MessageSchema },
-        participantsInfo: [{ type: MessageUserSchema, required: true }],
-        assignedTo: String,
-        status: {
-            type: String,
-            enum: ['open', 'in-progress', 'resolved', 'closed'],
-            default: 'open',
+            of: Date,
+            default: undefined,
         },
     },
-    { timestamps: true }
-);
-
-export const ConversationModel =
-    models?.Conversation ||
-    model<IConversation>('Conversation', ConversationSchema);
-
-// User typing model
-const UserTypingStatusSchema = new Schema<IUserTypingStatus>(
     {
-        userID: { type: String, required: true },
-        conversationID: { type: String, required: true },
-        isTyping: { type: Boolean, required: true },
-    },
-    { timestamps: true }
+        timestamps: true,
+        versionKey: false,
+    }
 );
 
-export const UserTypingStatusModel =
-    models?.UserTypingStatus ||
-    model<IUserTypingStatus>('UserTypingStatus', UserTypingStatusSchema);
+messageSchema.index({ conversationID: 1, _id: -1 });
+
+const MessageModel =
+    models?.Message || model<IMessage>('Message', messageSchema);
+export default MessageModel;

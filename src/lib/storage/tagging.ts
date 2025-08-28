@@ -13,7 +13,7 @@ export async function tagClientUploadsForOrderCompletion(
     const batches = await FileUpload.find({
         refType,
         refId,
-        uploadedBy: 'client',
+        uploadedBy: 'user',
     });
     const s3 = await s3ForBucket();
 

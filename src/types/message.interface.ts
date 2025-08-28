@@ -1,40 +1,36 @@
-export interface IMessageUser {
-    userID: string;
-    name: string;
-    email: string;
-    image: string;
-    role: string;
-    isOnline?: boolean;
-}
+export type IDeliveryStatus =
+    | "sending"
+    | "sent"
+    | "delivered"
+    | "read"
+    | "failed";
 
-export interface IMessage {
-    _id?: string;
-    conversationID?: string;
-    sender: IMessageUser;
-    content: string;
-    status?: 'sent' | 'delivered' | 'seen';
-    createdAt?: string;
-    attachments?: {
-        type: 'image' | 'file';
-        url: string;
-        name?: string;
-    }[];
-}
+export type IAttachment = {
+    _id: string;
+    url: string;
+    mimeType: string;
+    name?: string;
+    sizeBytes?: number;
+    width?: number;
+    height?: number;
+    durationSec?: number;
+    thumbnailUrl?: string;
+    uploadedAt: Date;
+};
 
-export interface IConversation {
-    _id?: string;
-    participants: string[];
-    unreadCounts: { [userID: string]: number };
-    readBy: string[];
-    lastMessage?: IMessage;
-    participantsInfo: IMessageUser[];
-    createdAt: string;
-    assignedTo?: string;
-    status?: 'open' | 'in-progress' | 'resolved' | 'closed';
-}
+export type IReaction = { emoji: string; userId: string };
 
-export interface IUserTypingStatus {
-    userID: string;
+export type IMessage = {
+    _id: string;
     conversationID: string;
-    isTyping: boolean;
-}
+    authorId: string;
+    text?: string;
+    sentAt: Date;
+    status?: IDeliveryStatus;
+    attachments?: IAttachment[];
+    replyToId?: string;
+    editedAt?: Date;
+    deletedAt?: Date;
+    reactions?: IReaction[];
+    readBy?: Record<string, Date>;
+};

@@ -8,7 +8,7 @@ import FileUpload from '@/models/file-upload.model';
 import { bucketName } from '@/lib/aws/s3';
 
 type RefType = 'order' | 'quote';
-type By = 'client' | 'admin';
+type By = 'user' | 'admin';
 
 type LeanFileItem = {
     key: string;
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     }
 
     const query: any = { refType, refId, uploadedBy };
-    if (uploadedBy === 'client' && batchId) query.batchId = batchId;
+    if (uploadedBy === 'user' && batchId) query.batchId = batchId;
     if (
         uploadedBy === 'admin' &&
         typeof revision === 'number' &&

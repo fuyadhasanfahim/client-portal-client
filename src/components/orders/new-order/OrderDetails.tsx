@@ -111,7 +111,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                 refType="order"
                                 refId={orderID}
                                 userID={user?.userID ?? ''}
-                                as="client"
+                                as="user"
                                 accept={['image/*', 'application/zip']}
                                 multiple
                                 maxFileSizeMB={4096}

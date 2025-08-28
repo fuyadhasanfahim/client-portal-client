@@ -7,7 +7,7 @@ import {
 import { recordBatchAndUpdateLinks } from '@/lib/storage/record';
 
 type RefType = 'order' | 'quote';
-type AsWho = 'client' | 'admin';
+type AsWho = 'user' | 'admin';
 
 export async function POST(req: NextRequest) {
     const { refType, refId, as, batchId, revision, s3Prefix, objects, userID } =
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     });
 
     const link =
-        as === 'client'
+        as === 'user'
             ? `/api/storage/download?refType=${refType}&refId=${refId}&uploadedBy=client&batchId=${batchId}`
             : `/api/storage/download?refType=${refType}&refId=${refId}&uploadedBy=admin&revision=${revision}`;
 

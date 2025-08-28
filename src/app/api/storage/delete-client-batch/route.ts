@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const batch = await FileUpload.findOne({
         refType,
         refId,
-        uploadedBy: 'client',
+        uploadedBy: 'user',
         batchId,
     });
     if (!batch)

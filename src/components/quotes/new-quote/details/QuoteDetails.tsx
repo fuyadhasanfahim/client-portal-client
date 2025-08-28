@@ -109,7 +109,7 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
                             refType="order"
                             refId={quoteID}
                             userID={user?.userID ?? ''}
-                            as="client"
+                            as="user"
                             accept={['image/*', 'application/zip']}
                             multiple
                             maxFileSizeMB={4096}

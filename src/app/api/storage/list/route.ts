@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const refType = (searchParams.get('refType') || '') as 'order' | 'quote';
     const refId = searchParams.get('refId') || '';
     const uploadedBy = (searchParams.get('uploadedBy') || '') as
-        | 'client'
+        | 'user'
         | 'admin';
     const batchId = searchParams.get('batchId') || '';
     const revisionParam = searchParams.get('revision');
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     }
 
     const q: any = { refType, refId, uploadedBy };
-    if (uploadedBy === 'client' && batchId) q.batchId = batchId;
+    if (uploadedBy === 'user' && batchId) q.batchId = batchId;
     if (
         uploadedBy === 'admin' &&
         typeof revision === 'number' &&

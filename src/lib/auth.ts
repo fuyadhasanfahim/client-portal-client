@@ -5,6 +5,7 @@ import dbConfig from './dbConfig';
 import bcrypt from 'bcryptjs';
 import UserModel from '@/models/user.model';
 import { nanoid } from 'nanoid';
+import { ensureSupportConversation } from './auth-helper';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -137,9 +138,9 @@ export const authOptions: NextAuthOptions = {
         },
 
         async signIn({ account, user }) {
-            if (account?.provider === 'google') {
-                await dbConfig();
+            await dbConfig();
 
+            if (account?.provider === 'google') {
                 const existingUser = await UserModel.findOne({
                     email: user?.email,
                 });
@@ -159,13 +160,25 @@ export const authOptions: NextAuthOptions = {
                         googleId: user?.id?.toString(),
                         isEmailVerified: true,
                         image: user?.image,
+                        role: 'user',
                     });
 
                     user.id = newUser.userID;
+
+                    await ensureSupportConversation(newUser.userID);
+
                     return true;
                 }
 
                 user.id = existingUser.userID;
+
+                await ensureSupportConversation(existingUser.userID);
+
+                return true;
+            }
+
+            if (account?.provider === 'credentials' && user?.id) {
+                await ensureSupportConversation(user.id);
             }
 
             return true;

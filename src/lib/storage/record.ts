@@ -21,7 +21,7 @@ export async function recordBatchAndUpdateLinks(params: {
     refType: 'order' | 'quote';
     refId: string;
     userID: string;
-    uploadedBy: 'client' | 'admin';
+    uploadedBy: 'user' | 'admin';
     revision?: number;
     batchId: string;
     s3Prefix: string;
@@ -47,14 +47,14 @@ export async function recordBatchAndUpdateLinks(params: {
         batchId,
         s3Prefix,
         files,
-        deletable: uploadedBy === 'client',
+        deletable: uploadedBy === 'user',
     });
 
     if (refType === 'order') {
         const order = await OrderModel.findOne({ orderID: refId });
         if (!order) return;
         order.details ??= {};
-        if (uploadedBy === 'client') {
+        if (uploadedBy === 'user') {
             order.details.downloadLink = `/orders/${refId}/uploads/${batchId}`;
         } else {
             order.details.deliveryLink = `/orders/${refId}/deliveries/${revision}`;
@@ -64,7 +64,7 @@ export async function recordBatchAndUpdateLinks(params: {
         const quote = await QuoteModel.findOne({ quoteID: refId });
         if (!quote) return;
         quote.details ??= {};
-        if (uploadedBy === 'client') {
+        if (uploadedBy === 'user') {
             quote.details.downloadLink = `/quotes/${refId}/uploads/${batchId}`;
         } else {
             quote.details.deliveryLink = `/quotes/${refId}/deliveries/${revision}`;

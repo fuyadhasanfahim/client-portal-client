@@ -24,7 +24,7 @@ const FileUploadSchema = new Schema<IFileUpload>(
         userID: { type: String, required: true, index: true },
         uploadedBy: {
             type: String,
-            enum: ['client', 'admin'],
+            enum: ['user', 'admin'],
             required: true,
             index: true,
         },

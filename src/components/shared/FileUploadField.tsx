@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 type RefType = 'order' | 'quote';
-type AsWho = 'client' | 'admin';
+type AsWho = 'user' | 'admin';
 
 type InitObject = {
     key: string;
