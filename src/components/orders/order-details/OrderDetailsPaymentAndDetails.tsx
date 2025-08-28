@@ -19,13 +19,11 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import {
     useCompleteOrderMutation,
-    useDeliverOrderMutation,
     useReviewOrderMutation,
 } from '@/redux/features/orders/ordersApi';
 import { useNewOrderCheckoutMutation } from '@/redux/features/stripe/stripeApi';
@@ -35,11 +33,10 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { IconPackage } from '@tabler/icons-react';
-import { CheckCircle, CreditCard, Loader, Send, Truck } from 'lucide-react';
+import { CheckCircle, CreditCard, Loader, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import DeliveryLinkUploader from './DeliveryLinkUploader';
-import { tagClientUploadsForOrderCompletion } from '@/lib/storage/tagging';
 
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
@@ -157,7 +154,7 @@ export default function OrderDetailsPaymentAndDetails({
     }, [newOrderCheckout, paymentStatus, orderID, clientSecret]);
 
     return (
-        <Card className='max-h-[80vh] '>
+        <Card className="max-h-[80vh] ">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <IconPackage size={24} />

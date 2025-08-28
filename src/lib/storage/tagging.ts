@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { s3ForBucket, bucket } from '@/lib/aws/s3';
 import {
     ListObjectsV2Command,

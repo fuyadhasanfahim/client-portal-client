@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -144,19 +145,6 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         uploadedBytesRef.current += deltaBytes;
         const pct = Math.floor((uploadedBytesRef.current / total) * 100);
         setProgress(pct);
-    };
-
-    const requestNextRevision = async (): Promise<number> => {
-        const url = new URL(
-            '/api/storage/next-revision',
-            window.location.origin
-        );
-        url.searchParams.set('refType', refType);
-        url.searchParams.set('refId', refId);
-        const r = await fetch(url.toString(), { method: 'GET' });
-        if (!r.ok) throw new Error('Failed to get next revision');
-        const data = await r.json();
-        return data.revision as number;
     };
 
     const handleUpload = async () => {

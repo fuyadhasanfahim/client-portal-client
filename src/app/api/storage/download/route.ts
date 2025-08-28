@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { PassThrough, Readable } from 'stream';
 import archiver from 'archiver';

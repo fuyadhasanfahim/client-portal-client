@@ -21,6 +21,7 @@ import useLoggedInUser from '@/utils/getLoggedInUser';
 import ApiError from '@/components/shared/ApiError';
 import toast from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
 
 type Props = {
     revision: IRevision | null | undefined;
@@ -103,10 +104,12 @@ const Avatar = ({
             className="relative"
         >
             {image ? (
-                <img
+                <Image
+                    width={32}
+                    height={32}
                     src={image}
                     alt={name}
-                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                    className="rounded-full object-cover border-2 border-white"
                 />
             ) : (
                 <div
