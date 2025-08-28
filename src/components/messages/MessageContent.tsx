@@ -54,7 +54,7 @@ export default function MessageContent({
                       (p) => p.userID !== user.userID
                   ) ?? conversation.participants[0]
                 : undefined,
-        [conversation]
+        [conversation, user.userID]
     );
     const initials = (otherUser?.name ?? 'User')
         .split(' ')
@@ -126,7 +126,7 @@ export default function MessageContent({
             userID: user.userID,
             upToMessageId: last._id,
         });
-    }, [merged.length, conversationID, markReadUpTo]);
+    }, [merged.length, conversationID, markReadUpTo, merged, user.userID]);
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-white">

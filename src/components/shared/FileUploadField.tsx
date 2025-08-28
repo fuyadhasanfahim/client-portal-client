@@ -305,7 +305,6 @@ export default function FileUploadField(props: FileUploadFieldProps) {
             }
         },
         [
-            accept,
             as,
             maxFileSizeMB,
             onCompleted,

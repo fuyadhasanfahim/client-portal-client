@@ -56,7 +56,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
         },
     });
 
-    const { control, handleSubmit, watch, setValue } = form;
+    const { control, handleSubmit, watch } = form;
 
     const [newOrder, { isLoading }] = useNewOrderMutation();
 

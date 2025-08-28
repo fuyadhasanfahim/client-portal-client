@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     useGetConversationsQuery,
     useLazyGetConversationsQuery,

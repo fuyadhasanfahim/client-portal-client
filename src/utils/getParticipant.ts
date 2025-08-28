@@ -1,10 +1,10 @@
-import { IMessageUser } from '@/types/message.interface';
+import { IParticipant } from '@/types/conversation.interface';
 
 export default function getParticipant({
     participants,
     email,
 }: {
-    participants: IMessageUser[];
+    participants: IParticipant[];
     email: string;
 }) {
     const participant = participants.find(
