@@ -1,4 +1,3 @@
-// /components/FileUploadField.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -19,7 +18,6 @@ import {
     UploadCloud,
     Link as LinkIcon,
     CheckCircle2,
-    Copy,
     ExternalLink,
     Link,
     Loader,
@@ -658,38 +656,20 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                                 {currentLink}
                             </a>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    navigator.clipboard
-                                        .writeText(currentLink!)
-                                        .then(
-                                            () => toast.success('Link copied'),
-                                            () => toast.error('Failed to copy')
-                                        );
-                                }}
-                                title="Copy link"
+                        <Button
+                            asChild
+                            variant="secondary"
+                            size="sm"
+                            title="Open link"
+                        >
+                            <a
+                                href={currentLink}
+                                target="_blank"
+                                rel="noreferrer"
                             >
-                                <Copy className="w-4 h-4" />
-                            </Button>
-                            <Button
-                                asChild
-                                variant="secondary"
-                                size="sm"
-                                title="Open link"
-                            >
-                                <a
-                                    href={currentLink}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                </a>
-                            </Button>
-                        </div>
+                                <ExternalLink className="w-4 h-4" />
+                            </a>
+                        </Button>
                     </div>
                 )}
             </div>
