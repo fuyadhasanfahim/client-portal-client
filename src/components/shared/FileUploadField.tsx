@@ -1,40 +1,68 @@
+// /components/FileUploadField.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+    useCallback,
+    useMemo,
+    useRef,
+    useState,
+    useEffect,
+} from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
 import {
-    Loader2,
     UploadCloud,
     Link as LinkIcon,
     CheckCircle2,
     Copy,
     ExternalLink,
+    Link,
+    Loader,
 } from 'lucide-react';
 
 type RefType = 'order' | 'quote';
 type AsWho = 'user' | 'admin';
 
-type InitObject = {
-    key: string;
-    uploadId: string;
-    recommendedPartSize: number;
-};
+type InitObject =
+    | {
+          key: string;
+          mode: 'single';
+          putUrl: string;
+          contentType?: string;
+      }
+    | {
+          key: string;
+          mode: 'mpu';
+          uploadId: string;
+          recommendedPartSize: number;
+          contentType?: string;
+      };
+
 type InitResponse = {
     batchId: string;
     revision?: number;
     basePrefix: string;
     objects: InitObject[];
 };
+
 type SignPartResponse = { url: string };
+
 type CompleteObject = {
     key: string;
     uploadId: string;
     parts: { PartNumber: number; ETag: string }[];
+    size: number;
+    filename: string;
+    contentType?: string;
+};
+
+type SingleRecordedObject = {
+    key: string;
     size: number;
     filename: string;
     contentType?: string;
@@ -48,7 +76,7 @@ export interface FileUploadFieldProps {
     userID: string;
     as: AsWho;
     revision?: number;
-    accept?: string[];
+    accept?: string[]; // if omitted, defaults to "all images"
     multiple?: boolean;
     maxFileSizeMB?: number;
     required?: boolean;
@@ -59,6 +87,47 @@ export interface FileUploadFieldProps {
 }
 
 type Mode = 'upload' | 'link';
+
+// Broad set of image + camera RAW extensions
+const RAW_IMAGE_EXTS = [
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'bmp',
+    'tif',
+    'tiff',
+    'webp',
+    'svg',
+    'heic',
+    'heif',
+    'avif',
+    'raw',
+    'cr2',
+    'cr3',
+    'nef',
+    'nrw',
+    'arw',
+    'dng',
+    'raf',
+    'rw2',
+    'orf',
+    'srw',
+    'pef',
+    'x3f',
+    'k25',
+    'kdc',
+    'erf',
+    'mos',
+    'mef',
+    'mrw',
+    'sr2',
+    'srf',
+    'rwl',
+    'iiq',
+    '3fr',
+];
+const IMG_RE = new RegExp(`\\.(${RAW_IMAGE_EXTS.join('|')})$`, 'i');
 
 export default function FileUploadField(props: FileUploadFieldProps) {
     const {
@@ -89,12 +158,20 @@ export default function FileUploadField(props: FileUploadFieldProps) {
 
     const totalBytesRef = useRef<number>(0);
     const uploadedBytesRef = useRef<number>(0);
+    const abortersRef = useRef<Set<AbortController>>(new Set());
 
+    // Accept: if `accept` not provided, default to ALL images (plus RAW extensions)
     const acceptMap = useMemo(() => {
-        if (!accept?.length) return undefined;
-        const map: Record<string, string[]> = {};
-        for (const a of accept) map[a] = [];
-        return map;
+        // If user passes an explicit list, honor it
+        if (accept && accept.length) {
+            const map: Record<string, string[]> = {};
+            for (const a of accept) map[a] = [];
+            return map;
+        }
+        // Default: allow ALL images including RAW (some browsers label RAW as octet-stream but ext will pass)
+        return {
+            'image/*': RAW_IMAGE_EXTS.map((ext) => `.${ext}`),
+        } as Record<string, string[]>;
     }, [accept]);
 
     const isLocked = lockAfterSuccess && !!currentLink;
@@ -109,8 +186,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         return `${(mb / 1024).toFixed(1)} GB`;
     };
 
-    const isImageName = (name: string) =>
-        /\.(jpe?g|png|gif|bmp|tiff?|webp|svg)$/i.test(name);
+    const isImageName = (name: string) => IMG_RE.test(name);
 
     const computeParts = (file: File, partSize: number) => {
         const parts: { start: number; end: number; PartNumber: number }[] = [];
@@ -125,7 +201,45 @@ export default function FileUploadField(props: FileUploadFieldProps) {
     const updateProgress = (deltaBytes: number, total: number) => {
         uploadedBytesRef.current += deltaBytes;
         const pct = Math.floor((uploadedBytesRef.current / total) * 100);
-        setProgress(pct);
+        setProgress(Math.min(100, Math.max(0, pct)));
+    };
+
+    useEffect(() => {
+        // capture the current Set reference when the effect runs
+        const controllers = abortersRef.current;
+
+        return () => {
+            controllers.forEach((ac) => ac.abort());
+            controllers.clear();
+        };
+    }, []);
+
+    const putWithRetry = async (
+        url: string,
+        body: Blob | File,
+        attempts = 3
+    ) => {
+        let last: any;
+        for (let i = 0; i < attempts; i++) {
+            const ac = new AbortController();
+            abortersRef.current.add(ac);
+            try {
+                const res = await fetch(url, {
+                    method: 'PUT',
+                    body,
+                    signal: ac.signal,
+                });
+                if (!res.ok) throw new Error(`PUT ${res.status}`);
+                return res;
+            } catch (e) {
+                last = e;
+                if (i < attempts - 1)
+                    await new Promise((r) => setTimeout(r, 300 * (i + 1)));
+            } finally {
+                abortersRef.current.delete(ac);
+            }
+        }
+        throw last;
     };
 
     const startUpload = useCallback(
@@ -141,11 +255,11 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 }
             }
 
-            // NEW: detect image count from the selection and bubble it up
+            // Bubble up image count if needed
             const imgCount = selected.filter(
                 (f) => f.type?.startsWith('image/') || isImageName(f.name)
             ).length;
-            if (onImagesCount) onImagesCount(imgCount);
+            onImagesCount?.(imgCount);
 
             try {
                 setBusy(true);
@@ -160,7 +274,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 let revision =
                     as === 'admin' ? revisionProp ?? undefined : undefined;
 
-                // 1) INIT
+                // 1) INIT (mixed-mode: some single, some MPU)
                 const initRes = await fetch('/api/storage/init', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -178,124 +292,270 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 });
                 if (!initRes.ok) throw new Error('Failed to initialize upload');
                 const initData: InitResponse = await initRes.json();
-
                 if (as === 'admin') {
                     revision = initData.revision ?? revision ?? 1;
                 }
 
-                // 2) Upload parts
-                const completeObjects: CompleteObject[] = [];
-                for (let i = 0; i < selected.length; i++) {
-                    const file = selected[i];
-                    const obj = initData.objects[i];
+                // Helper to upload ONE file, handles both modes
+                const uploadSingleFile = async (
+                    file: File,
+                    obj: InitObject
+                ) => {
+                    if (obj.mode === 'single') {
+                        // single-part PUT (no MPU)
+                        const res = await putWithRetry(obj.putUrl, file);
+                        if (!res.ok) throw new Error(`PUT ${res.status}`);
+                        updateProgress(file.size, totalBytesRef.current);
+                        return {
+                            kind: 'single' as const,
+                            key: obj.key,
+                            size: file.size,
+                            filename: file.name,
+                            contentType:
+                                file.type ||
+                                obj.contentType ||
+                                'application/octet-stream',
+                        };
+                    }
+
+                    // MPU path
                     const partSize = Math.max(
-                        obj.recommendedPartSize || 64 * 1024 * 1024,
+                        obj.recommendedPartSize ?? 5 * 1024 * 1024,
                         5 * 1024 * 1024
                     );
                     const parts = computeParts(file, partSize);
-
                     const uploadedParts: {
                         PartNumber: number;
                         ETag: string;
                     }[] = [];
-                    const concurrency = 4;
-                    let idx = 0;
+                    const concurrency = Math.min(
+                        8,
+                        (navigator as any)?.hardwareConcurrency ?? 8
+                    );
 
-                    async function uploadOne(p: {
-                        start: number;
-                        end: number;
-                        PartNumber: number;
-                    }) {
-                        const signUrl = new URL(
+                    const signUrl = async (partNumber: number) => {
+                        const u = new URL(
                             '/api/storage/sign-part',
                             window.location.origin
                         );
-                        signUrl.searchParams.set('key', obj.key);
-                        signUrl.searchParams.set('uploadId', obj.uploadId);
-                        signUrl.searchParams.set(
-                            'partNumber',
-                            String(p.PartNumber)
-                        );
-                        const signRes = await fetch(signUrl.toString(), {
+                        u.searchParams.set('key', obj.key);
+                        u.searchParams.set('uploadId', obj.uploadId);
+                        u.searchParams.set('partNumber', String(partNumber));
+                        const signRes = await fetch(u.toString(), {
                             method: 'GET',
                         });
                         if (!signRes.ok)
                             throw new Error('Failed to sign part URL');
                         const { url }: SignPartResponse = await signRes.json();
+                        return url;
+                    };
 
+                    const uploadOne = async (p: {
+                        start: number;
+                        end: number;
+                        PartNumber: number;
+                    }) => {
+                        const url = await signUrl(p.PartNumber);
                         const chunk = file.slice(p.start, p.end);
-                        const putRes = await fetch(url, {
-                            method: 'PUT',
-                            body: chunk,
-                        });
-                        if (!putRes.ok)
-                            throw new Error(
-                                `Part ${p.PartNumber} upload failed`
-                            );
-
+                        const putRes = await putWithRetry(url, chunk);
                         const etag = (
                             putRes.headers.get('ETag') ||
                             putRes.headers.get('Etag') ||
                             ''
                         ).replace(/"/g, '');
                         if (!etag) throw new Error('Missing ETag from S3');
-
                         uploadedParts.push({
                             PartNumber: p.PartNumber,
                             ETag: etag,
                         });
                         updateProgress(chunk.size, totalBytesRef.current);
+                    };
+
+                    // Steady promise pool to keep connections saturated
+                    let idx = 0;
+                    const inFlight = new Set<Promise<void>>();
+                    const startOne = () => {
+                        if (idx >= parts.length) return;
+                        const next = uploadOne(parts[idx++])
+                            .catch((e) => {
+                                throw e;
+                            })
+                            .finally(() => inFlight.delete(next));
+                        inFlight.add(next);
+                    };
+                    while (inFlight.size < concurrency && idx < parts.length)
+                        startOne();
+                    while (inFlight.size) {
+                        await Promise.race(inFlight);
+                        while (
+                            inFlight.size < concurrency &&
+                            idx < parts.length
+                        )
+                            startOne();
                     }
 
-                    const runPool = async () => {
-                        const workers: Promise<void>[] = [];
-                        for (
-                            let w = 0;
-                            w < concurrency && idx < parts.length;
-                            w++
-                        ) {
-                            const p = parts[idx++];
-                            workers.push(uploadOne(p));
-                        }
-                        await Promise.all(workers);
-                        if (idx < parts.length) await runPool();
-                    };
-                    await runPool();
-
                     uploadedParts.sort((a, b) => a.PartNumber - b.PartNumber);
-
-                    completeObjects.push({
+                    return {
+                        kind: 'mpu' as const,
                         key: obj.key,
                         uploadId: obj.uploadId,
                         parts: uploadedParts,
                         size: file.size,
                         filename: file.name,
-                        contentType: file.type || 'application/octet-stream',
+                        contentType:
+                            file.type ||
+                            obj.contentType ||
+                            'application/octet-stream',
+                    };
+                };
+
+                // 2) Upload — bump file-level concurrency if most are small
+                const smallCount = initData.objects.filter(
+                    (o) => o.mode === 'single'
+                ).length;
+                const manySmall = smallCount > initData.objects.length * 0.6;
+                const FILE_CONCURRENCY = manySmall
+                    ? Math.min(6, selected.length)
+                    : Math.min(2, selected.length);
+
+                const completeObjects: CompleteObject[] = []; // for MPU /complete
+                const singleRecorded: SingleRecordedObject[] = []; // for recording singles on server
+
+                const tasks = selected.map((file, i) => async () => {
+                    const obj = initData.objects[i] as InitObject;
+                    try {
+                        const result = await uploadSingleFile(file, obj);
+                        if (result.kind === 'mpu') {
+                            completeObjects.push({
+                                key: result.key,
+                                uploadId: (result as any).uploadId,
+                                parts: (result as any).parts,
+                                size: result.size,
+                                filename: result.filename,
+                                contentType: result.contentType,
+                            });
+                        } else {
+                            singleRecorded.push({
+                                key: result.key,
+                                size: result.size,
+                                filename: result.filename,
+                                contentType: result.contentType,
+                            });
+                        }
+                    } catch (err) {
+                        // Best-effort abort for MPUs only
+                        if (obj.mode === 'mpu') {
+                            try {
+                                await fetch('/api/storage/abort', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        key: obj.key,
+                                        uploadId: (obj as any).uploadId,
+                                    }),
+                                });
+                            } catch {}
+                        }
+                        throw err;
+                    }
+                });
+
+                // Simple scheduler for file-level concurrency
+                let cursor = 0;
+                const runners: Promise<void>[] = [];
+                const runNext = async () => {
+                    if (cursor >= tasks.length) return;
+                    const t = tasks[cursor++]!;
+                    await t();
+                    return runNext();
+                };
+                for (let i = 0; i < FILE_CONCURRENCY; i++)
+                    runners.push(runNext());
+                await Promise.all(runners);
+
+                // 3) COMPLETE / RECORD
+                // - Call /complete for MPU files (server finalizes & records)
+                // - Then record singles so links appear in UI (with 404 fallback)
+                let linkFromComplete: string | undefined;
+
+                if (completeObjects.length) {
+                    const completeRes = await fetch('/api/storage/complete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            refType,
+                            refId,
+                            as,
+                            userID,
+                            batchId: initData.batchId,
+                            revision,
+                            s3Prefix: initData.basePrefix,
+                            objects: completeObjects,
+                        }),
                     });
+                    if (!completeRes.ok)
+                        throw new Error('Failed to complete upload');
+                    const data = await completeRes.json();
+                    linkFromComplete = data.link as string | undefined;
                 }
 
-                // 3) COMPLETE
-                const completeRes = await fetch('/api/storage/complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        refType,
-                        refId,
-                        as,
-                        userID,
-                        batchId: initData.batchId,
-                        revision,
-                        s3Prefix: initData.basePrefix,
-                        objects: completeObjects,
-                    }),
-                });
-                if (!completeRes.ok)
-                    throw new Error('Failed to complete upload');
-                const data = await completeRes.json();
+                if (singleRecorded.length) {
+                    const res = await fetch('/api/storage/record-singles', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            refType,
+                            refId,
+                            as,
+                            userID,
+                            batchId: initData.batchId,
+                            s3Prefix: initData.basePrefix,
+                            files: singleRecorded,
+                            revision, // include for admin deliveries
+                        }),
+                    });
 
-                setCurrentLink(data.link);
-                toast.success('Files uploaded and link set!');
-                onCompleted?.(data.link);
+                    if (res.ok) {
+                        if (!linkFromComplete) {
+                            const data = await res.json();
+                            linkFromComplete = data.link;
+                        }
+                    } else if (res.status === 404) {
+                        // Fallback: synthesize link + persist so UI has something to show
+                        const fallbackLink =
+                            as === 'user'
+                                ? `/api/storage/download?refType=${refType}&refId=${refId}&uploadedBy=user&batchId=${initData.batchId}`
+                                : `/api/storage/download?refType=${refType}&refId=${refId}&uploadedBy=admin&revision=${revision}`;
+                        await fetch('/api/storage/set-link', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                refType,
+                                refId,
+                                as,
+                                url: fallbackLink,
+                            }),
+                        });
+                        if (!linkFromComplete) linkFromComplete = fallbackLink;
+                    } else {
+                        console.warn(
+                            'record-singles failed:',
+                            res.status,
+                            res.statusText
+                        );
+                    }
+                }
+
+                if (linkFromComplete) {
+                    setCurrentLink(linkFromComplete);
+                    toast.success('Files uploaded and link set!');
+                    onCompleted?.(linkFromComplete);
+                } else {
+                    toast.success('Files uploaded!');
+                }
+
                 setProgress(100);
             } catch (err: any) {
                 console.error(err);
@@ -329,7 +589,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         onDrop,
         multiple,
         accept: acceptMap,
-        disabled: busy || isLocked, // prevent selecting more when locked
+        disabled: busy || isLocked,
     });
 
     const handleSaveLink = async () => {
@@ -362,16 +622,17 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         }
     };
 
+    // === Locked state ===
     if (isLocked) {
         return (
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">
+                    <Label className="text-sm font-medium">
                         {label}
                         {required && (
                             <span className="text-red-500 ml-0.5">*</span>
                         )}
-                    </label>
+                    </Label>
                     <span className="text-[11px] rounded-full bg-muted px-2 py-0.5">
                         {linkKind}
                     </span>
@@ -383,6 +644,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 </p>
 
                 {currentLink && (
+                    // Single link row (no duplicate "Saved link" line)
                     <div className="flex items-center justify-between rounded border p-2">
                         <div className="text-xs break-all flex items-center gap-1 text-green-700">
                             <CheckCircle2 className="w-4 h-4" />
@@ -434,42 +696,42 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         );
     }
 
+    // === Normal state ===
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                     {label}
                     {required && <span className="text-red-500 ml-0.5">*</span>}
-                </label>
+                </Label>
                 <div className="flex items-center gap-2 text-xs">
-                    <button
+                    <Button
                         type="button"
-                        className={`px-2 py-1 rounded ${
-                            mode === 'upload'
-                                ? 'bg-foreground text-background'
-                                : 'bg-muted'
-                        }`}
+                        size="sm"
                         onClick={() => setMode('upload')}
                         disabled={busy}
                     >
+                        <UploadCloud className="mr-1 h-4 w-4" />
                         Upload
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        className={`px-2 py-1 rounded ${
-                            mode === 'link'
-                                ? 'bg-foreground text-background'
-                                : 'bg-muted'
-                        }`}
+                        size="sm"
+                        variant="outline"
                         onClick={() => setMode('link')}
                         disabled={busy}
                     >
+                        <Link className="mr-1 h-4 w-4" />
                         Use link
-                    </button>
+                    </Button>
                 </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-muted-foreground">
+                {description}{' '}
+                {(!accept || accept.length === 0) &&
+                    '(All image formats supported)'}
+            </p>
 
             {mode === 'upload' ? (
                 <div className="space-y-3">
@@ -499,11 +761,17 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                                     Max per file: {maxFileSizeMB} MB
                                 </div>
                             ) : null}
-                            {accept?.length ? (
+                            {/* If accept was passed explicitly, show it; otherwise note "All images" */}
+                            {accept && accept.length ? (
                                 <div className="text-[11px] text-muted-foreground">
                                     Accepted: {accept.join(', ')}
                                 </div>
-                            ) : null}
+                            ) : (
+                                <div className="text-[11px] text-muted-foreground">
+                                    Accepted: image/* (+ RAW like .heic, .cr3,
+                                    .nef, .arw, .dng, …)
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -511,7 +779,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                         <div className="space-y-2">
                             <Progress value={progress} />
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <Loader className="w-3 h-3 animate-spin" />
                                 Uploading… {progress}% (
                                 {bytesToSize(uploadedBytesRef.current)} /{' '}
                                 {bytesToSize(totalBytesRef.current)})

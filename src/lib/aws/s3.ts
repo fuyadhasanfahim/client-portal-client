@@ -17,7 +17,7 @@ if (!process.env.AWS_S3_BUCKET) {
 }
 
 export const bucket = process.env.AWS_S3_BUCKET!;
-const fallbackRegion = process.env.AWS_REGION || 'us-east-1';
+const fallbackRegion = process.env.AWS_REGION!;
 
 const rawPrefix = process.env.AWS_S3_PREFIX ?? 'uploads';
 const normPrefix = rawPrefix.replace(/^\/+|\/+$/g, '');
@@ -40,7 +40,7 @@ export async function getBucketRegion(): Promise<string> {
         new GetBucketLocationCommand({ Bucket: bucket })
     );
     const region =
-        (res.LocationConstraint as string | undefined) || 'us-east-1';
+        (res.LocationConstraint as string | undefined) || 'ap-south-1';
     cachedBucketRegion = region;
     return region;
 }
