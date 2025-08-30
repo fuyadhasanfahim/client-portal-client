@@ -119,5 +119,5 @@ export function useConversationSocket(socketUrl: string, mode: Mode) {
                 s.off('connect', joinCurrentRoom);
             };
         }
-    }, [socketUrl, dispatch, mode.kind, (mode as any).conversationID]);
+    }, [socketUrl, dispatch, mode]);
 }

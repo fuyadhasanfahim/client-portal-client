@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { format } from 'date-fns';
-import Image from 'next/image';
 import {
     Table,
     TableBody,

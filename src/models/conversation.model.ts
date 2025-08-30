@@ -1,75 +1,47 @@
-import { model, models, Schema } from 'mongoose';
-import { IConversation, IParticipant } from '@/types/conversation.interface.js';
+import { model, Schema } from "mongoose";
+import {
+    IConversation,
+    IParticipant,
+} from "../types/conversation.interface.js";
 
 const participantSchema = new Schema<IParticipant>(
     {
-        userID: {
-            type: String,
-            required: true,
-        },
-        name: {
-            type: String,
-            required: true,
-        },
-        email: {
-            type: String,
-            required: true,
-        },
-        image: {
-            type: String,
-            required: false,
-        },
-        isOnline: {
-            type: Boolean,
-            required: true,
-        },
-        lastSeenAt: {
-            type: Date,
-            required: false,
-        },
-        role: {
-            type: String,
-            required: false,
-        },
+        userID: { type: String, required: true },
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+        image: String,
+        isOnline: { type: Boolean, required: true },
+        lastSeenAt: Date,
+        role: { type: String, enum: ["user", "admin"], required: true },
     },
-    {
-        _id: false,
-    }
+    { _id: false }
 );
 
 const conversationSchema = new Schema<IConversation>(
     {
-        participants: {
-            type: [participantSchema],
-            required: true,
-        },
+        participants: { type: [participantSchema], required: true },
         lastMessageAt: {
             type: Date,
-            required: true,
+            default: Date.now,
         },
-        unread: {
-            type: Number,
-            required: false,
-        },
-        lastMessageText: {
-            type: String,
-            required: false,
-        },
-        lastMessageAuthorId: {
-            type: String,
-            required: false,
-        },
+        unread: Number,
+        lastMessageText: String,
+        lastMessageAuthorID: String,
         type: {
             type: String,
-            required: false,
         },
     },
     {
         timestamps: true,
+        versionKey: false,
     }
 );
 
-const ConversationModel =
-    models?.Conversation ||
-    model<IConversation>('Conversation', conversationSchema);
+conversationSchema.index({ lastMessageAt: -1 });
+conversationSchema.index({ "participants.userID": 1 });
+
+const ConversationModel = model<IConversation>(
+    "Conversation",
+    conversationSchema
+);
 export default ConversationModel;
