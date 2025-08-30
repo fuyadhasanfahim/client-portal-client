@@ -1,7 +1,7 @@
 import './globals.css';
-import NextAuthProvider from './NextAuthProvider';
+import NextAuthProvider from '../components/providers/NextAuthProvider';
 import { Toaster } from 'react-hot-toast';
-import ReduxProvider from './ReduxProvider';
+import ReduxProvider from '../components/providers/ReduxProvider';
 
 export default function RootLayout({
     children,

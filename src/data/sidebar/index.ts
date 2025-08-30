@@ -51,7 +51,7 @@ export const sidebarItems = [
         title: 'Messages',
         url: '/messages',
         icon: IconMessage,
-        access: ['admin', 'user'],
+        access: ['admin'],
     },
     {
         title: 'Invoices',

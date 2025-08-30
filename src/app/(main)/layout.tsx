@@ -1,11 +1,12 @@
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import NextAuthProvider from '../NextAuthProvider';
+import NextAuthProvider from '../../components/providers/NextAuthProvider';
 import { AppSidebar } from '@/components/shared/app-sidebar';
 import { SiteHeader } from '@/components/shared/site-header';
 import { getUserData } from '@/actions/user.action';
 import VerificationAlert from '@/components/shared/VerificationAlert';
 import { Metadata } from 'next';
 import AdditionalInformationAlert from '@/components/shared/AdditionalInformationAlert';
+import MessagesFabProvider from '@/components/providers/MessagesFabProvider';
 
 export const metadata: Metadata = {
     title: 'Client Portal',
@@ -62,6 +63,7 @@ export default async function Layout({
                             children
                         )}
                     </main>
+                    <MessagesFabProvider />
                 </SidebarInset>
             </SidebarProvider>
         </NextAuthProvider>
