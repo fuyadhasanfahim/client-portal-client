@@ -1,92 +1,36 @@
 import { apiSlice } from '@/redux/api/apiSlice';
 
-export type Participant = {
-    userID: string;
-    name: string;
-    email: string;
-    image?: string;
-    isOnline: boolean;
-    lastSeenAt?: string;
-    role?: string;
-};
-
-export type Conversation = {
+export type ConversationListItem = {
     _id: string;
-    participants: Participant[];
+    userId: string;
+    userName: string;
+    userEmail: string;
+    userImage?: string;
     lastMessageAt: string;
-    unread?: number;
     lastMessageText?: string;
-    lastMessageAuthorId?: string;
-    type?: string;
+    lastMessageAuthorID?: string;
     createdAt?: string;
     updatedAt?: string;
 };
 
-export type ConversationPage = {
-    items: Conversation[];
-    nextCursor?: string;
-    hasMore: boolean;
-    __arg?: { userID: string; limit?: number; cursor?: string | null };
-};
-
-function dedupeById<T extends { _id: string }>(arr: T[]): T[] {
-    const seen = new Set<string>();
-    const res: T[] = [];
-    for (const x of arr) {
-        if (!seen.has(x._id)) {
-            seen.add(x._id);
-            res.push(x);
-        }
-    }
-    return res;
-}
-
 export const conversationApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        /** GET /conversations/get-conversations (admin) */
         getConversations: builder.query<
-            ConversationPage,
-            { userID: string; limit?: number; cursor?: string | null }
+            { items: ConversationListItem[] },
+            { limit?: number; cursor?: string | null }
         >({
-            query: ({ userID, limit = 20, cursor = null }) => ({
+            query: ({ limit = 50, cursor = null }) => ({
                 url: 'conversations/get-conversations',
-                params: { userID, limit, cursor: cursor ?? undefined },
+                params: { limit, cursor: cursor ?? undefined },
             }),
-            serializeQueryArgs: ({ endpointName, queryArgs }) =>
-                `${endpointName}-${queryArgs.userID}`,
-            transformResponse: (
-                resp: { ok: boolean } & ConversationPage,
-                _meta,
-                arg
-            ) => ({
-                items: resp.items ?? [],
-                nextCursor: resp.nextCursor,
-                hasMore: !!resp.hasMore,
-                __arg: arg,
-            }),
-            merge: (currentCache, incoming) => {
-                const wasCursorRequest = !!incoming.__arg?.cursor;
-                if (!wasCursorRequest) {
-                    currentCache.items = dedupeById(incoming.items);
-                    currentCache.nextCursor = incoming.nextCursor;
-                    currentCache.hasMore = incoming.hasMore;
-                    return;
-                }
-                currentCache.items = dedupeById([
-                    ...(currentCache.items || []),
-                    ...(incoming.items || []),
-                ]);
-                currentCache.nextCursor = incoming.nextCursor;
-                currentCache.hasMore = incoming.hasMore;
-            },
-            forceRefetch: ({ currentArg, previousArg }) =>
-                currentArg?.cursor !== previousArg?.cursor,
-            providesTags: (_result, _err, arg) => [
-                { type: 'ConversationList' as const, id: arg.userID },
-            ],
-            keepUnusedDataFor: 120,
+            // collapse to a single cache entry regardless of args
+            serializeQueryArgs: () => 'getConversations',
+            transformResponse: (res: { items: ConversationListItem[] }) => res,
+            providesTags: ['ConversationList'],
+            keepUnusedDataFor: 60,
         }),
     }),
 });
 
-export const { useGetConversationsQuery, useLazyGetConversationsQuery } =
-    conversationApi;
+export const { useGetConversationsQuery } = conversationApi;

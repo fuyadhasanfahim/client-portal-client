@@ -63,7 +63,9 @@ export default async function Layout({
                             children
                         )}
                     </main>
-                    <MessagesFabProvider />
+                    {userData && userData.role === 'user' && (
+                        <MessagesFabProvider />
+                    )}
                 </SidebarInset>
             </SidebarProvider>
         </NextAuthProvider>

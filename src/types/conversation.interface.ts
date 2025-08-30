@@ -5,7 +5,7 @@ export type IParticipant = {
     image?: string;
     isOnline: boolean;
     lastSeenAt?: Date;
-    role?: "admin" | "support" | "user";
+    role: "admin" | "user";
 };
 
 export type IConversation = {
@@ -14,8 +14,8 @@ export type IConversation = {
     lastMessageAt: Date;
     unread?: number;
     lastMessageText?: string;
-    lastMessageAuthorId?: string;
-    type?: "dm" | "group" | "support";
+    lastMessageAuthorID?: string;
+    type?: string;
     createdAt?: Date;
     updatedAt?: Date;
 };
