@@ -105,7 +105,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                 providesTags: ['Orders'],
             }),
             completeOrder: builder.mutation({
-                query: ({orderID, deliveryLink}) => ({
+                query: ({ orderID, deliveryLink }) => ({
                     url: `orders/complete-order`,
                     method: 'PUT',
                     body: { orderID, deliveryLink },
@@ -153,6 +153,14 @@ export const ordersApi = apiSlice.injectEndpoints({
                 }),
                 invalidatesTags: ['Orders'],
             }),
+            getAllOrdersByUserID: builder.query({
+                query: (userID) => ({
+                    url: 'orders/get-orders-by-user-id',
+                    method: 'GET',
+                    params: { userID },
+                }),
+                providesTags: ['Orders'],
+            }),
         };
     },
 });
@@ -170,4 +178,5 @@ export const {
     useGetOrdersByStatusQuery,
     useGetOrdersByUserIDQuery,
     useSendRevisionMessageMutation,
+    useGetAllOrdersByUserIDQuery,
 } = ordersApi;

@@ -1,6 +1,5 @@
 'use client';
 
-import getLoggedInUser from '@/utils/getLoggedInUser';
 import { useEffect, useMemo, useState } from 'react';
 import ApiError from '../shared/ApiError';
 import { IOrder } from '@/types/order.interface';
@@ -21,9 +20,9 @@ import { format } from 'date-fns';
 import { Download, FileSearch, Loader } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { ISanitizedUser } from '@/types/user.interface';
+import { ISanitizedUser, IUser } from '@/types/user.interface';
 import toast from 'react-hot-toast';
-import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
+import { useGetAllOrdersByUserIDQuery } from '@/redux/features/orders/ordersApi';
 import { IPayment } from '@/types/payment.interface';
 import { useGetPaymentsByUserIDQuery } from '@/redux/features/payments/paymentApi';
 import {
@@ -39,9 +38,10 @@ import { useGetUsersQuery } from '@/redux/features/users/userApi';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import ReactDOMServer from 'react-dom/server';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 export default function RootExportInvoice() {
-    const { user } = getLoggedInUser();
+    const { user } = useLoggedInUser();
     const { userID, role } = user;
 
     const [isPdfDownloading, setPdfDownloading] = useState(false);
@@ -53,6 +53,7 @@ export default function RootExportInvoice() {
     const [selectedOrderIDs, setSelectedOrderIDs] = useState<string[]>([]);
     const [selectAll, setSelectAll] = useState(false);
     const [selectedUserID, setSelectedUserID] = useState<string>('');
+    const [orders, setOrders] = useState([]);
 
     const { data: allUsersData, isLoading: isAllUsersLoading } =
         useGetUsersQuery(role, {
@@ -61,33 +62,37 @@ export default function RootExportInvoice() {
 
     const users = isAllUsersLoading ? [] : allUsersData?.users ?? [];
 
-    const { data, isLoading } = useGetOrdersQuery(
-        role === 'admin' ? { userID: selectedUserID, role } : { userID, role },
-        {
-            skip:
-                (role === 'admin' && selectedUserID.length === 0) ||
-                !userID ||
-                !role,
-        }
-    );
+    const targetUserID = role === 'admin' ? selectedUserID : userID;
 
-    const orders = useMemo(() => {
-        return !isLoading && data
-            ? data.orders.filter(
-                  (order: IOrder) => order.orderStage === 'payment-completed'
-              )
-            : [];
+    const { data, isLoading } = useGetAllOrdersByUserIDQuery(targetUserID, {
+        skip: !targetUserID,
+    });
+
+    console.log(selectedUserID, data);
+
+    useEffect(() => {
+        setOrders(!isLoading && data && data.orders);
     }, [isLoading, data]);
 
+    // Fetch payments for the target user ID
     const { data: paymentsData, isLoading: isPaymentsLoading } =
-        useGetPaymentsByUserIDQuery(selectedUserID, {
-            skip: !selectedUserID,
+        useGetPaymentsByUserIDQuery(targetUserID, {
+            skip: !targetUserID,
         });
 
     const payments = !isPaymentsLoading ? paymentsData?.data || [] : [];
 
     const memoizedOrders = useMemo(() => orders, [orders]);
     const memoizedDateRange = useMemo(() => dateRange, [dateRange]);
+
+    // Reset selections when user changes
+    useEffect(() => {
+        setFilteredOrders([]);
+        setSelectedOrderIDs([]);
+        setOrders([]);
+        setSelectAll(false);
+        setDateRange({ from: undefined, to: undefined });
+    }, [selectedUserID]);
 
     useEffect(() => {
         if (!memoizedOrders) return;
@@ -145,12 +150,14 @@ export default function RootExportInvoice() {
             tempDiv.style.background = 'white';
 
             const client = selectedOrders[0].user;
+            const relatedPayments = payments.filter((p: IPayment) =>
+                selectedOrderIDs.includes(p.orderID)
+            );
+
             const htmlString = ReactDOMServer.renderToStaticMarkup(
                 <MultiOrderInvoiceTemplate
                     orders={selectedOrders}
-                    payments={payments.filter((p: IPayment) =>
-                        selectedOrderIDs.includes(p.orderID)
-                    )}
+                    payments={relatedPayments}
                     client={client}
                 />
             );
@@ -204,20 +211,6 @@ export default function RootExportInvoice() {
                 return;
             }
 
-            const ordersWithoutPayment = selectedOrders.filter(
-                (order) =>
-                    !payments.some(
-                        (payment: IPayment) => payment.orderID === order.orderID
-                    )
-            );
-
-            if (ordersWithoutPayment.length > 0) {
-                toast.error(
-                    'Some selected orders are missing payment information'
-                );
-                return;
-            }
-
             const uniqueClients = new Set(
                 selectedOrders.map((o) => o.user.userID)
             );
@@ -255,10 +248,6 @@ export default function RootExportInvoice() {
                                         value={selectedUserID}
                                         onValueChange={(value) => {
                                             setSelectedUserID(value);
-                                            setDateRange({
-                                                from: undefined,
-                                                to: undefined,
-                                            });
                                         }}
                                     >
                                         <SelectTrigger className="w-full">
@@ -295,6 +284,20 @@ export default function RootExportInvoice() {
                                             )}
                                         </SelectContent>
                                     </Select>
+                                    {selectedUserID && (
+                                        <div className="mt-2">
+                                            <Badge variant="outline">
+                                                Selected:{' '}
+                                                {
+                                                    users.find(
+                                                        (u: IUser) =>
+                                                            u.userID ===
+                                                            selectedUserID
+                                                    )?.name
+                                                }
+                                            </Badge>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -360,7 +363,18 @@ export default function RootExportInvoice() {
                                 <div className="flex flex-col items-center justify-center h-[400px]">
                                     <FileSearch className="h-10 w-10 text-muted-foreground mb-3" />
                                     <h4 className="font-medium text-lg mb-1">
-                                        Select users to view orders
+                                        Select a user to view orders
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground text-center max-w-xs">
+                                        Choose a user from the dropdown above to
+                                        view their orders
+                                    </p>
+                                </div>
+                            ) : isLoading ? (
+                                <div className="flex flex-col items-center justify-center h-[400px]">
+                                    <Loader className="h-10 w-10 text-muted-foreground mb-3 animate-spin" />
+                                    <h4 className="font-medium text-lg mb-1">
+                                        Loading orders...
                                     </h4>
                                 </div>
                             ) : filteredOrders.length > 0 ? (
@@ -463,7 +477,7 @@ export default function RootExportInvoice() {
                                                                 order.user
                                                                     .email}
                                                         </p>
-                                                        <p className="text-sm text-muted-foreground truncate">
+                                                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">
                                                             {order.services
                                                                 .map(
                                                                     (s) =>
@@ -471,12 +485,33 @@ export default function RootExportInvoice() {
                                                                 )
                                                                 .join(', ')}
                                                         </p>
-                                                        <span className="font-medium">
-                                                            $
-                                                            {order.total?.toFixed(
-                                                                2
-                                                            )}
-                                                        </span>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-medium">
+                                                                $
+                                                                {order.total?.toFixed(
+                                                                    2
+                                                                )}
+                                                            </span>
+                                                            <Badge
+                                                                variant={
+                                                                    order.paymentStatus ===
+                                                                    'paid'
+                                                                        ? 'default'
+                                                                        : order.paymentStatus ===
+                                                                          'pending'
+                                                                        ? 'secondary'
+                                                                        : order.paymentStatus ===
+                                                                          'payment-failed'
+                                                                        ? 'destructive'
+                                                                        : 'outline'
+                                                                }
+                                                                className="text-xs"
+                                                            >
+                                                                {
+                                                                    order.paymentStatus
+                                                                }
+                                                            </Badge>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -490,9 +525,11 @@ export default function RootExportInvoice() {
                                         No orders found
                                     </h4>
                                     <p className="text-sm text-muted-foreground text-center max-w-xs">
-                                        {dateRange.from
-                                            ? 'Try adjusting your date range'
-                                            : 'Select a date range to view orders'}
+                                        {targetUserID
+                                            ? dateRange.from
+                                                ? 'No orders found in the selected date range'
+                                                : 'No completed orders found for this user'
+                                            : 'Select a user to view their orders'}
                                     </p>
                                 </div>
                             )}
