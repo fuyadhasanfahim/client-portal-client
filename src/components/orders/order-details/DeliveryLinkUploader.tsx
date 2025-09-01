@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Truck, CheckCircle2 } from 'lucide-react';
+import { Loader2, Truck } from 'lucide-react';
 import ApiError from '@/components/shared/ApiError';
 import { useDeliverOrderMutation } from '@/redux/features/orders/ordersApi';
 import FileUploadField from '@/components/shared/FileUploadField';

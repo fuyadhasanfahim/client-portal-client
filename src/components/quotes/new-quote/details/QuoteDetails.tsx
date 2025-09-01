@@ -56,7 +56,6 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
     });
 
     const router = useRouter();
-    const downloadLink = form.watch('downloadLink');
 
     const [newQuote, { isLoading }] = useNewQuoteMutation();
 

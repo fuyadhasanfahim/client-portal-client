@@ -100,7 +100,6 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         required,
         defaultLink,
         onCompleted,
-        lockAfterSuccess = true,
     } = props;
 
     const DEFAULT_MAX_MB = 150 * 1024; // 150 GB
@@ -580,7 +579,17 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 setBusy(false);
             }
         },
-        [as, maxFileSizeMB, onCompleted, refId, refType, revisionProp, userID]
+        [
+            as,
+            maxFileSizeMB,
+            onCompleted,
+            refId,
+            refType,
+            revisionProp,
+            userID,
+            DEFAULT_MAX_MB,
+            persistFallbackLink,
+        ]
     );
 
     const onDrop = useCallback(

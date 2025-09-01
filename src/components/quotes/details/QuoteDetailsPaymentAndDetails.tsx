@@ -21,7 +21,7 @@ import {
     useReviewQuoteMutation,
 } from '@/redux/features/quotes/quoteApi';
 import { IconPackage } from '@tabler/icons-react';
-import { CheckCircle, Loader2, RefreshCw, Send, Truck } from 'lucide-react';
+import { CheckCircle, Loader2, RefreshCw, Send } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import DeliveryLinkUploader from './DeliveryLinkUploader';
