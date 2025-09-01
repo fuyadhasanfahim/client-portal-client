@@ -105,29 +105,20 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
                     <CardContent className="space-y-6">
                         <FileUploadField
                             label="Assets"
-                            description="Upload your images or paste a download link"
-                            refType="order"
+                            description="Upload files or paste a download link"
+                            refType="quote"
                             refId={quoteID}
-                            userID={user?.userID ?? ''}
+                            userID={user?.userID}
                             as="user"
-                            accept={['image/*', 'application/zip']}
                             multiple
-                            maxFileSizeMB={4096}
+                            maxFileSizeMB={51200}
                             required
-                            defaultLink={downloadLink}
-                            onCompleted={(link: string) => {
-                                form.setValue(
-                                    'downloadLink',
-                                    `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
-                                    {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    }
-                                );
-                                toast.success('Assets link saved.');
-                            }}
-                            onImagesCount={(count: number) => {
-                                form.setValue('images', count, {
+                            defaultLink={
+                                form.watch('downloadLink') || undefined
+                            }
+                            lockAfterSuccess={false}
+                            onCompleted={(url: string) => {
+                                form.setValue('downloadLink',  `${process.env.NEXT_PUBLIC_BASE_URL}/${url}`, {
                                     shouldDirty: true,
                                     shouldValidate: true,
                                 });

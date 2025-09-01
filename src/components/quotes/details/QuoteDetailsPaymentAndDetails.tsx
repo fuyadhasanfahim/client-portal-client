@@ -1,3 +1,5 @@
+'use client';
+
 import ApiError from '@/components/shared/ApiError';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,19 +13,19 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import {
     useCompleteQuoteMutation,
-    useDeliverQuoteMutation,
     useReviewQuoteMutation,
 } from '@/redux/features/quotes/quoteApi';
 import { IconPackage } from '@tabler/icons-react';
 import { CheckCircle, Loader2, RefreshCw, Send, Truck } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import DeliveryLinkUploader from './DeliveryLinkUploader';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 interface QuoteDetailsPaymentAndDetailsProps {
     status: string;
@@ -36,31 +38,16 @@ export default function OrderDetailsPaymentAndDetails({
     quoteID,
     role,
 }: QuoteDetailsPaymentAndDetailsProps) {
-    const [downloadLink, setDownloadLink] = useState<string>('');
+    const { user } = useLoggedInUser();
+    const { userID } = user;
+
     const [instruction, setInstruction] = useState<string>('');
     const [reviewOrComplete, setReviewOrComplete] = useState<string>('');
 
     const [completeOrder, { isLoading: isCompleted }] =
         useCompleteQuoteMutation();
 
-    const [deliverQuote, { isLoading }] = useDeliverQuoteMutation();
     const [reviewQuote, { isLoading: isReviewDone }] = useReviewQuoteMutation();
-
-    const handleDeliverQuote = async () => {
-        try {
-            const response = await deliverQuote({
-                quoteID,
-                downloadLink,
-            }).unwrap();
-
-            if (response.success) {
-                setDownloadLink('');
-                toast.success(response.message);
-            }
-        } catch (error) {
-            ApiError(error);
-        }
-    };
 
     const handleReviewQuote = async () => {
         try {
@@ -74,6 +61,7 @@ export default function OrderDetailsPaymentAndDetails({
                 toast.success(response.data.message);
             }
         } catch (error) {
+            console.log(error);
             ApiError(error);
         }
     };
@@ -106,63 +94,10 @@ export default function OrderDetailsPaymentAndDetails({
                 {/* ✅ ADMIN: Show "Deliver Now" button when status is in-progress or in-revision */}
                 {role === 'admin' &&
                     (status === 'in-progress' || status === 'in-revision') && (
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <div className="flex items-center gap-2">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Processing...
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <Truck className="h-4 w-4" />
-                                            Deliver Now
-                                        </div>
-                                    )}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
-                                <DialogHeader>
-                                    <DialogTitle className="text-lg">
-                                        Add Delivery Details
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        Provide the download link for the
-                                        completed work
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="downloadLink">
-                                            Download Link
-                                        </Label>
-                                        <Input
-                                            id="downloadLink"
-                                            type="url"
-                                            value={downloadLink}
-                                            onChange={(e) =>
-                                                setDownloadLink(e.target.value)
-                                            }
-                                            placeholder="https://example.com/download"
-                                        />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button
-                                            onClick={handleDeliverQuote}
-                                            className="bg-indigo-600 hover:bg-indigo-700"
-                                        >
-                                            Confirm Delivery
-                                        </Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                        <DeliveryLinkUploader
+                            quoteID={quoteID}
+                            userID={userID}
+                        />
                     )}
 
                 {/* ✅ USER: Show feedback only after delivery */}

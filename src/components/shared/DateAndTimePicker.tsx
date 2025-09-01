@@ -32,6 +32,8 @@ export function DateAndTimePicker({
     name: string;
     label: string;
 }) {
+    const [open, setOpen] = React.useState(false);
+
     return (
         <FormField
             control={control}
@@ -42,7 +44,7 @@ export function DateAndTimePicker({
                     <div className="grid grid-cols-2 items-center gap-4">
                         {/* Date Picker */}
                         <div className="flex flex-col gap-2">
-                            <Popover>
+                            <Popover open={open} onOpenChange={setOpen}>
                                 <PopoverTrigger asChild>
                                     <FormControl>
                                         <Button
@@ -85,6 +87,7 @@ export function DateAndTimePicker({
                                                     current.getSeconds()
                                                 );
                                                 field.onChange(newDate);
+                                                setOpen(false);
                                             }
                                         }}
                                         disabled={(date) =>

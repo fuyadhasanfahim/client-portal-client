@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Truck, CheckCircle2 } from 'lucide-react';
+import { Loader2, Truck } from 'lucide-react';
 import ApiError from '@/components/shared/ApiError';
 import FileUploadField from '@/components/shared/FileUploadField';
 import { useDeliverQuoteMutation } from '@/redux/features/quotes/quoteApi';
@@ -26,7 +26,7 @@ type FormValues = {
     images: number;
 };
 
-export default function DeliveryLinkUpLoader2({
+export default function DeliveryLinkUploader({
     quoteID,
     userID,
 }: {
@@ -44,17 +44,16 @@ export default function DeliveryLinkUpLoader2({
     const [deliverQuote, { isLoading }] = useDeliverQuoteMutation();
     const deliveryLink = watch('deliveryLink');
 
-    async function deliverNow(link: string) {
+    async function deliverNow(deliveryLink: string) {
         try {
-            if (!link?.trim()) {
+            if (!deliveryLink?.trim()) {
                 toast.error('Please upload files or paste a link.');
                 return;
             }
 
             const response = await deliverQuote({
                 quoteID,
-                deliveryLink: link,
-                title: deliveryTitle || undefined,
+                deliveryLink,
             }).unwrap();
 
             if ((response as any)?.success) {
@@ -80,9 +79,9 @@ export default function DeliveryLinkUpLoader2({
                 open={deliverDialogOpen}
                 onOpenChange={setDeliverDialogOpen}
             >
-                <DialogTrigger asChild>
+                <DialogTrigger asChild className="w-full">
                     <Button
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white mx-6"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white mx-auto"
                         disabled={isLoading}
                     >
                         {isLoading ? (
@@ -99,7 +98,6 @@ export default function DeliveryLinkUpLoader2({
                     </Button>
                 </DialogTrigger>
 
-                {/* Taller dialog with scroll if content grows */}
                 <DialogContent className="sm:max-w-[680px] max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-lg">
@@ -136,43 +134,26 @@ export default function DeliveryLinkUpLoader2({
                         <div className="rounded-md border p-3">
                             <FileUploadField
                                 label="Assets"
-                                description="Upload your images or paste a download link"
+                                description="Upload files or paste a delivery link"
                                 refType="quote"
                                 refId={quoteID}
-                                userID={userID}
+                                userID={userID ?? ''}
                                 as="admin"
-                                accept={['image/*', 'application/zip']}
                                 multiple
-                                maxFileSizeMB={4096}
+                                maxFileSizeMB={51200}
                                 required
                                 defaultLink={deliveryLink}
-                                onCompleted={(link: string) => {
+                                lockAfterSuccess
+                                onCompleted={(url: string) => {
                                     setValue(
                                         'deliveryLink',
-                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
+                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${url}`,
                                         {
                                             shouldDirty: true,
                                         }
                                     );
-                                    void deliverNow(link);
                                 }}
                             />
-
-                            {/* Preview of what will be sent */}
-                            {deliveryLink ? (
-                                <p className="mt-2 text-xs text-muted-foreground break-all flex items-center gap-1">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    Will send:&nbsp;
-                                    <a
-                                        href={deliveryLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="underline"
-                                    >
-                                        {deliveryLink}
-                                    </a>
-                                </p>
-                            ) : null}
                         </div>
 
                         <DialogFooter className="gap-2">

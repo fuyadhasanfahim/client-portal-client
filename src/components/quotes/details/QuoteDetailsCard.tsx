@@ -7,7 +7,17 @@ import QuoteDetailsPaymentAndDetails from './QuoteDetailsPaymentAndDetails';
 import QuoteDetailsInvoice from './QuoteDetailsInvoice';
 import getLoggedInUser from '@/utils/getLoggedInUser';
 import React from 'react';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { IQuote } from '@/types/quote.interface';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 
 export default function QuoteDetailsCard({ quote }: { quote: IQuote }) {
     const { user } = getLoggedInUser();
@@ -33,6 +43,27 @@ export default function QuoteDetailsCard({ quote }: { quote: IQuote }) {
             </div>
 
             <div className="space-y-6">
+                {quote.details?.deliveryLink && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl">
+                                Delivery Link
+                            </CardTitle>
+                            <CardDescription>
+                                You can now download the images from the link.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Link href={quote.details?.deliveryLink}>
+                                <Button className="w-full">
+                                    <Download />
+                                    Download Now
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {((user.role === 'user' && quote.status === 'delivered') ||
                     (user.role === 'admin' &&
                         quote.status !== 'delivered')) && (

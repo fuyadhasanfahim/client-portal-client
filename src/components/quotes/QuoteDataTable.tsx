@@ -351,7 +351,7 @@ export default function QuoteDataTable({
                                                 quote.quoteStage ===
                                                     'services-selected' && (
                                                     <Link
-                                                        href={`/quotes/details/${quote.quoteID!}`}
+                                                        href={`quotes/new-quote/details/${quote.quoteID!}`}
                                                         className="flex items-center justify-center gap-1 group"
                                                     >
                                                         <ListChecks size={20} />

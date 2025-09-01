@@ -65,10 +65,10 @@ export const quotesApi = apiSlice.injectEndpoints({
                 invalidatesTags: ['Quotes'],
             }),
             deliverQuote: builder.mutation({
-                query: ({ quoteID, downloadLink }) => ({
+                query: ({ quoteID, deliveryLink }) => ({
                     url: 'quotes/deliver-quote',
                     method: 'PUT',
-                    body: { quoteID, downloadLink },
+                    body: { quoteID, deliveryLink },
                 }),
                 invalidatesTags: ['Quotes'],
             }),

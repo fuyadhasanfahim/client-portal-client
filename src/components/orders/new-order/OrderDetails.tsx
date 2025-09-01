@@ -107,20 +107,19 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         <div className="rounded-md border p-3">
                             <FileUploadField
                                 label="Assets"
-                                description="Upload your images or paste a download link"
+                                description="Upload files or paste a download link"
                                 refType="order"
                                 refId={orderID}
-                                userID={user?.userID ?? ''}
+                                userID={user?.userID}
                                 as="user"
-                                accept={['image/*', 'application/zip']}
                                 multiple
-                                maxFileSizeMB={4096}
+                                maxFileSizeMB={51200}
                                 required
                                 defaultLink={form.watch('downloadLink')}
-                                onCompleted={(link: string) => {
+                                onCompleted={(url: string) => {
                                     form.setValue(
                                         'downloadLink',
-                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
+                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${url}`,
                                         {
                                             shouldDirty: true,
                                             shouldValidate: true,
@@ -128,28 +127,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                     );
                                     toast.success('Assets link saved.');
                                 }}
-                                onImagesCount={(count: number) => {
-                                    form.setValue('images', count, {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                }}
                             />
-
-                            {downloadLink && (
-                                <p className="mt-2 text-xs text-green-600 break-all flex items-center gap-1">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    Saved link:&nbsp;
-                                    <a
-                                        href={downloadLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="underline"
-                                    >
-                                        {downloadLink}
-                                    </a>
-                                </p>
-                            )}
                         </div>
 
                         <FormField

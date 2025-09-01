@@ -10,6 +10,16 @@ import getLoggedInUser from '@/utils/getLoggedInUser';
 import React from 'react';
 import OrderDetailsRevisions from './OrderDetailsRevisions';
 import { IRevision } from '@/types/revision.interface';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function OrderDetailsCard({
     order,
@@ -44,6 +54,26 @@ export default function OrderDetailsCard({
             </div>
 
             <div className="space-y-6">
+                {order.details?.deliveryLink && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-2xl">
+                                Delivery Link
+                            </CardTitle>
+                            <CardDescription>
+                                You can now download the images from the link.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Link href={order.details?.deliveryLink}>
+                                <Button className="w-full">
+                                    <Download />
+                                    Download Now
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                )}
                 <OrderDetailsPaymentAndDetails
                     paymentId={order.paymentID}
                     status={order.status}

@@ -74,58 +74,16 @@ export interface FileUploadFieldProps {
     userID: string;
     as: AsWho;
     revision?: number;
-    accept?: string[]; // if omitted, defaults to "all images"
+    accept?: string[]; // omit => any file type
     multiple?: boolean;
-    maxFileSizeMB?: number;
+    maxFileSizeMB?: number; // omit => 150 GB
     required?: boolean;
     defaultLink?: string;
     onCompleted?: (link: string) => void;
-    lockAfterSuccess?: boolean;
-    onImagesCount?: (count: number) => void;
+    lockAfterSuccess?: boolean; // hide controls after a link exists
 }
 
 type Mode = 'upload' | 'link';
-
-// Broad set of image + camera RAW extensions
-const RAW_IMAGE_EXTS = [
-    'jpg',
-    'jpeg',
-    'png',
-    'gif',
-    'bmp',
-    'tif',
-    'tiff',
-    'webp',
-    'svg',
-    'heic',
-    'heif',
-    'avif',
-    'raw',
-    'cr2',
-    'cr3',
-    'nef',
-    'nrw',
-    'arw',
-    'dng',
-    'raf',
-    'rw2',
-    'orf',
-    'srw',
-    'pef',
-    'x3f',
-    'k25',
-    'kdc',
-    'erf',
-    'mos',
-    'mef',
-    'mrw',
-    'sr2',
-    'srf',
-    'rwl',
-    'iiq',
-    '3fr',
-];
-const IMG_RE = new RegExp(`\\.(${RAW_IMAGE_EXTS.join('|')})$`, 'i');
 
 export default function FileUploadField(props: FileUploadFieldProps) {
     const {
@@ -143,10 +101,11 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         defaultLink,
         onCompleted,
         lockAfterSuccess = true,
-        onImagesCount,
     } = props;
 
-    const [mode, setMode] = useState<Mode>('upload');
+    const DEFAULT_MAX_MB = 150 * 1024; // 150 GB
+
+    const [mode, setMode] = useState<Mode>(defaultLink ? 'link' : 'upload');
     const [busy, setBusy] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentLink, setCurrentLink] = useState<string | undefined>(
@@ -154,25 +113,27 @@ export default function FileUploadField(props: FileUploadFieldProps) {
     );
     const [linkInput, setLinkInput] = useState<string>('');
 
+    // keep state in sync if parent changes defaultLink later
+    useEffect(() => {
+        if (defaultLink && defaultLink !== currentLink) {
+            setCurrentLink(defaultLink);
+        }
+    }, [defaultLink]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const totalBytesRef = useRef<number>(0);
     const uploadedBytesRef = useRef<number>(0);
     const abortersRef = useRef<Set<AbortController>>(new Set());
 
-    // Accept: if `accept` not provided, default to ALL images (plus RAW extensions)
     const acceptMap = useMemo(() => {
-        // If user passes an explicit list, honor it
         if (accept && accept.length) {
             const map: Record<string, string[]> = {};
             for (const a of accept) map[a] = [];
             return map;
         }
-        // Default: allow ALL images including RAW (some browsers label RAW as octet-stream but ext will pass)
-        return {
-            'image/*': RAW_IMAGE_EXTS.map((ext) => `.${ext}`),
-        } as Record<string, string[]>;
+        return undefined; // accept anything
     }, [accept]);
 
-    const isLocked = lockAfterSuccess && !!currentLink;
+    const isLocked = !!currentLink;
     const linkKind = as === 'admin' ? 'Delivery link' : 'Download link';
 
     const bytesToSize = (n: number) => {
@@ -181,10 +142,10 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         if (kb < 1024) return `${kb.toFixed(1)} KB`;
         const mb = kb / 1024;
         if (mb < 1024) return `${mb.toFixed(1)} MB`;
-        return `${(mb / 1024).toFixed(1)} GB`;
+        const gb = mb / 1024;
+        if (gb < 1024) return `${gb.toFixed(1)} GB`;
+        return `${(gb / 1024).toFixed(2)} TB`;
     };
-
-    const isImageName = (name: string) => IMG_RE.test(name);
 
     const computeParts = (file: File, partSize: number) => {
         const parts: { start: number; end: number; PartNumber: number }[] = [];
@@ -196,6 +157,14 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         return parts;
     };
 
+    const dynamicPartSize = (fileSize: number, suggested?: number) => {
+        const MIN = 8 * 1024 * 1024; // 8 MB
+        const NICE = 32 * 1024 * 1024; // 32 MB
+        const targetParts = 5000;
+        const byTarget = Math.ceil(fileSize / targetParts);
+        return Math.max(MIN, suggested ?? 0, byTarget, NICE);
+    };
+
     const updateProgress = (deltaBytes: number, total: number) => {
         uploadedBytesRef.current += deltaBytes;
         const pct = Math.floor((uploadedBytesRef.current / total) * 100);
@@ -203,9 +172,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
     };
 
     useEffect(() => {
-        // capture the current Set reference when the effect runs
         const controllers = abortersRef.current;
-
         return () => {
             controllers.forEach((ac) => ac.abort());
             controllers.clear();
@@ -240,24 +207,43 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         throw last;
     };
 
+    const buildFallbackLink = (
+        _as: AsWho,
+        _refType: RefType,
+        _refId: string,
+        batchId: string,
+        revision?: number
+    ) =>
+        _as === 'user'
+            ? `/api/storage/download?refType=${_refType}&refId=${_refId}&uploadedBy=user&batchId=${batchId}`
+            : `/api/storage/download?refType=${_refType}&refId=${_refId}&uploadedBy=admin&revision=${revision}`;
+
+    const persistFallbackLink = async (url: string) => {
+        try {
+            await fetch('/api/storage/set-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refType, refId, as, url }),
+            });
+        } catch {
+            // best-effort
+        }
+    };
+
     const startUpload = useCallback(
         async (selected: File[]) => {
             if (!selected.length) return;
-            if (maxFileSizeMB) {
-                const tooBig = selected.find(
-                    (f) => f.size > maxFileSizeMB * 1024 * 1024
-                );
-                if (tooBig) {
-                    toast.error(`"${tooBig.name}" exceeds ${maxFileSizeMB} MB`);
-                    return;
-                }
-            }
 
-            // Bubble up image count if needed
-            const imgCount = selected.filter(
-                (f) => f.type?.startsWith('image/') || isImageName(f.name)
-            ).length;
-            onImagesCount?.(imgCount);
+            const maxMB = maxFileSizeMB ?? DEFAULT_MAX_MB;
+            const tooBig = selected.find((f) => f.size > maxMB * 1024 * 1024);
+            if (tooBig) {
+                toast.error(
+                    `"${tooBig.name}" exceeds ${bytesToSize(
+                        maxMB * 1024 * 1024
+                    )} limit`
+                );
+                return;
+            }
 
             try {
                 setBusy(true);
@@ -268,11 +254,10 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                     0
                 );
 
-                // Let the server decide the revision when admin (unless provided)
                 let revision =
                     as === 'admin' ? revisionProp ?? undefined : undefined;
 
-                // 1) INIT (mixed-mode: some single, some MPU)
+                // 1) INIT
                 const initRes = await fetch('/api/storage/init', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -294,13 +279,11 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                     revision = initData.revision ?? revision ?? 1;
                 }
 
-                // Helper to upload ONE file, handles both modes
                 const uploadSingleFile = async (
                     file: File,
                     obj: InitObject
                 ) => {
                     if (obj.mode === 'single') {
-                        // single-part PUT (no MPU)
                         const res = await putWithRetry(obj.putUrl, file);
                         if (!res.ok) throw new Error(`PUT ${res.status}`);
                         updateProgress(file.size, totalBytesRef.current);
@@ -316,10 +299,10 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                         };
                     }
 
-                    // MPU path
-                    const partSize = Math.max(
-                        obj.recommendedPartSize ?? 5 * 1024 * 1024,
-                        5 * 1024 * 1024
+                    // MPU
+                    const partSize = dynamicPartSize(
+                        file.size,
+                        (obj as any).recommendedPartSize
                     );
                     const parts = computeParts(file, partSize);
                     const uploadedParts: {
@@ -369,7 +352,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                         updateProgress(chunk.size, totalBytesRef.current);
                     };
 
-                    // Steady promise pool to keep connections saturated
+                    // Promise pool
                     let idx = 0;
                     const inFlight = new Set<Promise<void>>();
                     const startOne = () => {
@@ -407,7 +390,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                     };
                 };
 
-                // 2) Upload — bump file-level concurrency if most are small
+                // 2) Upload with sensible file-level concurrency
                 const smallCount = initData.objects.filter(
                     (o) => o.mode === 'single'
                 ).length;
@@ -416,8 +399,8 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                     ? Math.min(6, selected.length)
                     : Math.min(2, selected.length);
 
-                const completeObjects: CompleteObject[] = []; // for MPU /complete
-                const singleRecorded: SingleRecordedObject[] = []; // for recording singles on server
+                const completeObjects: CompleteObject[] = [];
+                const singleRecorded: SingleRecordedObject[] = [];
 
                 const tasks = selected.map((file, i) => async () => {
                     const obj = initData.objects[i] as InitObject;
@@ -441,7 +424,6 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                             });
                         }
                     } catch (err) {
-                        // Best-effort abort for MPUs only
                         if (obj.mode === 'mpu') {
                             try {
                                 await fetch('/api/storage/abort', {
@@ -460,7 +442,6 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                     }
                 });
 
-                // Simple scheduler for file-level concurrency
                 let cursor = 0;
                 const runners: Promise<void>[] = [];
                 const runNext = async () => {
@@ -473,9 +454,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                     runners.push(runNext());
                 await Promise.all(runners);
 
-                // 3) COMPLETE / RECORD
-                // - Call /complete for MPU files (server finalizes & records)
-                // - Then record singles so links appear in UI (with 404 fallback)
+                // 3) COMPLETE / RECORD with fallbacks
                 let linkFromComplete: string | undefined;
 
                 if (completeObjects.length) {
@@ -493,10 +472,33 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                             objects: completeObjects,
                         }),
                     });
-                    if (!completeRes.ok)
-                        throw new Error('Failed to complete upload');
-                    const data = await completeRes.json();
-                    linkFromComplete = data.link as string | undefined;
+
+                    if (completeRes.ok) {
+                        const data = await completeRes.json();
+                        linkFromComplete = data.link as string | undefined;
+                    } else {
+                        try {
+                            const errTxt = await completeRes.text();
+                            console.warn(
+                                'complete failed:',
+                                completeRes.status,
+                                errTxt
+                            );
+                        } catch {}
+                        const fallbackLink = buildFallbackLink(
+                            as,
+                            refType,
+                            refId,
+                            initData.batchId,
+                            revision
+                        );
+                        await persistFallbackLink(fallbackLink);
+                        linkFromComplete = fallbackLink;
+                        toast(
+                            'Upload completed. Saved a fallback link because the item could not be updated.',
+                            { icon: '⚠️' }
+                        );
+                    }
                 }
 
                 if (singleRecorded.length) {
@@ -511,7 +513,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                             batchId: initData.batchId,
                             s3Prefix: initData.basePrefix,
                             files: singleRecorded,
-                            revision, // include for admin deliveries
+                            revision,
                         }),
                     });
 
@@ -521,21 +523,14 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                             linkFromComplete = data.link;
                         }
                     } else if (res.status === 404) {
-                        // Fallback: synthesize link + persist so UI has something to show
-                        const fallbackLink =
-                            as === 'user'
-                                ? `/api/storage/download?refType=${refType}&refId=${refId}&uploadedBy=user&batchId=${initData.batchId}`
-                                : `/api/storage/download?refType=${refType}&refId=${refId}&uploadedBy=admin&revision=${revision}`;
-                        await fetch('/api/storage/set-link', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                refType,
-                                refId,
-                                as,
-                                url: fallbackLink,
-                            }),
-                        });
+                        const fallbackLink = buildFallbackLink(
+                            as,
+                            refType,
+                            refId,
+                            initData.batchId,
+                            revision
+                        );
+                        await persistFallbackLink(fallbackLink);
                         if (!linkFromComplete) linkFromComplete = fallbackLink;
                     } else {
                         console.warn(
@@ -543,15 +538,38 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                             res.status,
                             res.statusText
                         );
+                        if (!linkFromComplete) {
+                            const fallbackLink = buildFallbackLink(
+                                as,
+                                refType,
+                                refId,
+                                initData.batchId,
+                                revision
+                            );
+                            await persistFallbackLink(fallbackLink);
+                            linkFromComplete = fallbackLink;
+                        }
                     }
                 }
 
                 if (linkFromComplete) {
                     setCurrentLink(linkFromComplete);
+                    setMode('link');
                     toast.success('Files uploaded and link set!');
                     onCompleted?.(linkFromComplete);
                 } else {
-                    toast.success('Files uploaded!');
+                    const fallbackLink = buildFallbackLink(
+                        as,
+                        refType,
+                        refId,
+                        initData.batchId,
+                        revision
+                    );
+                    await persistFallbackLink(fallbackLink);
+                    setCurrentLink(fallbackLink);
+                    setMode('link');
+                    toast.success('Files uploaded and link set (fallback).');
+                    onCompleted?.(fallbackLink);
                 }
 
                 setProgress(100);
@@ -562,19 +580,9 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 setBusy(false);
             }
         },
-        [
-            as,
-            maxFileSizeMB,
-            onCompleted,
-            onImagesCount,
-            refId,
-            refType,
-            revisionProp,
-            userID,
-        ]
+        [as, maxFileSizeMB, onCompleted, refId, refType, revisionProp, userID]
     );
 
-    // Auto-start upload on drop/selection
     const onDrop = useCallback(
         (accepted: File[]) => {
             if (!accepted.length) return;
@@ -611,6 +619,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
             });
             if (!res.ok) throw new Error('Failed to save link');
             setCurrentLink(url);
+            setMode('link');
             toast.success('Link saved!');
             onCompleted?.(url);
         } catch (e: any) {
@@ -620,10 +629,35 @@ export default function FileUploadField(props: FileUploadFieldProps) {
         }
     };
 
-    // === Locked state ===
+    // Saved link panel (shared)
+    const SavedLinkPanel = currentLink ? (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between rounded-lg border p-2">
+                <div className="text-xs break-all flex items-center gap-1 text-green-700">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="font-medium text-nowrap">{linkKind}:</span>
+                    <a
+                        className="underline"
+                        href={currentLink}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        {currentLink}
+                    </a>
+                </div>
+                <Button asChild variant="secondary" size="sm" title="Open link">
+                    <a href={currentLink} target="_blank" rel="noreferrer">
+                        <ExternalLink className="w-4 h-4" />
+                    </a>
+                </Button>
+            </div>
+        </div>
+    ) : null;
+
+    /* ============== LOCKED VIEW (no upload controls) ============== */
     if (isLocked) {
         return (
-            <div className="space-y-2">
+            <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">
                         {label}
@@ -631,52 +665,17 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                             <span className="text-red-500 ml-0.5">*</span>
                         )}
                     </Label>
-                    <span className="text-[11px] rounded-full bg-muted px-2 py-0.5">
-                        {linkKind}
-                    </span>
                 </div>
-
-                <p className="text-xs text-muted-foreground">
-                    The {linkKind.toLowerCase()} has been saved. Uploading is
-                    disabled for this item.
+                {SavedLinkPanel}
+                <p className="text-[11px] text-muted-foreground">
+                    Uploading is disabled because the {linkKind.toLowerCase()}{' '}
+                    is saved.
                 </p>
-
-                {currentLink && (
-                    // Single link row (no duplicate "Saved link" line)
-                    <div className="flex items-center justify-between rounded border p-2">
-                        <div className="text-xs break-all flex items-center gap-1 text-green-700">
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span className="font-medium">{linkKind}:</span>
-                            <a
-                                className="underline"
-                                href={currentLink}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                {currentLink}
-                            </a>
-                        </div>
-                        <Button
-                            asChild
-                            variant="secondary"
-                            size="sm"
-                            title="Open link"
-                        >
-                            <a
-                                href={currentLink}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                            </a>
-                        </Button>
-                    </div>
-                )}
             </div>
         );
     }
 
-    // === Normal state ===
+    /* ============== NORMAL VIEW (controls visible) ============== */
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -707,10 +706,14 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                 </div>
             </div>
 
+            {/* Show saved link even when not locked */}
+            {SavedLinkPanel}
+
             <p className="text-xs text-muted-foreground">
                 {description}{' '}
-                {(!accept || accept.length === 0) &&
-                    '(All image formats supported)'}
+                {accept && accept.length
+                    ? `(Accepted: ${accept.join(', ')})`
+                    : '(Accepted: any file type)'}
             </p>
 
             {mode === 'upload' ? (
@@ -726,6 +729,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                         }`}
                         title={busy ? 'Uploading in progress' : undefined}
                     >
+                        {/* IMPORTANT: native input for react-dropzone */}
                         <input {...getInputProps()} />
                         <div className="flex flex-col items-center justify-center gap-2 text-center">
                             <UploadCloud className="w-6 h-6" />
@@ -736,22 +740,14 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                                     ? 'Drop files here…'
                                     : 'Drag & drop files here, or click to select'}
                             </div>
-                            {maxFileSizeMB ? (
-                                <div className="text-[11px] text-muted-foreground">
-                                    Max per file: {maxFileSizeMB} MB
-                                </div>
-                            ) : null}
-                            {/* If accept was passed explicitly, show it; otherwise note "All images" */}
-                            {accept && accept.length ? (
-                                <div className="text-[11px] text-muted-foreground">
-                                    Accepted: {accept.join(', ')}
-                                </div>
-                            ) : (
-                                <div className="text-[11px] text-muted-foreground">
-                                    Accepted: image/* (+ RAW like .heic, .cr3,
-                                    .nef, .arw, .dng, …)
-                                </div>
-                            )}
+                            <div className="text-[11px] text-muted-foreground">
+                                Max per file:{' '}
+                                {bytesToSize(
+                                    (maxFileSizeMB ?? DEFAULT_MAX_MB) *
+                                        1024 *
+                                        1024
+                                )}
+                            </div>
                         </div>
                     </div>
 

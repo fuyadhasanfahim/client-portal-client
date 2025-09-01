@@ -54,7 +54,6 @@ export default function DeliveryLinkUploader({
             const response = await deliverOrder({
                 orderID,
                 deliveryLink: link,
-                title: deliveryTitle || undefined, // if your API supports it
             }).unwrap();
 
             if ((response as any)?.success) {
@@ -136,42 +135,27 @@ export default function DeliveryLinkUploader({
                         <div className="rounded-md border p-3">
                             <FileUploadField
                                 label="Assets"
-                                description="Upload your images or paste a download link"
+                                description="Upload files or paste a delivery link"
                                 refType="order"
                                 refId={orderID}
-                                userID={userID}
+                                userID={userID ?? ''}
                                 as="admin"
-                                accept={['image/*', 'application/zip']}
                                 multiple
-                                maxFileSizeMB={4096}
+                                maxFileSizeMB={51200}
                                 required
                                 defaultLink={deliveryLink}
-                                onCompleted={(link: string) => {
+                                lockAfterSuccess
+                                onCompleted={(url: string) => {
                                     setValue(
                                         'deliveryLink',
-                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
+                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${url}`,
                                         {
                                             shouldDirty: true,
                                         }
                                     );
-                                    void deliverNow(link);
+                                    void deliverNow(url);
                                 }}
                             />
-
-                            {deliveryLink ? (
-                                <p className="mt-2 text-xs text-muted-foreground break-all flex items-center gap-1">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    Will send:&nbsp;
-                                    <a
-                                        href={deliveryLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="underline"
-                                    >
-                                        {deliveryLink}
-                                    </a>
-                                </p>
-                            ) : null}
                         </div>
 
                         <DialogFooter className="gap-2">
