@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
-import { Copy } from 'lucide-react';
+import { Copy, Loader } from 'lucide-react';
 
 export default function RootInvitation() {
     const { data, isLoading } = useGetServicesQuery({});
@@ -20,10 +19,12 @@ export default function RootInvitation() {
     const [generatedLink, setGeneratedLink] = useState('');
     const [copied, setCopied] = useState(false);
 
+    const services = (!isLoading && data?.data?.services) ?? [];
+
     if (isLoading) {
         return (
             <p className="flex items-center justify-center h-[80vh] w-full">
-                Loading services...
+                <Loader className="animate-spin" />
             </p>
         );
     }
@@ -88,14 +89,14 @@ export default function RootInvitation() {
                 <div>
                     <Label className="mb-2 block">Select Services</Label>
                     <div className="space-y-3 max-h-96 overflow-y-auto border p-3 rounded-md">
-                        {data.data?.map((service: any) => {
+                        {services?.map((service: any) => {
                             const selected = selectedServices.find(
                                 (s) => s.name === service.name
                             );
                             return (
                                 <div
                                     key={service.name}
-                                    className="space-y-2 border-b pb-2"
+                                    className="space-y-2 border-b last:border-none pb-2"
                                 >
                                     <div className="flex items-center space-x-2">
                                         <Checkbox
