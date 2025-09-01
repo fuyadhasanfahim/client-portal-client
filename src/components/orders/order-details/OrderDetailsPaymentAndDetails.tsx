@@ -36,7 +36,7 @@ import { IconPackage } from '@tabler/icons-react';
 import { CheckCircle, CreditCard, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import DeliveryLinkUpLoader2 from './DeliveryLinkUpLoader2';
+import DeliveryLinkUploader from './DeliveryLinkUploader';
 
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
@@ -176,7 +176,7 @@ export default function OrderDetailsPaymentAndDetails({
             </CardContent>
 
             {canDeliver && (
-                <DeliveryLinkUpLoader2 orderID={orderID} userID={userID} />
+                <DeliveryLinkUploader orderID={orderID} userID={userID} />
             )}
 
             {role === 'user' && status === 'delivered' && (

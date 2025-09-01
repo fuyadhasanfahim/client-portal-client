@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
-import { Copy, Loader } from 'lucide-react';
+import { Copy, Loader2 } from 'lucide-react';
 
 export default function RootInvitation() {
     const { data, isLoading } = useGetServicesQuery({});
@@ -24,7 +24,7 @@ export default function RootInvitation() {
     if (isLoading) {
         return (
             <p className="flex items-center justify-center h-[80vh] w-full">
-                <Loader className="animate-spin" />
+                <Loader2 className="animate-spin" />
             </p>
         );
     }

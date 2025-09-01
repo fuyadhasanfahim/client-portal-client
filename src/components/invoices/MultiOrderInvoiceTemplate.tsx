@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { format } from 'date-fns';
@@ -91,7 +92,6 @@ export default function MultiOrderInvoiceTemplate({
         payments?.reduce((sum, p) => sum + Number(p.tax ?? 0), 0) ?? 0;
     const grandTotal = subtotal + totalTax;
 
-    // Make invoice number stable per-day and order count (no random)
     const invoiceNo = `INV-${format(new Date(), 'yyyyMMdd')}-${orders.length
         .toString()
         .padStart(3, '0')}`;
@@ -105,7 +105,6 @@ export default function MultiOrderInvoiceTemplate({
                     alt="Company Logo"
                     className="w-auto h-24"
                 />
-
                 <div className="text-left md:text-right">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-bold text-amber-600 leading-tight">

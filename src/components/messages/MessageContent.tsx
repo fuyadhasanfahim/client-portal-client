@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
@@ -50,6 +50,7 @@ export default function MessageContent({
 
     const [text, setText] = useState('');
     const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
+    console.log(sendMessage);
 
     const doSend = async () => {
         try {

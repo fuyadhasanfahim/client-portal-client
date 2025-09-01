@@ -1,4 +1,4 @@
-import RootInvitation from '@/components/invitation/RootInvitation';
+import RootInvitation from '@/components/clients/invitation/RootInvitation';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

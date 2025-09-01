@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -8,6 +9,8 @@ import {
     type ConversationListItem,
 } from '@/redux/features/conversation/conversationApi';
 import { messageApi, type Message } from '@/redux/features/message/messageApi';
+import { IConversation } from '@/types/conversation.interface';
+import ApiError from '@/components/shared/ApiError';
 
 export type Mode =
     | { kind: 'admin' }
@@ -56,7 +59,7 @@ export function useConversationSocket(socketUrl: string, mode: Mode) {
                             { limit: 50, cursor: null }, // args ignored by serializeQueryArgs
                             (draft) => {
                                 const idx = draft.items.findIndex(
-                                    (c) => c._id === item._id
+                                    (c: IConversation) => c._id === item._id
                                 );
                                 if (idx >= 0)
                                     draft.items[idx] = {
@@ -65,15 +68,15 @@ export function useConversationSocket(socketUrl: string, mode: Mode) {
                                     };
                                 else draft.items.unshift(item);
                                 draft.items.sort(
-                                    (a, b) =>
+                                    (a: any, b: any) =>
                                         new Date(b.lastMessageAt).getTime() -
                                         new Date(a.lastMessageAt).getTime()
                                 );
                             }
                         )
                     );
-                } catch {
-                    // cache might not exist yet; ignore
+                } catch (error) {
+                    ApiError(error)
                 }
             };
 

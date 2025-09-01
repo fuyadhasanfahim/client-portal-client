@@ -20,7 +20,7 @@ export default function MessageSidebar() {
     const pathname = usePathname();
     const [search, setSearch] = useState<string>('');
 
-    const { data, isLoading, isFetching, isError, refetch, error } =
+    const { data, isLoading, isFetching, isError, refetch } =
         useGetConversationsQuery(userID, { skip: !userID });
 
     const conversations = useMemo(() => {
@@ -47,19 +47,11 @@ export default function MessageSidebar() {
         </ul>
     );
 
-    const safeErrorMessage =
-        (error &&
-            typeof error === 'object' &&
-            'data' in (error as any) &&
-            (error as any).data?.message) ||
-        (error &&
-            typeof (error as any).error === 'string' &&
-            (error as any).error) ||
-        'Something went wrong. Please try again.';
-
     const renderError = () => (
         <div className="p-6 text-center">
-            <p className="text-sm text-destructive">{safeErrorMessage}</p>
+            <p className="text-sm text-destructive">
+                Something went wrong. Please try again.
+            </p>
             <Button onClick={() => refetch()}>
                 <RotateCcw className="h-3.5 w-3.5" /> Retry
             </Button>

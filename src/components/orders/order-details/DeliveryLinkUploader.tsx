@@ -26,7 +26,7 @@ type FormValues = {
     images: number;
 };
 
-export default function DeliveryLinkUpLoader2({
+export default function DeliveryLinkUploader({
     orderID,
     userID,
 }: {
