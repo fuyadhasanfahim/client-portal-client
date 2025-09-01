@@ -13,7 +13,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Check, Loader, X } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
@@ -87,7 +87,7 @@ export default function SelectOrderStatus({
             {role && role === 'user' ? (
                 <span className="flex items-center justify-center gap-2">
                     {order.status === 'pending' ? (
-                        <Loader size={16} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                     ) : (
                         (() => {
                             const item = OrderStatusData.find(

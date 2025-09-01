@@ -15,22 +15,21 @@ export type ConversationListItem = {
 
 export const conversationApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        /** GET /conversations/get-conversations (admin) */
-        getConversations: builder.query<
-            { items: ConversationListItem[] },
-            { limit?: number; cursor?: string | null }
-        >({
-            query: ({ limit = 50, cursor = null }) => ({
+        getConversations: builder.query({
+            query: (userID) => ({
                 url: 'conversations/get-conversations',
-                params: { limit, cursor: cursor ?? undefined },
+                params: { userID },
             }),
-            // collapse to a single cache entry regardless of args
-            serializeQueryArgs: () => 'getConversations',
-            transformResponse: (res: { items: ConversationListItem[] }) => res,
-            providesTags: ['ConversationList'],
-            keepUnusedDataFor: 60,
+            providesTags: ['Conversations'],
+        }),
+        getConversation: builder.query({
+            query: (ConversationID) => ({
+                url: `conversations/get-conversation/${ConversationID}`,
+            }),
+            providesTags: ['Conversations'],
         }),
     }),
 });
 
-export const { useGetConversationsQuery } = conversationApi;
+export const { useGetConversationsQuery, useGetConversationQuery } =
+    conversationApi;

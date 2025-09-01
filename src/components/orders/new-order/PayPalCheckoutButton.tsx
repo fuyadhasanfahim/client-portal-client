@@ -87,7 +87,7 @@ export default function PayPalCheckoutButton({
                     paymentMethodID: data.orderID,
                     status: 'paid',
                     amount: order.total ?? 0,
-                    currency: 'USD', 
+                    currency: 'USD',
                 }).unwrap();
 
                 if (paymentResponse?.success) {

@@ -5,7 +5,7 @@ import {
     useGetRevisionsQuery,
 } from '@/redux/features/orders/ordersApi';
 import OrderDetailsCard from './OrderDetailsCard';
-import { Loader } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
@@ -20,10 +20,8 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
         }
     );
 
-    const {
-        data: revisionsData,
-        refetch: refetchRevision,
-    } = useGetRevisionsQuery(orderID, { skip: !orderID });
+    const { data: revisionsData, refetch: refetchRevision } =
+        useGetRevisionsQuery(orderID, { skip: !orderID });
 
     useEffect(() => {
         if (!orderID || !user?.userID) return;
@@ -52,7 +50,7 @@ export default function RootOrderDetails({ orderID }: { orderID: string }) {
     if (!data && !isError && isLoading) {
         return (
             <div className="min-h-[80vh] w-full flex items-center justify-center">
-                <Loader className="size-5 animate-spin" />
+                <Loader2 className="size-5 animate-spin" />
             </div>
         );
     }

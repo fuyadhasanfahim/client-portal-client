@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { CircleCheckBig, Loader } from 'lucide-react';
+import { CircleCheckBig, Loader2 } from 'lucide-react';
 
 export default function OrderPaymentStatus({
     paymentStatus,
@@ -21,7 +21,7 @@ export default function OrderPaymentStatus({
             {paymentStatus === 'paid' ? (
                 <CircleCheckBig size={16} />
             ) : (
-                <Loader size={16} />
+                <Loader2 size={16} />
             )}
             {paymentStatus}
         </div>

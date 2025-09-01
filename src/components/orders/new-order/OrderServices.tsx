@@ -30,7 +30,11 @@ import { ISanitizedUser } from '@/types/user.interface';
 
 export default function OrderServices() {
     const { user } = useLoggedInUser();
-    const { userID, isExistingUser, services: userServices }: ISanitizedUser = user;
+    const {
+        userID,
+        isExistingUser,
+        services: userServices,
+    }: ISanitizedUser = user;
 
     const [selectedServices, setSelectedServices] = useState<
         IOrderServiceSelection[]

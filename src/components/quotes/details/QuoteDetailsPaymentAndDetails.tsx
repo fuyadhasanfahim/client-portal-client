@@ -21,7 +21,7 @@ import {
     useReviewQuoteMutation,
 } from '@/redux/features/quotes/quoteApi';
 import { IconPackage } from '@tabler/icons-react';
-import { CheckCircle, Loader, RefreshCw, Send, Truck } from 'lucide-react';
+import { CheckCircle, Loader2, RefreshCw, Send, Truck } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -114,7 +114,7 @@ export default function OrderDetailsPaymentAndDetails({
                                 >
                                     {isLoading ? (
                                         <div className="flex items-center gap-2">
-                                            <Loader className="h-4 w-4 animate-spin" />
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                             Processing...
                                         </div>
                                     ) : (
@@ -175,7 +175,7 @@ export default function OrderDetailsPaymentAndDetails({
                             >
                                 {isReviewDone || isCompleted ? (
                                     <div className="flex items-center gap-2">
-                                        <Loader className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin" />
                                         Processing...
                                     </div>
                                 ) : (

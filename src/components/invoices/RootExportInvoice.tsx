@@ -17,7 +17,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { format } from 'date-fns';
-import { Download, FileSearch, Loader } from 'lucide-react';
+import { Download, FileSearch, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { ISanitizedUser, IUser } from '@/types/user.interface';
@@ -372,7 +372,7 @@ export default function RootExportInvoice() {
                                 </div>
                             ) : isLoading ? (
                                 <div className="flex flex-col items-center justify-center h-[400px]">
-                                    <Loader className="h-10 w-10 text-muted-foreground mb-3 animate-spin" />
+                                    <Loader2 className="h-10 w-10 text-muted-foreground mb-3 animate-spin" />
                                     <h4 className="font-medium text-lg mb-1">
                                         Loading orders...
                                     </h4>
@@ -419,7 +419,7 @@ export default function RootExportInvoice() {
                                             >
                                                 {isPdfDownloading ? (
                                                     <>
-                                                        <Loader className="h-4 w-4 animate-spin" />
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
                                                         Generating...
                                                     </>
                                                 ) : (

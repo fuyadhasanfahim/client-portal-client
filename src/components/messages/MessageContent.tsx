@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
@@ -10,11 +10,12 @@ import {
     useSendMessageMutation,
     type Message,
 } from '@/redux/features/message/messageApi';
-import { useGetConversationsQuery } from '@/redux/features/conversation/conversationApi';
-import { useConversationSocket } from '@/utils/useConversationSocket';
+import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { Input } from '../ui/input';
 import ApiError from '../shared/ApiError';
+import { Skeleton } from '../ui/skeleton';
+import { IConversation } from '@/types/conversation.interface';
 
 export default function MessageContent({
     conversationID,
@@ -25,29 +26,21 @@ export default function MessageContent({
     const listRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Join the conversation room for realtime updates
-    useConversationSocket(process.env.NEXT_PUBLIC_API_URL ?? '', {
-        kind: 'conversation',
-        conversationID,
-    });
+    const { data: conversationData, isLoading: isConversationLoading } =
+        useGetConversationQuery(conversationID, {
+            skip: !conversationID,
+        });
 
-    // Header info (normalized list item: userName/userEmail/userImage)
-    const { data: convPage } = useGetConversationsQuery({
-        limit: 50,
-        cursor: null,
-    });
-    const conversation = useMemo(
-        () => convPage?.items.find((c) => c._id === conversationID),
-        [convPage?.items, conversationID]
+    const conversation: IConversation =
+        (!isConversationLoading &&
+            conversationData &&
+            conversationData?.conversation) ??
+        [];
+
+    const conversationUser = conversation?.participants?.find(
+        (p) => p.role === 'user'
     );
-    const initials = (conversation?.userName ?? 'User')
-        .split(' ')
-        .map((s) => s[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
 
-    // Messages (single cache for this conversation)
     const { data, isFetching } = useGetMessagesQuery({
         conversationID,
         limit: 50,
@@ -55,82 +48,69 @@ export default function MessageContent({
     });
     const messages: Message[] = data?.items ?? [];
 
-    // Auto-scroll to bottom when new items arrive
-    useEffect(() => {
-        const el = listRef.current;
-        if (!el) return;
-        el.scrollTop = el.scrollHeight;
-    }, [messages.length]);
-
-    // Focus the composer on mount & when convo changes
-    useEffect(() => {
-        // focus after mount/hydration
-        const r = requestAnimationFrame(() => inputRef.current?.focus());
-        return () => cancelAnimationFrame(r);
-    }, [conversationID]);
-
-    // Send message
     const [text, setText] = useState('');
     const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
 
     const doSend = async () => {
         try {
-            const body = text.trim();
-            if (!body) return;
-            setText('');
-            await sendMessage({
-                conversationID,
-                text: body,
-                // authorID: user.userID,
-            }).unwrap();
-            requestAnimationFrame(() => {
-                const el = listRef.current;
-                if (el) el.scrollTop = el.scrollHeight;
-            });
+            console.log('Sending the message');
         } catch (error) {
             ApiError(error);
         } finally {
-            // ensure focus returns to the input after sending
-            requestAnimationFrame(() => inputRef.current?.focus());
         }
     };
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-white">
-            {/* Header */}
             <div className="shrink-0 border-b px-4 py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative">
-                        <Avatar className="h-9 w-9">
-                            <AvatarImage
-                                src={conversation?.userImage}
-                                alt={conversation?.userName}
-                            />
-                            <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                {isConversationLoading ? (
+                    <div className="flex items-center gap-3 min-w-0">
+                        <Skeleton className="h-9 w-9" />
+                        <div className="space-y-2 min-w-0">
+                            <Skeleton className="h-4 w-[200px]" />
+                            <Skeleton className="h-4 w-[230px]" />
+                        </div>
                     </div>
-                    <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">
-                            {conversation?.userName ?? 'User'}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                            {conversation?.userEmail ?? ''}
-                        </p>
+                ) : (
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage
+                                    src={conversationUser?.image}
+                                    alt={conversationUser?.name}
+                                />
+                                <AvatarFallback>
+                                    {conversationUser?.name
+                                        ?.split(' ')
+                                        .map((x) => x[0])
+                                        .join('')}
+                                </AvatarFallback>
+                            </Avatar>
+                            {conversationUser?.isOnline ? (
+                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                            ) : (
+                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-gray-500" />
+                            )}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate">
+                                {conversationUser?.name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                                {conversationUser?.email}
+                            </p>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* Messages */}
             <div
                 ref={listRef}
                 className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3"
             >
                 {messages.map((m) => {
-                    const mine = m.authorID === user.userID; // compare to logged-in admin/user ID
-                    const author = mine
-                        ? 'You'
-                        : conversation?.userName ?? 'User';
+                    const mine = m.authorID === user.userID;
+                    const author = mine ? 'Me' : conversationUser?.name;
                     return (
                         <div
                             key={m._id}

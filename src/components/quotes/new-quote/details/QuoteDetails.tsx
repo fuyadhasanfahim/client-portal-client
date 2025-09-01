@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader, Trash2 } from 'lucide-react';
+import { ArrowRight, Loader2, Trash2 } from 'lucide-react';
 import { useNewQuoteMutation } from '@/redux/features/quotes/quoteApi';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
@@ -471,7 +471,7 @@ export default function QuoteDetails({ quoteID }: { quoteID: string }) {
                         >
                             {isLoading ? 'Loading...' : 'Complete Quote'}
                             {isLoading ? (
-                                <Loader className="animate-spin" />
+                                <Loader2 className="animate-spin" />
                             ) : (
                                 <ArrowRight />
                             )}

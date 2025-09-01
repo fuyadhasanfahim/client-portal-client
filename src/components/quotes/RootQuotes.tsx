@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader, Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import QuoteDataTable from './QuoteDataTable';
 import { useSession } from 'next-auth/react';
@@ -13,7 +13,7 @@ export default function RootQuotes() {
     if (!user) {
         return (
             <div className="h-[80vh] flex items-center justify-center">
-                <Loader className="animate-spin" />
+                <Loader2 className="animate-spin" />
             </div>
         );
     }

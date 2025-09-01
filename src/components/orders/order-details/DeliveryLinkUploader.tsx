@@ -26,7 +26,7 @@ type FormValues = {
     images: number;
 };
 
-export default function DeliveryLinkUploader({
+export default function DeliveryLinkUpLoader2({
     orderID,
     userID,
 }: {
@@ -147,9 +147,13 @@ export default function DeliveryLinkUploader({
                                 required
                                 defaultLink={deliveryLink}
                                 onCompleted={(link: string) => {
-                                    setValue('deliveryLink', `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`, {
-                                        shouldDirty: true,
-                                    });
+                                    setValue(
+                                        'deliveryLink',
+                                        `${process.env.NEXT_PUBLIC_BASE_URL}/${link}`,
+                                        {
+                                            shouldDirty: true,
+                                        }
+                                    );
                                     void deliverNow(link);
                                 }}
                             />

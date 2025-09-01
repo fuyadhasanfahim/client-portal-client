@@ -20,7 +20,7 @@ import {
     CheckCircle2,
     ExternalLink,
     Link,
-    Loader,
+    Loader2,
 } from 'lucide-react';
 
 type RefType = 'order' | 'quote';
@@ -759,7 +759,7 @@ export default function FileUploadField(props: FileUploadFieldProps) {
                         <div className="space-y-2">
                             <Progress value={progress} />
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Loader className="w-3 h-3 animate-spin" />
+                                <Loader2 className="w-3 h-3 animate-spin" />
                                 Uploading… {progress}% (
                                 {bytesToSize(uploadedBytesRef.current)} /{' '}
                                 {bytesToSize(totalBytesRef.current)})

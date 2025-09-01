@@ -109,7 +109,7 @@ export default function InvoiceCard({ quoteID }: { quoteID: string }) {
                 </Button>
             </div>
 
-            <InvoiceTemplate quote={quote}/>
+            <InvoiceTemplate quote={quote} />
         </section>
     );
 }

@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader, Trash2, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Loader2, Trash2, CheckCircle2 } from 'lucide-react';
 import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
 import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
@@ -492,7 +492,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                         >
                             {isLoading ? 'Submitting...' : 'View Prices'}
                             {isLoading ? (
-                                <Loader className="animate-spin" />
+                                <Loader2 className="animate-spin" />
                             ) : (
                                 <ArrowRight />
                             )}

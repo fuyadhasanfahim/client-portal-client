@@ -3,7 +3,7 @@ import {
     CircleDashed,
     CircleQuestionMark,
     CircleX,
-    Loader,
+    Loader2,
     PackageCheck,
 } from 'lucide-react';
 
@@ -11,7 +11,7 @@ export const statusData = [
     {
         id: 1,
         value: 'pending',
-        icon: Loader,
+        icon: Loader2,
         text: '!text-yellow-500',
         border: '!border-yellow-500',
         bg: '!bg-yellow-50',

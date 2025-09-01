@@ -33,10 +33,10 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { IconPackage } from '@tabler/icons-react';
-import { CheckCircle, CreditCard, Loader, Send } from 'lucide-react';
+import { CheckCircle, CreditCard, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import DeliveryLinkUploader from './DeliveryLinkUploader';
+import DeliveryLinkUpLoader2 from './DeliveryLinkUpLoader2';
 
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
@@ -176,7 +176,7 @@ export default function OrderDetailsPaymentAndDetails({
             </CardContent>
 
             {canDeliver && (
-                <DeliveryLinkUploader orderID={orderID} userID={userID} />
+                <DeliveryLinkUpLoader2 orderID={orderID} userID={userID} />
             )}
 
             {role === 'user' && status === 'delivered' && (
@@ -232,7 +232,7 @@ export default function OrderDetailsPaymentAndDetails({
                                         onClick={handleReviewOrder}
                                     >
                                         {isReviewing ? (
-                                            <Loader className="h-4 w-4 animate-spin" />
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                         ) : (
                                             <Send className="h-4 w-4" />
                                         )}
@@ -285,7 +285,7 @@ export default function OrderDetailsPaymentAndDetails({
                                     onClick={handleCompleteOrder}
                                 >
                                     {isCompleting ? (
-                                        <Loader className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <CheckCircle className="h-4 w-4" />
                                     )}
@@ -343,7 +343,7 @@ export default function OrderDetailsPaymentAndDetails({
                                     </EmbeddedCheckoutProvider>
                                 ) : (
                                     <div className="flex h-64 items-center justify-center">
-                                        <Loader className="h-8 w-8 animate-spin text-purple-500" />
+                                        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
                                     </div>
                                 )}
                             </ScrollArea>
