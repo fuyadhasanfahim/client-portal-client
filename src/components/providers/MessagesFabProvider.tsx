@@ -8,6 +8,7 @@ import FloatingMessageButton from '@/components/shared/FloatingMessages/Floating
 import { useLazyStartSupportQuery } from '@/redux/features/support/supportApi';
 import { useSendMessageMutation } from '@/redux/features/message/messageApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import TestMessage from '../message';
 
 /** UI message shape expected by <FloatingMessenger /> */
 type ChatMessage = {
@@ -119,17 +120,23 @@ export default function MessagesFabProvider() {
     const currentUserId = user?.userID ?? 'me';
     const unreadCount = 0;
 
+    const isTestDone = false;
+
     return (
         <>
-            <FloatingMessenger
-                open={open}
-                onOpenChange={setOpen}
-                currentUserId={currentUserId}
-                messages={messages}
-                onSend={handleSend}
-                sending={starting || sending}
-                title="Support"
-            />
+            {!isTestDone ? (
+                <TestMessage open={open} onOpenChange={setOpen} />
+            ) : (
+                <FloatingMessenger
+                    open={open}
+                    onOpenChange={setOpen}
+                    currentUserId={currentUserId}
+                    messages={messages}
+                    onSend={handleSend}
+                    sending={starting || sending}
+                    title="Support"
+                />
+            )}
 
             <FloatingMessageButton
                 isOpen={open}
