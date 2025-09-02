@@ -217,17 +217,21 @@ export default function FileUploadField(props: FileUploadFieldProps) {
             ? `/api/storage/download?refType=${_refType}&refId=${_refId}&uploadedBy=user&batchId=${batchId}`
             : `/api/storage/download?refType=${_refType}&refId=${_refId}&uploadedBy=admin&revision=${revision}`;
 
-    const persistFallbackLink = async (url: string) => {
-        try {
-            await fetch('/api/storage/set-link', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refType, refId, as, url }),
-            });
-        } catch {
-            // best-effort
-        }
-    };
+    // 1) Memoize persistFallbackLink so its identity is stable
+    const persistFallbackLink = useCallback(
+        async (url: string) => {
+            try {
+                await fetch('/api/storage/set-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refType, refId, as, url }),
+                });
+            } catch {
+                // best-effort
+            }
+        },
+        [refType, refId, as] // only things it actually closes over
+    );
 
     const startUpload = useCallback(
         async (selected: File[]) => {
