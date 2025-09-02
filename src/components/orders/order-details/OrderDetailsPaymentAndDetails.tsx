@@ -162,7 +162,13 @@ export default function OrderDetailsPaymentAndDetails({
                 ApiError(err);
             }
         })();
-    }, [newOrderCheckout, paymentStatus, orderID, clientSecret]);
+    }, [
+        newOrderCheckout,
+        paymentStatus,
+        orderID,
+        clientSecret,
+        needsPayLaterCheckout,
+    ]);
 
     return (
         <Card className="max-h-[80vh] ">

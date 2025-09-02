@@ -35,7 +35,6 @@ export default function OrderDetailsServiceList({
     instructions,
     backgroundColor,
     downloadLink,
-    deliveryLink,
 }: OrderDetailsServiceListProps) {
     return (
         <Card>
