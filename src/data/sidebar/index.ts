@@ -8,6 +8,7 @@ import {
     IconReportAnalytics,
     IconServer,
     IconUsers,
+    IconUsersGroup,
 } from '@tabler/icons-react';
 
 export const sidebarItems = [
@@ -51,6 +52,12 @@ export const sidebarItems = [
         title: 'Messages',
         url: '/messages',
         icon: IconMessage,
+        access: ['admin'],
+    },
+    {
+        title: 'Team Members',
+        url: '/team-members',
+        icon: IconUsersGroup,
         access: ['admin'],
     },
     {

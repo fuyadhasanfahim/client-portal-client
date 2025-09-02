@@ -127,7 +127,7 @@ export default function OrderDetailsSummary({ order }: { order: IOrder }) {
                                         {order.details?.deliveryDate &&
                                             format(
                                                 order.details.deliveryDate,
-                                                'PPPp'
+                                                'PPP'
                                             )}
                                     </p>
                                 </div>

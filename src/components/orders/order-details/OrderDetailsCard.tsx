@@ -75,6 +75,7 @@ export default function OrderDetailsCard({
                     </Card>
                 )}
                 <OrderDetailsPaymentAndDetails
+                    orderUser={order.user}
                     paymentId={order.paymentID}
                     status={order.status}
                     total={order.total}
