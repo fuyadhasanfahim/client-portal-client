@@ -37,11 +37,15 @@ import { CheckCircle, CreditCard, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import DeliveryLinkUploader from './DeliveryLinkUploader';
+import useLoggedInUser from '@/utils/getLoggedInUser';
+import { IOrderUser } from '@/types/order.interface';
 
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
+console.log(stripePromise);
 
 interface OrderDetailsPaymentAndDetailsProps {
+    orderUser: IOrderUser;
     status: string;
     total?: number;
     paymentId?: string;
@@ -54,6 +58,7 @@ interface OrderDetailsPaymentAndDetailsProps {
 }
 
 export default function OrderDetailsPaymentAndDetails({
+    orderUser,
     status,
     orderID,
     total,
@@ -64,6 +69,8 @@ export default function OrderDetailsPaymentAndDetails({
     deliveryLink,
     userID,
 }: OrderDetailsPaymentAndDetailsProps) {
+    const { user } = useLoggedInUser();
+
     const [instruction, setInstruction] = useState<string>('');
     const [showPaymentReminder, setShowPaymentReminder] = useState(false);
     const [clientSecret, setClientSecret] = useState('');
@@ -81,9 +88,11 @@ export default function OrderDetailsPaymentAndDetails({
         (status === 'in-progress' || status === 'in-revision');
 
     const needsPayLaterCheckout =
-        role === 'user' &&
+        orderUser.userID === user?.userID &&
         status === 'completed' &&
-        paymentStatus === 'pay-later';
+        (paymentStatus === 'pay-later' || paymentStatus === 'pending');
+
+    console.log(needsPayLaterCheckout);
 
     const totalDisplay = useMemo(
         () => (typeof total === 'number' ? total.toFixed(2) : 'N/A'),
@@ -116,8 +125,9 @@ export default function OrderDetailsPaymentAndDetails({
             if (res.success) {
                 setCompleteDialogOpen(false);
                 toast.success(res.message);
+                window.location.reload();
 
-                if (paymentStatus === 'pay-later' && !paymentId) {
+                if (paymentStatus === 'pay-later') {
                     setShowPaymentReminder(true);
                 }
             }
@@ -127,7 +137,7 @@ export default function OrderDetailsPaymentAndDetails({
     }
 
     useEffect(() => {
-        if (paymentStatus !== 'pay-later') return;
+        if (!needsPayLaterCheckout) return;
         if (!stripePromise) {
             console.warn('Stripe publishable key is missing.');
             return;
@@ -148,6 +158,7 @@ export default function OrderDetailsPaymentAndDetails({
                     toast.error('Could not prepare payment session.');
                 }
             } catch (err) {
+                console.log(err);
                 ApiError(err);
             }
         })();
@@ -163,7 +174,10 @@ export default function OrderDetailsPaymentAndDetails({
             </CardHeader>
 
             <CardContent className="space-y-3 text-sm">
-                <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                <Badge
+                    variant="outline"
+                    className="bg-blue-100 text-blue-800 capitalize"
+                >
                     {status}
                 </Badge>
 
@@ -306,7 +320,7 @@ export default function OrderDetailsPaymentAndDetails({
             )}
 
             {needsPayLaterCheckout && (
-                <CardFooter className="border-t px-6 py-4">
+                <CardFooter className="border-t">
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
