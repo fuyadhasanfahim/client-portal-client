@@ -1,4 +1,3 @@
-import { getUserData } from '@/actions/user.action';
 import RootNewOrderPayment from '@/components/orders/new-order/RootNewOrderPayment';
 import { Metadata } from 'next';
 
@@ -12,12 +11,6 @@ export default async function NewOrderPaymentPage({
     params: Promise<{ orderID: string }>;
 }) {
     const { orderID } = await params;
-    const user = await getUserData();
 
-    return (
-        <RootNewOrderPayment
-            orderID={orderID}
-            userID={user.userID!}
-        />
-    );
+    return <RootNewOrderPayment orderID={orderID} />;
 }

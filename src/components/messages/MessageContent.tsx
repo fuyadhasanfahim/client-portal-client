@@ -23,6 +23,7 @@ export default function MessageContent({
     conversationID: string;
 }) {
     const { user } = useLoggedInUser();
+
     const listRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -81,10 +82,7 @@ export default function MessageContent({
                                     alt={conversationUser?.name}
                                 />
                                 <AvatarFallback>
-                                    {conversationUser?.name
-                                        ?.split(' ')
-                                        .map((x) => x[0])
-                                        .join('')}
+                                    {conversationUser?.name?.charAt(0)}
                                 </AvatarFallback>
                             </Avatar>
                             {conversationUser?.isOnline ? (

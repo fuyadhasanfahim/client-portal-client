@@ -1,6 +1,13 @@
 export type UserRole = 'user' | 'admin';
 export type AuthProvider = 'credentials' | 'google';
 
+export type ITeamPermissions = {
+    viewPrices?: boolean;
+    createOrders?: boolean;
+    exportInvoices?: boolean;
+    viewAllServices?: boolean;
+};
+
 export interface IUser {
     userID: string;
     name: string;
@@ -23,6 +30,9 @@ export interface IUser {
         name: string;
         price: number;
     }[];
+
+    ownerUserID?: string;
+    teamPermissions?: ITeamPermissions;
 
     isEmailVerified: boolean;
     emailVerificationToken?: string;
@@ -59,6 +69,9 @@ export interface ISanitizedUser {
         name: string;
         price: number;
     }[];
+    ownerUserID?: string;
+    teamPermissions?: ITeamPermissions;
+    currency?: string;
     lastLogin: Date;
     image?: string;
     provider: string;

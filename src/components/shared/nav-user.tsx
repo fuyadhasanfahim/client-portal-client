@@ -49,7 +49,7 @@ export function NavUser({
                                     alt={user?.name}
                                 />
                                 <AvatarFallback className="rounded-lg">
-                                    {user.name.charAt(0).toUpperCase()}
+                                    {user.name?.charAt(0)}
                                 </AvatarFallback>
                             </Avatar>
                         </SidebarMenuButton>
@@ -67,7 +67,7 @@ export function NavUser({
                                         alt={user?.name}
                                     />
                                     <AvatarFallback className="rounded-lg">
-                                        {user.name.charAt(0).toUpperCase()}
+                                        {user.name?.charAt(0)}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="grid flex-1 text-left text-sm leading-tight">

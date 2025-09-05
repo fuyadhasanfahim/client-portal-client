@@ -24,6 +24,7 @@ export const authOptions: NextAuthOptions = {
             },
         },
     },
+
     providers: [
         CredentialsProvider({
             name: 'Credentials',
@@ -72,10 +73,15 @@ export const authOptions: NextAuthOptions = {
                         throw new Error('Invalid password.');
                     }
 
+                    // Return enough info for the first jwt() run to hydrate the token quickly.
                     return {
                         id: user.userID,
                         role: user.role!,
-                    };
+                        // map DB ownerID -> JWT ownerUserID (team member marker)
+                        ownerUserID: (user as any).ownerID ?? null,
+                        // team permissions object if present on user doc
+                        permissions: (user as any).permissions ?? {},
+                    } as any;
                 } catch (error) {
                     throw new Error(
                         (error as Error).message ||
@@ -84,13 +90,16 @@ export const authOptions: NextAuthOptions = {
                 }
             },
         }),
+
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         }),
     ],
+
     callbacks: {
         async jwt({ token, user, account }) {
+            // On sign-in (both credentials and Google), set expirations + lastLogin
             if (user && account) {
                 const isRememberMe =
                     account?.type === 'credentials' &&
@@ -102,38 +111,68 @@ export const authOptions: NextAuthOptions = {
 
                 await dbConfig();
                 await UserModel.findOneAndUpdate(
-                    { userID: user.id },
-                    {
-                        lastLogin: new Date(),
-                    }
+                    { userID: (user as any).id },
+                    { lastLogin: new Date() }
                 );
 
-                const now = Math.floor(new Date().getTime() / 1000);
-
+                const now = Math.floor(Date.now() / 1000);
                 token.exp = now + expiresIn;
             }
 
+            // Always ensure token has up-to-date role/ownerUserID/permissions from DB
+            // Prefer 'user' payload if present (first sign-in), otherwise load from DB by token.id/email.
             if (user) {
-                const db = await UserModel.findOne({ userID: user.id });
+                token.id = (user as any).id;
+                token.role = (user as any).role ?? token.role ?? 'user';
+                token.ownerUserID =
+                    (user as any).ownerUserID ?? token.ownerUserID ?? null;
+                token.permissions =
+                    (user as any).permissions ?? token.permissions ?? {};
+            }
 
-                token.id = user.id;
-                token.role = db.role;
+            // If still missing some fields, rehydrate from DB by userID (token.id)
+            if (
+                !token.role ||
+                token.ownerUserID === undefined ||
+                !token.permissions
+            ) {
+                try {
+                    await dbConfig();
+                    const dbUser =
+                        token.id &&
+                        (await UserModel.findOne({ userID: token.id }).lean());
+                    if (dbUser) {
+                        token.role =
+                            (dbUser as any).role ?? token.role ?? 'user';
+                        token.ownerUserID = (dbUser as any).ownerID ?? null;
+                        token.permissions = (dbUser as any).permissions ?? {};
+                    }
+                } catch {
+                    // ignore DB failures here; token just won't have enriched fields
+                }
             }
 
             if (account) {
-                token.accessToken = account.access_token || token.accessToken;
-                token.idToken = account.id_token || token.idToken;
+                token.accessToken =
+                    (account as any).access_token || (token as any).accessToken;
+                (token as any).idToken =
+                    (account as any).id_token || (token as any).idToken;
             }
 
             return token;
         },
+
         async session({ session, token }) {
             if (session.user) {
-                session.user.id = token.id as string;
-                session.user.role = token.role as string;
+                (session.user as any).id = token.id as string;
+                (session.user as any).role = (token.role as string) ?? 'user';
+                (session.user as any).ownerUserID =
+                    (token as any).ownerUserID ?? null;
+                (session.user as any).permissions =
+                    (token as any).permissions ?? {};
             }
 
-            session.accessToken = token.accessToken as string;
+            (session as any).accessToken = (token as any).accessToken as string;
             return session;
         },
 
@@ -161,36 +200,44 @@ export const authOptions: NextAuthOptions = {
                         isEmailVerified: true,
                         image: user?.image,
                         role: 'user',
+                        // ownerID: null, // default for primary accounts
+                        // permissions: {}, // optional default
                     });
 
-                    user.id = newUser.userID;
+                    // Expose the app-specific id for jwt() step
+                    (user as any).id = newUser.userID;
 
                     await ensureSupportConversation(newUser.userID);
 
                     return true;
                 }
 
-                user.id = existingUser.userID;
+                // Existing Google user
+                (user as any).id = existingUser.userID;
 
                 await ensureSupportConversation(existingUser.userID);
 
                 return true;
             }
 
-            if (account?.provider === 'credentials' && user?.id) {
-                await ensureSupportConversation(user.id);
+            // Credentials provider signIn
+            if (account?.provider === 'credentials' && (user as any)?.id) {
+                await ensureSupportConversation((user as any).id);
             }
 
             return true;
         },
     },
+
     pages: {
         signIn: '/sign-in',
         error: '/sign-in',
     },
+
     session: {
         strategy: 'jwt',
         maxAge: 365 * 24 * 60 * 60,
     },
+
     secret: process.env.AUTH_SECRET!,
 };

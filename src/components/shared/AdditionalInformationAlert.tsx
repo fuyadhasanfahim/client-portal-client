@@ -21,6 +21,7 @@ import { useUpdateUserMutation } from '@/redux/features/users/userApi';
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -29,32 +30,76 @@ import {
 import { Input } from '@/components/ui/input';
 import ApiError from './ApiError';
 import { useRouter } from 'next/navigation';
+import useLoggedInUser from '@/utils/getLoggedInUser';
+import { ISanitizedUser } from '@/types/user.interface';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select';
 
 const formSchema = z.object({
     address: z.string().nonempty('Address is required'),
     phone: z.string().nonempty('Phone is required'),
+    currency: z.string().nonempty('Currency is required'),
     company: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function AdditionalInformationAlert({
-    userID,
-    userPhone,
-    userAddress,
-    userCompany,
-}: {
-    userID: string;
-    userPhone: string | null | undefined;
-    userCompany: string | null | undefined;
-    userAddress: string | null | undefined;
-}) {
+const currencies = {
+    USD: { name: 'US Dollar', symbol: '$', label: 'USD — US Dollar ($)' },
+    EUR: { name: 'Euro', symbol: '€', label: 'EUR — Euro (€)' },
+    GBP: {
+        name: 'British Pound',
+        symbol: '£',
+        label: 'GBP — British Pound (£)',
+    },
+    JPY: { name: 'Japanese Yen', symbol: '¥', label: 'JPY — Japanese Yen (¥)' },
+    AUD: {
+        name: 'Australian Dollar',
+        symbol: '$',
+        label: 'AUD — Australian Dollar ($)',
+    },
+    CAD: {
+        name: 'Canadian Dollar',
+        symbol: '$',
+        label: 'CAD — Canadian Dollar ($)',
+    },
+    CHF: { name: 'Swiss Franc', symbol: 'Fr', label: 'CHF — Swiss Franc (Fr)' },
+    CNY: { name: 'Chinese Yuan', symbol: '¥', label: 'CNY — Chinese Yuan (¥)' },
+    HKD: {
+        name: 'Hong Kong Dollar',
+        symbol: '$',
+        label: 'HKD — Hong Kong Dollar ($)',
+    },
+    SGD: {
+        name: 'Singapore Dollar',
+        symbol: '$',
+        label: 'SGD — Singapore Dollar ($)',
+    },
+    BRL: {
+        name: 'Brazilian Real',
+        symbol: 'R$',
+        label: 'BRL — Brazilian Real (R$)',
+    },
+    MXN: { name: 'Mexican Peso', symbol: '$', label: 'MXN — Mexican Peso ($)' },
+};
+
+export default function AdditionalInformationAlert() {
+    const { user } = useLoggedInUser();
+    const { userID, address, phone, company, currency } =
+        user as ISanitizedUser;
+
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            address: userAddress || '',
-            phone: userPhone || '',
-            company: userCompany || '',
+            address: address || '',
+            phone: phone || '',
+            company: company || '',
+            currency: currency || '',
         },
     });
 
@@ -64,11 +109,12 @@ export default function AdditionalInformationAlert({
 
     const onSubmit = async (data: FormData) => {
         if (
-            data.address === (userAddress || '') &&
-            data.phone === (userPhone || '') &&
-            data.company === (userCompany || '')
+            data.address === (address || '') &&
+            data.phone === (phone || '') &&
+            data.company === (company || '') &&
+            data.currency === (currency || '')
         ) {
-            toast('No changes detected.');
+            toast.error('No changes detected.');
             return;
         }
 
@@ -81,7 +127,7 @@ export default function AdditionalInformationAlert({
             if (response.success) {
                 toast.success(response.message);
                 form.reset();
-                router.refresh();
+                window.location.reload();
             } else {
                 toast.error('Something went wrong! Please try again later.');
             }
@@ -93,14 +139,14 @@ export default function AdditionalInformationAlert({
     return (
         <div className="w-full h-[calc(100vh-200px)]">
             <div className="flex flex-col gap-3 items-center justify-center h-full">
-                <p className="text-destructive text-center text-sm max-w-sm">
-                    You haven&apos;t set up your address yet. Please update it
-                    to access your orders and invoices.
+                <p className="text-destructive text-center max-w-sm">
+                    We need some more information about you. Please be patient
+                    and give the required information.
                 </p>
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button variant="outline">
-                            <Edit2 className="mr-2 h-4 w-4" />
+                        <Button size={'lg'} variant="secondary">
+                            <Edit2 />
                             Update
                         </Button>
                     </DialogTrigger>
@@ -127,8 +173,7 @@ export default function AdditionalInformationAlert({
                                                 <Input
                                                     placeholder="Enter your address"
                                                     disabled={
-                                                        !!userAddress ||
-                                                        isLoading
+                                                        !!address || isLoading
                                                     }
                                                     {...field}
                                                 />
@@ -148,7 +193,7 @@ export default function AdditionalInformationAlert({
                                                     placeholder="Enter your phone"
                                                     type="tel"
                                                     disabled={
-                                                        !!userPhone || isLoading
+                                                        !!phone || isLoading
                                                     }
                                                     {...field}
                                                 />
@@ -157,6 +202,45 @@ export default function AdditionalInformationAlert({
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="currency"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Select Currency
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue placeholder="Select a currency" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {Object.entries(
+                                                        currencies
+                                                    ).map(([code, c]) => (
+                                                        <SelectItem
+                                                            key={code}
+                                                            value={code}
+                                                        >
+                                                            {c.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormDescription>
+                                                We’ll save the ISO code (e.g.,
+                                                USD, EUR).
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
                                 <FormField
                                     control={form.control}
                                     name="company"
@@ -169,8 +253,7 @@ export default function AdditionalInformationAlert({
                                                 <Input
                                                     placeholder="Enter your company name"
                                                     disabled={
-                                                        !!userCompany ||
-                                                        isLoading
+                                                        !!company || isLoading
                                                     }
                                                     {...field}
                                                 />

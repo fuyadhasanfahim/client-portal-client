@@ -37,6 +37,7 @@ import OrderStats from './OrderStats';
 import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
 import { socket } from '@/lib/socket';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -47,13 +48,10 @@ const sortOptions = [
     { value: 'status-desc', label: 'Status (Z-A)' },
 ];
 
-export default function OrderDataTable({
-    role,
-    id,
-}: {
-    role: string;
-    id: string;
-}) {
+export default function OrderDataTable() {
+    const { user } = useLoggedInUser();
+    const { userID, role } = user;
+
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
@@ -64,7 +62,7 @@ export default function OrderDataTable({
 
     const { data, isLoading, refetch } = useGetOrdersQuery(
         {
-            userID: id,
+            userID,
             role,
             search: searchQuery,
             page: currentPage,
@@ -74,7 +72,7 @@ export default function OrderDataTable({
             order: sortOrder,
         },
         {
-            skip: !id || !role,
+            skip: !userID || !role,
         }
     );
 

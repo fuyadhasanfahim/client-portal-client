@@ -1,3 +1,4 @@
+// data/sidebar.ts
 import {
     IconBrandMinecraft,
     IconDashboard,
@@ -11,7 +12,23 @@ import {
     IconUsersGroup,
 } from '@tabler/icons-react';
 
-export const sidebarItems = [
+export type UserRole = 'admin' | 'user';
+export type TeamPermKey =
+    | 'viewPrices'
+    | 'createOrders'
+    | 'exportInvoices'
+    | 'viewAllServices';
+
+export type SidebarItem = {
+    title: string;
+    url: string;
+    icon: any;
+    access: UserRole[];
+    hideForTeamMember?: boolean;
+    requireTeamPerm?: TeamPermKey | TeamPermKey[];
+};
+
+export const sidebarItems: SidebarItem[] = [
     {
         title: 'Dashboard',
         url: '/dashboard',
@@ -23,6 +40,7 @@ export const sidebarItems = [
         url: '/orders',
         icon: IconPackage,
         access: ['admin', 'user'],
+        requireTeamPerm: 'createOrders',
     },
     {
         title: 'Quotes',
@@ -58,13 +76,15 @@ export const sidebarItems = [
         title: 'Team Members',
         url: '/team-members',
         icon: IconUsersGroup,
-        access: ['admin'],
+        access: ['admin', 'user'],
+        hideForTeamMember: true,
     },
     {
         title: 'Invoices',
         url: '/invoices',
         icon: IconFileInvoice,
         access: ['admin', 'user'],
+        requireTeamPerm: 'exportInvoices',
     },
     {
         title: 'Reports',

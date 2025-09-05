@@ -1,6 +1,8 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import getAccessibleRoutes from './utils/getAccessibleRoutes';
+import getAccessibleRoutes, {
+    TeamPermissions,
+} from './utils/getAccessibleRoutes';
 
 export default withAuth(
     async function middleware(req) {
@@ -14,6 +16,7 @@ export default withAuth(
             pathname.startsWith('/forgot-password') ||
             pathname.startsWith('/reset-password') ||
             pathname.startsWith('/invitation-form') ||
+            pathname.startsWith('/invite-team-member') ||
             pathname.startsWith('/api/auth');
 
         if ((isAuthenticated && isAuthPage) || pathname === '/') {
@@ -30,8 +33,13 @@ export default withAuth(
 
         const hasAccess = await getAccessibleRoutes({
             pathname,
-            role: user?.role as string,
+            role: user.role as 'admin' | 'user',
+            ownerUserID: user.ownerUserID ? (user.ownerUserID as string) : null,
+            permissions: user.permissions
+                ? (user.permissions as TeamPermissions)
+                : undefined,
         });
+
         if (hasAccess === false) {
             return NextResponse.redirect(new URL('/dashboard', req.url));
         }

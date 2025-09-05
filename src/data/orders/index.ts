@@ -48,9 +48,9 @@ export const statusData = [
         id: 5,
         value: 'completed',
         icon: CircleCheckBig,
-        text: '!text-orange-500',
-        border: '!border-orange-500',
-        bg: '!bg-orange-50',
+        text: '!text-green-500',
+        border: '!border-green-500',
+        bg: '!bg-green-50',
         accessibleTo: ['user'],
     },
     {

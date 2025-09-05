@@ -23,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 interface INotification {
     _id: string;
@@ -57,11 +58,9 @@ const mergeUniqueById = (prev: INotification[], next: INotification[]) => {
     return merged;
 };
 
-export function SiteHeader({
-    user,
-}: {
-    user: { id: string; name: string; email: string; image?: string };
-}) {
+export function SiteHeader() {
+    const { user } = useLoggedInUser();
+
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [page, setPage] = useState(1);
@@ -70,8 +69,8 @@ export function SiteHeader({
     const [items, setItems] = useState<INotification[]>([]);
 
     const { data, isLoading, refetch, isFetching } = useGetNotificationsQuery(
-        { userID: user.id, page, limit },
-        { skip: !user.id }
+        { userID: user.userID, page, limit },
+        { skip: !user.userID }
     );
 
     const [updateNotification, { isLoading: isUpdating }] =
@@ -83,7 +82,7 @@ export function SiteHeader({
         if (!user?.id) return;
 
         socket.connect();
-        socket.on('connect', () => socket.emit('join-user-room', user.id));
+        socket.on('connect', () => socket.emit('join-user-room', user.userID));
         socket.on('new-notification', () => {
             setPage(1);
             setItems([]);
@@ -161,7 +160,7 @@ export function SiteHeader({
     const handleMarkAll = async () => {
         if (unreadCount === 0) return;
         try {
-            await markAllNotificationsAsRead(user.id).unwrap();
+            await markAllNotificationsAsRead(user.userID).unwrap();
             setItems((prev) => prev.map((n) => ({ ...n, read: true })));
         } catch (error) {
             ApiError(error);
@@ -320,7 +319,6 @@ export function SiteHeader({
                                             </DropdownMenuItem>
                                         ))}
 
-                                        {/* Load more */}
                                         {hasMore && (
                                             <div className="p-2">
                                                 <Button

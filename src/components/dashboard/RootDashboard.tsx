@@ -361,7 +361,6 @@ export default function RootDashboard() {
                                 'Services',
                                 'Total ($)',
                                 'Payment ($)',
-                                'Working Status',
                                 'Order Status',
                                 'Actions',
                             ].map((title, idx) => (
@@ -485,24 +484,6 @@ export default function RootDashboard() {
                                                         order.paymentStatus
                                                     }
                                                 />
-                                            </TableCell>
-                                            <TableCell className="text-center text-sm border-r">
-                                                <span
-                                                    className={cn(
-                                                        'flex items-center justify-center gap-1',
-                                                        item && item.text
-                                                    )}
-                                                >
-                                                    {item ? (
-                                                        <item.icon
-                                                            size={16}
-                                                            className={cn(
-                                                                item.text
-                                                            )}
-                                                        />
-                                                    ) : null}
-                                                    {order.status}
-                                                </span>
                                             </TableCell>
                                             <TableCell
                                                 className={cn(

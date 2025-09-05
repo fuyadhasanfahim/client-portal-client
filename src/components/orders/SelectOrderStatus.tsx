@@ -2,7 +2,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { OrderStatusData } from '@/data/orders';
+import { OrderStatusData, statusData } from '@/data/orders';
 import { IOrder } from '@/types/order.interface';
 import { Button } from '../ui/button';
 import { useUpdateOrderMutation } from '@/redux/features/orders/ordersApi';
@@ -33,7 +33,7 @@ export default function SelectOrderStatus({
 }: SelectOrderStatusProps) {
     const { user } = useLoggedInUser();
 
-    const item = OrderStatusData.find((item) => item.value === order.status);
+    const item = statusData.find((item) => item.value === order.status);
     const [updateOrder, { isLoading }] = useUpdateOrderMutation();
 
     const handleOrderStatusChange = async ({
@@ -146,7 +146,7 @@ export default function SelectOrderStatus({
             ) : (
                 <span
                     className={cn(
-                        'flex items-center justify-center gap-1',
+                        'flex items-center justify-center gap-1 capitalize',
                         item && item.text
                     )}
                 >

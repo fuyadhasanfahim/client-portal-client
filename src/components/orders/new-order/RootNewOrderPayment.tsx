@@ -25,6 +25,7 @@ import PayPalCheckoutButton from './PayPalCheckoutButton';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Button } from '@/components/ui/button';
 import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
 const PAYMENT_OPTIONS = [
     {
@@ -53,13 +54,9 @@ const stripePromise = loadStripe(
 
 type PaymentOption = (typeof PAYMENT_OPTIONS)[number]['value'];
 
-export default function RootNewOrderPayment({
-    orderID,
-    userID,
-}: {
-    orderID: string;
-    userID: string;
-}) {
+export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
+    const { user } = useLoggedInUser();
+    const { userID } = user;
     const router = useRouter();
 
     const { data: orderData, isLoading: isOrderLoading } =

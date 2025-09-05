@@ -1,12 +1,9 @@
-import { getUserData } from '@/actions/user.action';
 import ClientDataTable from './ClientDataTable';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Plus } from 'lucide-react';
 
 export default async function RootCLients() {
-    const user = await getUserData();
-
     return (
         <section className="space-y-4">
             <div className="flex flex-1/2 items-center justify-between gap-6 flex-wrap">
@@ -22,7 +19,7 @@ export default async function RootCLients() {
                 </Link>
             </div>
 
-            <ClientDataTable id={user.userID} />
+            <ClientDataTable />
         </section>
     );
 }

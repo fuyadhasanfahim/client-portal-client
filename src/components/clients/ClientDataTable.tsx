@@ -23,8 +23,12 @@ import { useGetClientsQuery } from '@/redux/features/users/userApi';
 import Link from 'next/link';
 import { ISanitizedUser } from '@/types/user.interface';
 import { format } from 'date-fns';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
-export default function ClientDataTable({ id }: { id: string }) {
+export default function ClientDataTable() {
+    const { user } = useLoggedInUser();
+    const { userID } = user;
+
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
@@ -38,10 +42,10 @@ export default function ClientDataTable({ id }: { id: string }) {
             limit,
             sortBy,
             sortOrder,
-            userID: id,
+            userID: userID,
         },
         {
-            skip: !id,
+            skip: !userID,
         }
     );
 

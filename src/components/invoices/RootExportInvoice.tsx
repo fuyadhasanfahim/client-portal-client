@@ -271,7 +271,7 @@ export default function RootExportInvoice() {
                                                                     }
                                                                 />
                                                                 <AvatarFallback>
-                                                                    {user.name.charAt(
+                                                                    {user.name?.charAt(
                                                                         0
                                                                     )}
                                                                 </AvatarFallback>

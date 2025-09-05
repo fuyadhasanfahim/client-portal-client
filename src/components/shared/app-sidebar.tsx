@@ -13,19 +13,10 @@ import {
 import { sidebarItems } from '@/data/sidebar';
 import Link from 'next/link';
 import Image from 'next/image';
+import useLoggedInUser from '@/utils/getLoggedInUser';
 
-export function AppSidebar(
-    props: React.ComponentProps<typeof Sidebar> & {
-        user: {
-            id: string;
-            name: string;
-            email: string;
-            image?: string;
-            role: string;
-        };
-    }
-) {
-    const { user } = props;
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+    const { user } = useLoggedInUser();
 
     return (
         <Sidebar collapsible="offcanvas" {...props}>

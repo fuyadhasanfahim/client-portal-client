@@ -138,11 +138,13 @@ export default function MessagesFabProvider() {
                 />
             )}
 
-            <FloatingMessageButton
-                isOpen={open}
-                onToggle={() => setOpen((v) => !v)}
-                unreadCount={unreadCount}
-            />
+            {user && user.role === 'user' && (
+                <FloatingMessageButton
+                    isOpen={open}
+                    onToggle={() => setOpen((v) => !v)}
+                    unreadCount={unreadCount}
+                />
+            )}
         </>
     );
 }
