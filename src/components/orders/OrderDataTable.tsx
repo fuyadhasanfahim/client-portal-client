@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Search,
     ChevronLeft,
@@ -126,6 +126,29 @@ export default function OrderDataTable() {
         setCurrentPage(1);
     };
 
+    const tableColumns = useMemo(
+        () =>
+            canViewPrices
+                ? [
+                      'Order ID',
+                      'Client',
+                      'Services',
+                      'Total ($)',
+                      'Payment ($)',
+                      'Order Status',
+                      'Actions',
+                  ]
+                : [
+                      'Order ID',
+                      'Client',
+                      'Services',
+                      'Payment ($)',
+                      'Order Status',
+                      'Actions',
+                  ],
+        [canViewPrices]
+    );
+
     return (
         <div className="space-y-6 animate-fadeIn">
             <OrderStats orders={data?.orders} isLoading={isLoading} />
@@ -233,31 +256,14 @@ export default function OrderDataTable() {
                 <Table>
                     <TableHeader className="bg-accent text-primary-foreground">
                         <TableRow>
-                            {canViewPrices
-                                ? [
-                                      'Order ID',
-                                      'Client',
-                                      'Services',
-                                      'Total ($)',
-                                      'Payment ($)',
-                                      'Order Status',
-                                      'Actions',
-                                  ]
-                                : [
-                                      'Order ID',
-                                      'Client',
-                                      'Services',
-                                      'Payment ($)',
-                                      'Order Status',
-                                      'Actions',
-                                  ].map((title, idx) => (
-                                      <TableHead
-                                          key={idx}
-                                          className="text-center font-semibold border-r last:border-r-0"
-                                      >
-                                          {title}
-                                      </TableHead>
-                                  ))}
+                            {tableColumns.map((title, idx) => (
+                                <TableHead
+                                    key={idx}
+                                    className="text-center font-semibold border-r last:border-r-0"
+                                >
+                                    {title}
+                                </TableHead>
+                            ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>

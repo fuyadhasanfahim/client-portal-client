@@ -250,6 +250,29 @@ export default function RootDashboard() {
         );
     }, [isLoading, data, chartDateRange]);
 
+    const tableColumns = useMemo(
+        () =>
+            canViewPrices
+                ? [
+                      'Order ID',
+                      'Client',
+                      'Services',
+                      'Total ($)',
+                      'Payment ($)',
+                      'Order Status',
+                      'Actions',
+                  ]
+                : [
+                      'Order ID',
+                      'Client',
+                      'Services',
+                      'Payment ($)',
+                      'Order Status',
+                      'Actions',
+                  ],
+        [canViewPrices]
+    );
+
     return (
         <section className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -370,31 +393,14 @@ export default function RootDashboard() {
                 <Table>
                     <TableHeader className="bg-accent text-primary-foreground">
                         <TableRow>
-                            {canViewPrices
-                                ? [
-                                      'Order ID',
-                                      'Client',
-                                      'Services',
-                                      'Total ($)',
-                                      'Payment ($)',
-                                      'Order Status',
-                                      'Actions',
-                                  ]
-                                : [
-                                      'Order ID',
-                                      'Client',
-                                      'Services',
-                                      'Payment ($)',
-                                      'Order Status',
-                                      'Actions',
-                                  ].map((title, idx) => (
-                                      <TableHead
-                                          key={idx}
-                                          className="text-center font-semibold border-r last:border-r-0"
-                                      >
-                                          {title}
-                                      </TableHead>
-                                  ))}
+                            {tableColumns.map((title, idx) => (
+                                <TableHead
+                                    key={idx}
+                                    className="text-center font-semibold border-r last:border-r-0"
+                                >
+                                    {title}
+                                </TableHead>
+                            ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>

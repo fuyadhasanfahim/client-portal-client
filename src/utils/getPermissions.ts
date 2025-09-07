@@ -11,9 +11,29 @@ export function getTeamPermissions(userData: ISanitizedUser) {
 export function getEffectivePermissions(userData: ISanitizedUser) {
     if (!userData) return undefined;
 
-    if (userData.isTeamMember) {
+    if (userData.role === 'admin') {
+        return {
+            viewPrices: true,
+            createOrders: true,
+            exportInvoices: true,
+        };
+    }
+
+    if (userData.role === 'user' && userData.isTeamMember === false) {
+        return {
+            viewPrices: true,
+            createOrders: true,
+            exportInvoices: true,
+        };
+    }
+
+    if (userData.role === 'user' && userData.isTeamMember === true) {
         return getTeamPermissions(userData);
     }
 
-    return undefined;
+    return {
+        viewPrices: false,
+        createOrders: false,
+        exportInvoices: false,
+    };
 }
