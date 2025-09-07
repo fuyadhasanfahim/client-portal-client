@@ -55,7 +55,6 @@ export default function OrderDataTable() {
     const perms = getEffectivePermissions(userData);
 
     const canViewPrices = perms?.viewPrices;
-    const canExportInvoices = perms?.exportInvoices;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('all');

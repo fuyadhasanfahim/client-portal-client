@@ -2,9 +2,9 @@ import { authOptions } from '@/lib/auth';
 import UserModel from '@/models/user.model';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const session = await getServerSession(authOptions);
 

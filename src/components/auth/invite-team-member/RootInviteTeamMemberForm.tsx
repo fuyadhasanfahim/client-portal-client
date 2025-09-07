@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -83,7 +82,7 @@ export default function RootInviteTeamMemberForm() {
         return parsedServices
             .map((s) => (s.price != null ? `${s.name} — $${s.price}` : s.name))
             .join(', ');
-    }, [parsedServices, parsedPermissions, rawServices]);
+    }, [parsedServices]);
 
     const [isLoading, setIsLoading] = useState(false);
 

@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import getAccessibleRoutes from './utils/getAccessibleRoutes';
-import { TeamPermissions } from './next-auth';
 
 export default withAuth(
     async function middleware(req) {

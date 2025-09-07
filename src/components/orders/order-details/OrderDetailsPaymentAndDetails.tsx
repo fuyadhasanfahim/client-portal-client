@@ -34,7 +34,7 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import { IconPackage } from '@tabler/icons-react';
 import { CheckCircle, CreditCard, Loader2, Send } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import DeliveryLinkUploader from './DeliveryLinkUploader';
 import useLoggedInUser from '@/utils/getLoggedInUser';

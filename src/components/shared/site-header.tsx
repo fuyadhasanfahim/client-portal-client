@@ -79,7 +79,7 @@ export function SiteHeader() {
         useMarkAllNotificationsAsReadMutation();
 
     useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.userID) return;
 
         socket.connect();
         socket.on('connect', () => socket.emit('join-user-room', user.userID));
@@ -93,7 +93,7 @@ export function SiteHeader() {
             socket.off('new-notification');
             socket.disconnect();
         };
-    }, [user?.id, refetch]);
+    }, [user?.userID, refetch]);
 
     useEffect(() => {
         if (open) {

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,7 +40,9 @@ export default function RootTeamMemberDetails({ id }: { id: string }) {
         exportInvoices: false,
     });
 
-    const services: TCatalog[] = servicesData?.data?.services ?? [];
+    const services: TCatalog[] = useMemo(() => {
+        return servicesData?.data?.services ?? [];
+    }, [servicesData?.data?.services]);
 
     useEffect(() => {
         if (userData?.data) {

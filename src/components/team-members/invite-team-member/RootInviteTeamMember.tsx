@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -33,7 +32,6 @@ export default function RootInviteTeamMember() {
     const { user, isLoading: isUserDataLoading } = useLoggedInUser();
     const { data, isLoading } = useGetServicesQuery({});
 
-    // Merge services: priority -> user.services > api.services
     const services = useMemo<TService[]>(() => {
         if (isUserDataLoading || isLoading) return [];
 

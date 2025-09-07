@@ -6,7 +6,6 @@ import {
     Mail,
     Package,
     Package2,
-    PackageMinus,
     PackageOpen,
     ServerIcon,
     Users,
