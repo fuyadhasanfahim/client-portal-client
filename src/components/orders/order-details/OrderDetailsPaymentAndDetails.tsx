@@ -42,12 +42,12 @@ import { IOrderUser } from '@/types/order.interface';
 
 const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = pk ? loadStripe(pk) : null;
-console.log(stripePromise);
 
 interface OrderDetailsPaymentAndDetailsProps {
     orderUser: IOrderUser;
+    isTeamMember?: boolean;
     status: string;
-    total?: number;
+    total?: number | string;
     paymentId?: string;
     paymentStatus?: string;
     role: string;
@@ -59,6 +59,7 @@ interface OrderDetailsPaymentAndDetailsProps {
 
 export default function OrderDetailsPaymentAndDetails({
     orderUser,
+    isTeamMember,
     status,
     orderID,
     total,
@@ -91,13 +92,6 @@ export default function OrderDetailsPaymentAndDetails({
         orderUser.userID === user?.userID &&
         status === 'completed' &&
         (paymentStatus === 'pay-later' || paymentStatus === 'pending');
-
-    console.log(needsPayLaterCheckout);
-
-    const totalDisplay = useMemo(
-        () => (typeof total === 'number' ? total.toFixed(2) : 'N/A'),
-        [total]
-    );
 
     async function handleReviewOrder() {
         try {
@@ -188,7 +182,7 @@ export default function OrderDetailsPaymentAndDetails({
                 </Badge>
 
                 <p>
-                    <strong>Total Price:</strong> ${totalDisplay}
+                    <strong>Total Price:</strong> {total}
                 </p>
                 <p>
                     <strong>Payment ID:</strong> {paymentId ?? 'N/A'}
@@ -325,7 +319,7 @@ export default function OrderDetailsPaymentAndDetails({
                 </CardFooter>
             )}
 
-            {needsPayLaterCheckout && (
+            {!isTeamMember && needsPayLaterCheckout && (
                 <CardFooter className="border-t">
                     <Dialog>
                         <DialogTrigger asChild>

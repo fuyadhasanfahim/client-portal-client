@@ -1,6 +1,5 @@
 'use client';
 
-import { type Icon } from '@tabler/icons-react';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -11,24 +10,55 @@ import {
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { PlusIcon } from 'lucide-react';
+import { LucideIcon, PlusIcon } from 'lucide-react';
 import { Button } from '../ui/button';
+import useLoggedInUser from '@/utils/getLoggedInUser';
+import { getEffectivePermissions } from '@/utils/getPermissions';
 
 export function NavMain({
     items,
-    role,
 }: {
     items: {
         title: string;
         url: string;
-        icon?: Icon;
+        icon?: LucideIcon;
         access: string[];
     }[];
-    role: string;
 }) {
+    const { user, isLoading } = useLoggedInUser();
+    const userData = !isLoading && user;
+    const isTeamMember = userData?.isTeamMember;
+    const perms = getEffectivePermissions(userData);
+
+    const canViewPrices = perms?.viewPrices;
+    const canExportInvoices = perms?.exportInvoices;
+
     const pathname = usePathname();
 
-    const filteredItems = items.filter((item) => item.access.includes(role));
+    let filteredItems = items;
+
+    filteredItems = filteredItems.filter((item) =>
+        item.access.includes(user?.role)
+    );
+
+    if (isTeamMember) {
+        filteredItems = filteredItems.filter(
+            (item) =>
+                !['/team-members', '/drafts', '/quotes'].includes(item.url)
+        );
+    }
+
+    if (!canViewPrices) {
+        filteredItems = filteredItems.filter(
+            (item) => !['/reports'].includes(item.url)
+        );
+    }
+
+    if (!canExportInvoices) {
+        filteredItems = filteredItems.filter(
+            (item) => !['/invoices'].includes(item.url)
+        );
+    }
 
     return (
         <SidebarGroup>
@@ -66,7 +96,7 @@ export function NavMain({
                 </SidebarMenu>
 
                 <SidebarMenu>
-                    {filteredItems.map((item) => (
+                    {filteredItems?.map((item) => (
                         <Link key={item.title} href={item.url}>
                             <SidebarMenuItem
                                 className={cn(

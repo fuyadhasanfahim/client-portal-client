@@ -38,6 +38,7 @@ import OrderPaymentStatus from './OrderPaymentStatus';
 import SelectOrderStatus from './SelectOrderStatus';
 import { socket } from '@/lib/socket';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { getEffectivePermissions } from '@/utils/getPermissions';
 
 const sortOptions = [
     { value: 'createdAt-desc', label: 'Newest First' },
@@ -49,8 +50,12 @@ const sortOptions = [
 ];
 
 export default function OrderDataTable() {
-    const { user } = useLoggedInUser();
-    const { userID, role } = user;
+    const { user, isLoading: isUserLoading } = useLoggedInUser();
+    const userData = !isUserLoading && user;
+    const perms = getEffectivePermissions(userData);
+
+    const canViewPrices = perms?.viewPrices;
+    const canExportInvoices = perms?.exportInvoices;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('all');
@@ -62,8 +67,10 @@ export default function OrderDataTable() {
 
     const { data, isLoading, refetch } = useGetOrdersQuery(
         {
-            userID,
-            role,
+            userID: userData?.isTeamMember
+                ? userData?.ownerUserID
+                : userData?.userID,
+            role: userData?.role,
             search: searchQuery,
             page: currentPage,
             limit: quantity,
@@ -72,7 +79,7 @@ export default function OrderDataTable() {
             order: sortOrder,
         },
         {
-            skip: !userID || !role,
+            skip: !userData,
         }
     );
 
@@ -227,22 +234,31 @@ export default function OrderDataTable() {
                 <Table>
                     <TableHeader className="bg-accent text-primary-foreground">
                         <TableRow>
-                            {[
-                                'Order ID',
-                                'Client',
-                                'Services',
-                                'Total ($)',
-                                'Payment ($)',
-                                'Order Status',
-                                'Actions',
-                            ].map((title, idx) => (
-                                <TableHead
-                                    key={idx}
-                                    className="text-center font-semibold border-r last:border-r-0"
-                                >
-                                    {title}
-                                </TableHead>
-                            ))}
+                            {canViewPrices
+                                ? [
+                                      'Order ID',
+                                      'Client',
+                                      'Services',
+                                      'Total ($)',
+                                      'Payment ($)',
+                                      'Order Status',
+                                      'Actions',
+                                  ]
+                                : [
+                                      'Order ID',
+                                      'Client',
+                                      'Services',
+                                      'Payment ($)',
+                                      'Order Status',
+                                      'Actions',
+                                  ].map((title, idx) => (
+                                      <TableHead
+                                          key={idx}
+                                          className="text-center font-semibold border-r last:border-r-0"
+                                      >
+                                          {title}
+                                      </TableHead>
+                                  ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -331,16 +347,20 @@ export default function OrderDataTable() {
                                                     )}
                                                 </ul>
                                             </TableCell>
-                                            <TableCell
-                                                className={cn(
-                                                    'text-center text-sm border-r',
-                                                    order.status ===
-                                                        'canceled' &&
-                                                        'text-destructive'
-                                                )}
-                                            >
-                                                ${order.total?.toFixed(2) || 0}
-                                            </TableCell>
+                                            {canViewPrices && (
+                                                <TableCell
+                                                    className={cn(
+                                                        'text-center text-sm border-r',
+                                                        order.status ===
+                                                            'canceled' &&
+                                                            'text-destructive'
+                                                    )}
+                                                >
+                                                    $
+                                                    {order.total?.toFixed(2) ||
+                                                        0}
+                                                </TableCell>
+                                            )}
                                             <TableCell
                                                 className={cn(
                                                     'text-center capitalize text-sm border-r',
@@ -364,7 +384,7 @@ export default function OrderDataTable() {
                                                 >
                                                     <SelectOrderStatus
                                                         order={order}
-                                                        role={role}
+                                                        role={userData?.role}
                                                         orderID={order.orderID}
                                                         refetch={refetch}
                                                     />

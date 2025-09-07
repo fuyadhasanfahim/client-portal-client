@@ -39,10 +39,15 @@ import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import ReactDOMServer from 'react-dom/server';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { getEffectivePermissions } from '@/utils/getPermissions';
 
 export default function RootExportInvoice() {
-    const { user } = useLoggedInUser();
-    const { userID, role } = user;
+    const { user, isLoading: isUserLoading } = useLoggedInUser();
+    const userData = !isUserLoading && user;
+    const { userID, role, isTeamMember, ownerUserID } = userData;
+    const perms = getEffectivePermissions(userData);
+
+    const canViewPrices = perms?.viewPrices;
 
     const [isPdfDownloading, setPdfDownloading] = useState(false);
     const [dateRange, setDateRange] = useState<{
@@ -62,7 +67,8 @@ export default function RootExportInvoice() {
 
     const users = isAllUsersLoading ? [] : allUsersData?.users ?? [];
 
-    const targetUserID = role === 'admin' ? selectedUserID : userID;
+    const targetUserID =
+        role === 'admin' ? selectedUserID : isTeamMember ? ownerUserID : userID;
 
     const { data, isLoading } = useGetAllOrdersByUserIDQuery(targetUserID, {
         skip: !targetUserID,
@@ -487,10 +493,11 @@ export default function RootExportInvoice() {
                                                         </p>
                                                         <div className="flex flex-col items-end">
                                                             <span className="font-medium">
-                                                                $
-                                                                {order.total?.toFixed(
-                                                                    2
-                                                                )}
+                                                                {canViewPrices
+                                                                    ? `$${order.total?.toFixed(
+                                                                          2
+                                                                      )}`
+                                                                    : 'No Permission'}
                                                             </span>
                                                             <Badge
                                                                 variant={
@@ -505,7 +512,7 @@ export default function RootExportInvoice() {
                                                                         ? 'destructive'
                                                                         : 'outline'
                                                                 }
-                                                                className="text-xs"
+                                                                className="text-xs capitalize"
                                                             >
                                                                 {
                                                                     order.paymentStatus

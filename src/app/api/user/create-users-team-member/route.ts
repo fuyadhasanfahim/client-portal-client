@@ -18,6 +18,8 @@ export async function POST(req: NextRequest) {
             address,
             ownerUserID,
             permissions,
+            currency,
+            isTeamMember,
         } = await req.json();
 
         if (
@@ -66,7 +68,9 @@ export async function POST(req: NextRequest) {
             address,
             isEmailVerified: false,
             ownerUserID,
-            permissions,
+            teamPermissions: permissions,
+            currency,
+            isTeamMember,
         });
 
         return NextResponse.json(

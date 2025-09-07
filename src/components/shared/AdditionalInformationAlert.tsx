@@ -21,7 +21,6 @@ import { useUpdateUserMutation } from '@/redux/features/users/userApi';
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -29,69 +28,20 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import ApiError from './ApiError';
-import { useRouter } from 'next/navigation';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import { ISanitizedUser } from '@/types/user.interface';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../ui/select';
 
 const formSchema = z.object({
     address: z.string().nonempty('Address is required'),
     phone: z.string().nonempty('Phone is required'),
-    currency: z.string().nonempty('Currency is required'),
     company: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-const currencies = {
-    USD: { name: 'US Dollar', symbol: '$', label: 'USD — US Dollar ($)' },
-    EUR: { name: 'Euro', symbol: '€', label: 'EUR — Euro (€)' },
-    GBP: {
-        name: 'British Pound',
-        symbol: '£',
-        label: 'GBP — British Pound (£)',
-    },
-    JPY: { name: 'Japanese Yen', symbol: '¥', label: 'JPY — Japanese Yen (¥)' },
-    AUD: {
-        name: 'Australian Dollar',
-        symbol: '$',
-        label: 'AUD — Australian Dollar ($)',
-    },
-    CAD: {
-        name: 'Canadian Dollar',
-        symbol: '$',
-        label: 'CAD — Canadian Dollar ($)',
-    },
-    CHF: { name: 'Swiss Franc', symbol: 'Fr', label: 'CHF — Swiss Franc (Fr)' },
-    CNY: { name: 'Chinese Yuan', symbol: '¥', label: 'CNY — Chinese Yuan (¥)' },
-    HKD: {
-        name: 'Hong Kong Dollar',
-        symbol: '$',
-        label: 'HKD — Hong Kong Dollar ($)',
-    },
-    SGD: {
-        name: 'Singapore Dollar',
-        symbol: '$',
-        label: 'SGD — Singapore Dollar ($)',
-    },
-    BRL: {
-        name: 'Brazilian Real',
-        symbol: 'R$',
-        label: 'BRL — Brazilian Real (R$)',
-    },
-    MXN: { name: 'Mexican Peso', symbol: '$', label: 'MXN — Mexican Peso ($)' },
-};
-
 export default function AdditionalInformationAlert() {
     const { user } = useLoggedInUser();
-    const { userID, address, phone, company, currency } =
-        user as ISanitizedUser;
+    const { userID, address, phone, company } = user as ISanitizedUser;
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
@@ -99,20 +49,16 @@ export default function AdditionalInformationAlert() {
             address: address || '',
             phone: phone || '',
             company: company || '',
-            currency: currency || '',
         },
     });
 
     const [updateUserInfo, { isLoading }] = useUpdateUserMutation();
 
-    const router = useRouter();
-
     const onSubmit = async (data: FormData) => {
         if (
             data.address === (address || '') &&
             data.phone === (phone || '') &&
-            data.company === (company || '') &&
-            data.currency === (currency || '')
+            data.company === (company || '')
         ) {
             toast.error('No changes detected.');
             return;
@@ -127,6 +73,7 @@ export default function AdditionalInformationAlert() {
             if (response.success) {
                 toast.success(response.message);
                 form.reset();
+
                 window.location.reload();
             } else {
                 toast.error('Something went wrong! Please try again later.');
@@ -198,44 +145,6 @@ export default function AdditionalInformationAlert() {
                                                     {...field}
                                                 />
                                             </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="currency"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                Select Currency
-                                            </FormLabel>
-                                            <Select
-                                                onValueChange={field.onChange}
-                                                value={field.value}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="Select a currency" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {Object.entries(
-                                                        currencies
-                                                    ).map(([code, c]) => (
-                                                        <SelectItem
-                                                            key={code}
-                                                            value={code}
-                                                        >
-                                                            {c.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormDescription>
-                                                We’ll save the ISO code (e.g.,
-                                                USD, EUR).
-                                            </FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}

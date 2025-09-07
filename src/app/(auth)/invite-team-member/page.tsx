@@ -1,6 +1,6 @@
 import React from 'react';
 
-import RootInviteTeamMemberForm from '@/components/invite-team-member/RootInviteTeamMemberForm';
+import RootInviteTeamMemberForm from '@/components/auth/invite-team-member/RootInviteTeamMemberForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Metadata } from 'next';
 

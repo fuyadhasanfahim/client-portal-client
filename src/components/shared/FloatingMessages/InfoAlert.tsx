@@ -15,9 +15,7 @@ export default function InfoAlert({ children }: { children: React.ReactNode }) {
             <Loader2 className="animate-spin" />
         </div>
     ) : !user?.isEmailVerified ? (
-        <VerificationAlert
-            email={user.email}
-        />
+        <VerificationAlert email={user.email} />
     ) : !user?.address || !user.phone ? (
         <AdditionalInformationAlert />
     ) : (

@@ -64,6 +64,29 @@ export const userApi = apiSlice.injectEndpoints({
             }),
             providesTags: ['Users'],
         }),
+        getTeamMembers: builder.query({
+            query: ({ search, page, limit, sortBy, sortOrder, userID }) => ({
+                url: 'users/get-team-members',
+                method: 'GET',
+                params: {
+                    search,
+                    page,
+                    limit,
+                    sortBy,
+                    sortOrder,
+                    userID,
+                },
+            }),
+            providesTags: ['Users'],
+        }),
+        updateTeamMemberById: builder.query({
+            query: ({ id, data }) => ({
+                url: `users/update-team-member-info/${id}`,
+                method: 'GET',
+                body: data,
+            }),
+            providesTags: ['Users'],
+        }),
     }),
 });
 
@@ -75,4 +98,6 @@ export const {
     useUpdatePasswordMutation,
     useUpdateAvatarMutation,
     useGetClientsQuery,
+    useGetTeamMembersQuery,
+    useUpdateTeamMemberByIdQuery,
 } = userApi;

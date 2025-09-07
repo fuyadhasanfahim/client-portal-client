@@ -20,6 +20,7 @@ import {
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { getEffectivePermissions } from '@/utils/getPermissions';
 
 export default function OrderDetailsCard({
     order,
@@ -28,7 +29,12 @@ export default function OrderDetailsCard({
     order: IOrder;
     revision: IRevision;
 }) {
-    const { user } = getLoggedInUser();
+    const { user, isLoading } = getLoggedInUser();
+    const userData = !isLoading && user;
+    const perms = getEffectivePermissions(userData);
+
+    const canViewPrices = perms?.viewPrices;
+    const canExportInvoices = perms?.exportInvoices;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto p-6">
@@ -76,9 +82,14 @@ export default function OrderDetailsCard({
                 )}
                 <OrderDetailsPaymentAndDetails
                     orderUser={order.user}
+                    isTeamMember={userData?.isTeamMember}
                     paymentId={order.paymentID}
                     status={order.status}
-                    total={order.total}
+                    total={
+                        canViewPrices
+                            ? order.total?.toFixed(2)
+                            : 'No Permission'
+                    }
                     role={user.role}
                     userID={user.userID}
                     paymentStatus={order.paymentStatus}
@@ -86,7 +97,10 @@ export default function OrderDetailsCard({
                     isRevision={order.isRevision}
                     deliveryLink={order.details?.deliveryLink}
                 />
-                <OrderDetailsInvoice order={order} user={user} />
+
+                {canExportInvoices && (
+                    <OrderDetailsInvoice order={order} user={user} />
+                )}
             </div>
         </div>
     );

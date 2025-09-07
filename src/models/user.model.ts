@@ -1,7 +1,7 @@
-import { model, models, Schema } from 'mongoose';
+import { Document, model, models, Schema } from 'mongoose';
 import { IUser } from '../types/user.interface.js';
 
-const userSchema = new Schema<IUser>(
+const userSchema = new Schema<IUser & Document>(
     {
         userID: { type: String, required: true, unique: true },
         name: { type: String, required: true },
@@ -28,6 +28,7 @@ const userSchema = new Schema<IUser>(
         oldPasswords: [String],
 
         isExistingUser: { type: Boolean, default: false },
+        isTeamMember: { type: Boolean, default: false },
         services: [
             {
                 name: {
@@ -40,6 +41,14 @@ const userSchema = new Schema<IUser>(
                 },
             },
         ],
+
+        ownerUserID: { type: String, index: true, default: null },
+        teamPermissions: {
+            viewPrices: { type: Boolean, default: false },
+            createOrders: { type: Boolean, default: false },
+            exportInvoices: { type: Boolean, default: false },
+        },
+        currency: String,
 
         isEmailVerified: { type: Boolean, default: false },
         emailVerificationToken: String,

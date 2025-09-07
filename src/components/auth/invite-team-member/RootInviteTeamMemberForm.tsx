@@ -29,24 +29,23 @@ type ITeamPermissions = {
     viewPrices?: boolean;
     createOrders?: boolean;
     exportInvoices?: boolean;
-    viewAllServices?: boolean;
 };
 
-type TService = { name: string; price?: number };
+type TService = { name: string; price?: number; _id?: string };
 
 export default function RootInviteTeamMemberForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { user } = useLoggedInUser();
 
+    // Extract query params
     const ownerUserID = searchParams.get('ownerUserID') || '';
+    const currency = searchParams.get('currency') || '';
     const token = searchParams.get('token') || '';
-
     const rawPerms =
         searchParams.get('permissions') ?? searchParams.get('perms');
-    const fullServicesFlag = searchParams.get('fullServices') === 'true';
-    const rawServices = searchParams.get('services'); // "all" | JSON
-
+    const rawServices = searchParams.get('services');
+    // Parse permissions
     const parsedPermissions: ITeamPermissions = useMemo(() => {
         if (!rawPerms) return {};
         try {
@@ -58,40 +57,33 @@ export default function RootInviteTeamMemberForm() {
         }
     }, [rawPerms]);
 
-    const parsedServices: 'all' | TService[] = useMemo(() => {
-        if (fullServicesFlag) return 'all';
+    // Parse services
+    const parsedServices: TService[] = useMemo(() => {
         if (!rawServices) return [];
-        if (rawServices === 'all') return 'all';
+        if (rawServices === 'all') return [];
         try {
             const v = JSON.parse(rawServices);
             return Array.isArray(v) ? (v as TService[]) : [];
         } catch {
             return [];
         }
-    }, [rawServices, fullServicesFlag]);
+    }, [rawServices]);
 
+    // Build human-readable access list
     const accessList = useMemo(() => {
         const arr: string[] = [];
         if (parsedPermissions.viewPrices) arr.push('View pricing');
         if (parsedPermissions.createOrders) arr.push('Create orders');
         if (parsedPermissions.exportInvoices) arr.push('Export invoices');
-        if (parsedPermissions.viewAllServices) arr.push('View all services');
         return arr;
     }, [parsedPermissions]);
 
     const serviceScopeText = useMemo(() => {
-        if (
-            parsedServices === 'all' ||
-            parsedPermissions.viewAllServices ||
-            fullServicesFlag
-        ) {
-            return 'All services';
-        }
-        if (!parsedServices.length) return 'None specified';
+        if (!parsedServices.length) return 'No services assigned';
         return parsedServices
-            .map((s) => (s.price != null ? `${s.name} — ${s.price}` : s.name))
+            .map((s) => (s.price != null ? `${s.name} — $${s.price}` : s.name))
             .join(', ');
-    }, [parsedServices, parsedPermissions, fullServicesFlag]);
+    }, [parsedServices, parsedPermissions, rawServices]);
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -140,13 +132,14 @@ export default function RootInviteTeamMemberForm() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // account fields
                     ...data,
                     provider: 'credentials',
                     ownerUserID,
                     token,
                     permissions: parsedPermissions,
-                    services: parsedServices === 'all' ? [] : parsedServices,
+                    services: parsedServices,
+                    currency,
+                    isTeamMember: true,
                 }),
             });
 
@@ -169,7 +162,29 @@ export default function RootInviteTeamMemberForm() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            {/* Sign-up form (same vibe as your RootInvitationForm) */}
+            {/* Show invitation summary */}
+            <div className="mb-6 border rounded-xl p-4 bg-muted/30">
+                <h3 className="font-semibold text-lg">Invitation details</h3>
+                <p className="text-sm mt-2">
+                    <span className="font-medium">Owner ID:</span> {ownerUserID}
+                </p>
+                <p className="text-sm mt-1">
+                    <span className="font-medium">Permissions:</span>{' '}
+                    {accessList.length ? accessList.join(', ') : 'None'}
+                </p>
+                <p className="text-sm mt-1">
+                    <span className="font-medium">Services:</span>{' '}
+                    {serviceScopeText}
+                </p>
+                {currency && (
+                    <p className="text-sm mt-1">
+                        <span className="font-medium">Currency:</span>{' '}
+                        {currency}
+                    </p>
+                )}
+            </div>
+
+            {/* Sign-up form */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <fieldset disabled={isLoading} className="space-y-5">

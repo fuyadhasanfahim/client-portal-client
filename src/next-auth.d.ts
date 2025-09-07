@@ -1,10 +1,10 @@
-import { DefaultSession } from 'next-auth';
+import { DefaultSession, DefaultUser } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 
-type TeamPermissions = {
+export type TeamPermissions = {
     viewPrices?: boolean;
     createOrders?: boolean;
     exportInvoices?: boolean;
-    viewAllServices?: boolean;
 };
 
 declare module 'next-auth' {
@@ -12,9 +12,21 @@ declare module 'next-auth' {
         user: {
             id: string;
             role: string;
+            accessToken: string;
         } & DefaultSession['user'];
         accessToken: string;
-        ownerUserID?: string | null;
-        permissions?: TeamPermissions;
+    }
+
+    interface User extends DefaultUser {
+        id: string;
+        role: string;
+    }
+}
+
+declare module 'next-auth/jwt' {
+    interface JWT {
+        id: string;
+        role: string;
+        accessToken?: string;
     }
 }

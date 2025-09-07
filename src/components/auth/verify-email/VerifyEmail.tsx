@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import axiosInstance from '@/lib/axios-instance';
@@ -23,6 +23,8 @@ export default function VerifyEmail() {
     const [status, setStatus] = useState('verifying');
     const [errorMessage, setErrorMessage] = useState('');
 
+    const router = useRouter();
+
     useEffect(() => {
         const fetchVerificationStatus = async () => {
             if (!token) {
@@ -39,7 +41,10 @@ export default function VerifyEmail() {
 
                 if (response.status === 200) {
                     setStatus('success');
-                    toast.success('Email verified successfully!');
+                    toast.success(
+                        'Email verified successfully! Redirecting to dashboard...'
+                    );
+                    router.push('/dashboard');
                 } else {
                     setStatus('error');
                     setErrorMessage('Email verification failed.');

@@ -5,7 +5,6 @@ export type ITeamPermissions = {
     viewPrices?: boolean;
     createOrders?: boolean;
     exportInvoices?: boolean;
-    viewAllServices?: boolean;
 };
 
 export interface IUser {
@@ -24,7 +23,8 @@ export interface IUser {
     password: string;
     oldPasswords?: string[];
 
-    isExistingUser: boolean;
+    isExistingUser?: boolean;
+    isTeamMember?: boolean;
     services?: {
         _id: string;
         name: string;
@@ -33,6 +33,7 @@ export interface IUser {
 
     ownerUserID?: string;
     teamPermissions?: ITeamPermissions;
+    currency?: string;
 
     isEmailVerified: boolean;
     emailVerificationToken?: string;
@@ -63,7 +64,8 @@ export interface ISanitizedUser {
     company?: string;
     role: UserRole;
     isEmailVerified: boolean;
-    isExistingUser: boolean;
+    isExistingUser?: boolean;
+    isTeamMember?: boolean;
     services?: {
         _id: string;
         name: string;

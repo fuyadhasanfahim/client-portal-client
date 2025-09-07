@@ -1,14 +1,13 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import getAccessibleRoutes, {
-    TeamPermissions,
-} from './utils/getAccessibleRoutes';
+import getAccessibleRoutes from './utils/getAccessibleRoutes';
+import { TeamPermissions } from './next-auth';
 
 export default withAuth(
     async function middleware(req) {
         const { pathname } = req.nextUrl;
         const isAuthenticated = !!req.nextauth.token;
-        const user = req.nextauth.token || {};
+        const user = (req.nextauth.token as any) || {};
 
         const isAuthPage =
             pathname.startsWith('/sign-in') ||
@@ -33,11 +32,7 @@ export default withAuth(
 
         const hasAccess = await getAccessibleRoutes({
             pathname,
-            role: user.role as 'admin' | 'user',
-            ownerUserID: user.ownerUserID ? (user.ownerUserID as string) : null,
-            permissions: user.permissions
-                ? (user.permissions as TeamPermissions)
-                : undefined,
+            role: user?.role as string,
         });
 
         if (hasAccess === false) {

@@ -28,6 +28,7 @@ export default function RootInvitationForm() {
     const { user } = useLoggedInUser();
 
     const isExistingUser = searchParams.get('isExistingUser') === 'true';
+    const currency = searchParams.get('currency') || '';
     const [isLoading, setIsLoading] = useState(false);
 
     const [services, setServices] = useState<
@@ -85,6 +86,7 @@ export default function RootInvitationForm() {
                     ...data,
                     isExistingUser,
                     services,
+                    currency,
                 }),
             });
 

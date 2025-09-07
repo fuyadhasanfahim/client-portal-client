@@ -26,6 +26,7 @@ import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Button } from '@/components/ui/button';
 import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { getTeamPermissions } from '@/utils/getPermissions';
 
 const PAYMENT_OPTIONS = [
     {

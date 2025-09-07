@@ -46,21 +46,25 @@ import {
 import { format, subDays, subMonths } from 'date-fns';
 import Link from 'next/link';
 import OrderPaymentStatus from '../orders/OrderPaymentStatus';
-import { statusData } from '@/data/orders';
 import { useGetPaymentsByStatusQuery } from '@/redux/features/payments/paymentApi';
 import SelectOrderStatus from '../orders/SelectOrderStatus';
 import { useGetOrdersQuery } from '@/redux/features/orders/ordersApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
+import { getEffectivePermissions } from '@/utils/getPermissions';
 
 export default function RootDashboard() {
-    const { user } = useLoggedInUser();
-    const { userID, role } = user;
+    const { user, isLoading: isUserLoading } = useLoggedInUser();
+    const userData = !isUserLoading && user;
+    const { userID, role, isTeamMember, ownerUserID } = userData;
+    const perms = getEffectivePermissions(userData);
+
+    const canViewPrices = perms?.viewPrices;
 
     const [chartDateRange, setChartDateRange] = useState('30');
 
     const { data, isLoading } = useGetOrdersQuery(
         {
-            userID,
+            userID: isTeamMember ? ownerUserID : userID,
             role,
         },
         {
@@ -73,7 +77,7 @@ export default function RootDashboard() {
             {
                 status: 'succeeded',
                 paymentOption: 'pay-later',
-                userID,
+                userID: isTeamMember ? ownerUserID : userID,
                 role,
             },
             {
@@ -112,7 +116,9 @@ export default function RootDashboard() {
         },
         {
             title: 'Pending Payments',
-            value: !isPaymentLoading && paymentData?.data.amount,
+            value: canViewPrices
+                ? !isPaymentLoading && paymentData?.data.amount
+                : 'No Permission',
             icon: DollarSign,
             color: 'from-orange-500 to-red-600',
         },
@@ -257,7 +263,16 @@ export default function RootDashboard() {
                                 {isLoading || isPaymentLoading ? (
                                     <Skeleton className="w-10 h-[30px]" />
                                 ) : (
-                                    <p className="text-3xl font-bold text-gray-900">
+                                    <p
+                                        className={cn(
+                                            s.title
+                                                .toLowerCase()
+                                                .includes('payment') &&
+                                                !canViewPrices
+                                                ? 'text-base font-semibold text-destructive'
+                                                : 'text-3xl font-bold text-gray-900'
+                                        )}
+                                    >
                                         {s.value}
                                     </p>
                                 )}
@@ -355,42 +370,55 @@ export default function RootDashboard() {
                 <Table>
                     <TableHeader className="bg-accent text-primary-foreground">
                         <TableRow>
-                            {[
-                                'Order ID',
-                                'Client',
-                                'Services',
-                                'Total ($)',
-                                'Payment ($)',
-                                'Order Status',
-                                'Actions',
-                            ].map((title, idx) => (
-                                <TableHead
-                                    key={idx}
-                                    className="text-center font-semibold border-r last:border-r-0"
-                                >
-                                    {title}
-                                </TableHead>
-                            ))}
+                            {canViewPrices
+                                ? [
+                                      'Order ID',
+                                      'Client',
+                                      'Services',
+                                      'Total ($)',
+                                      'Payment ($)',
+                                      'Order Status',
+                                      'Actions',
+                                  ]
+                                : [
+                                      'Order ID',
+                                      'Client',
+                                      'Services',
+                                      'Payment ($)',
+                                      'Order Status',
+                                      'Actions',
+                                  ].map((title, idx) => (
+                                      <TableHead
+                                          key={idx}
+                                          className="text-center font-semibold border-r last:border-r-0"
+                                      >
+                                          {title}
+                                      </TableHead>
+                                  ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: 8 }).map((_, i) => (
-                                <TableRow key={`loading-${i}`}>
-                                    {Array.from({ length: 8 }).map((_, j) => (
-                                        <TableCell
-                                            key={j}
-                                            className="text-center"
-                                        >
-                                            <Skeleton className="h-6 w-full mx-auto" />
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
+                            Array.from({ length: canViewPrices ? 8 : 7 }).map(
+                                (_, i) => (
+                                    <TableRow key={`loading-${i}`}>
+                                        {Array.from({
+                                            length: canViewPrices ? 7 : 8,
+                                        }).map((_, j) => (
+                                            <TableCell
+                                                key={j}
+                                                className="text-center"
+                                            >
+                                                <Skeleton className="h-6 w-full mx-auto" />
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                )
+                            )
                         ) : !isLoading && data?.orders.length === 0 ? (
                             <TableRow>
                                 <TableCell
-                                    colSpan={8}
+                                    colSpan={canViewPrices ? 8 : 7}
                                     className="text-center py-8"
                                 >
                                     <p className="text-gray-500">
@@ -407,10 +435,6 @@ export default function RootDashboard() {
                                 )
                                 .slice(0, 5)
                                 .map((order: IOrder, index: number) => {
-                                    const item = statusData.find(
-                                        (item) => item.value === order.status
-                                    );
-
                                     return (
                                         <TableRow
                                             key={index}
@@ -461,16 +485,18 @@ export default function RootDashboard() {
                                                     )}
                                                 </ul>
                                             </TableCell>
-                                            <TableCell
-                                                className={cn(
-                                                    'text-center text-sm border-r',
-                                                    order.status ===
-                                                        'canceled' &&
-                                                        'text-destructive'
-                                                )}
-                                            >
-                                                {order.total?.toFixed(2)}
-                                            </TableCell>
+                                            {canViewPrices && (
+                                                <TableCell
+                                                    className={cn(
+                                                        'text-center text-sm border-r',
+                                                        order.status ===
+                                                            'canceled' &&
+                                                            'text-destructive'
+                                                    )}
+                                                >
+                                                    {order.total?.toFixed(2)}
+                                                </TableCell>
+                                            )}
                                             <TableCell
                                                 className={cn(
                                                     'text-center text-sm border-r',

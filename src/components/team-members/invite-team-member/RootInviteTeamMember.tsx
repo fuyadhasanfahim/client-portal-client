@@ -31,14 +31,14 @@ interface TService {
 
 export default function RootInviteTeamMember() {
     const { user, isLoading: isUserDataLoading } = useLoggedInUser();
-
     const { data, isLoading } = useGetServicesQuery({});
 
+    // Merge services: priority -> user.services > api.services
     const services = useMemo<TService[]>(() => {
         if (isUserDataLoading || isLoading) return [];
 
-        const fromApi = (data?.data?.services as TService[]) ?? [];
         const fromUser = (user?.services as TService[]) ?? [];
+        const fromApi = (data?.data?.services as TService[]) ?? [];
 
         const base = fromUser.length ? fromUser : fromApi;
 
@@ -55,7 +55,6 @@ export default function RootInviteTeamMember() {
         viewPrices: false,
         createOrders: false,
         exportInvoices: false,
-        viewAllServices: false,
     });
 
     const [grantAllServices, setGrantAllServices] = useState(true);
@@ -107,8 +106,11 @@ export default function RootInviteTeamMember() {
 
         const params = new URLSearchParams();
         params.set('ownerUserID', user.userID);
-        params.set('perms', JSON.stringify(activePerms));
-        params.set('fullServices', String(grantAllServices));
+        params.set('permissions', JSON.stringify(activePerms));
+
+        if (user?.currency) {
+            params.set('currency', user.currency);
+        }
 
         try {
             const token = crypto.randomUUID();
@@ -117,8 +119,13 @@ export default function RootInviteTeamMember() {
             params.set('token', Math.random().toString(36).slice(2));
         }
 
-        if (!grantAllServices && selectedService.length) {
+        // Determine services param
+        if (grantAllServices) {
+            params.set('services', JSON.stringify(services));
+        } else if (selectedService.length) {
             params.set('services', JSON.stringify(selectedService));
+        } else {
+            params.set('services', '[]');
         }
 
         setInviteUrl(`${inviteBase}?${params.toString()}`);
@@ -140,12 +147,12 @@ export default function RootInviteTeamMember() {
                 inviteUrl,
                 ownerUserID: user.userID,
                 permissions,
-                services: grantAllServices ? 'all' : selectedService,
+                services: grantAllServices ? services : selectedService,
             }).unwrap();
 
             if (res.success) {
                 toast.success(
-                    'Successfully send the invitation link to the team member.'
+                    'Successfully sent the invitation link to the team member.'
                 );
             }
         } catch (e) {
@@ -159,7 +166,6 @@ export default function RootInviteTeamMember() {
             viewPrices: false,
             createOrders: false,
             exportInvoices: false,
-            viewAllServices: false,
         });
         setGrantAllServices(true);
         setSelectedService([]);
@@ -239,16 +245,6 @@ export default function RootInviteTeamMember() {
                                 }
                             />
                             <span>Export invoices</span>
-                        </Label>
-                        <Label className="flex items-center gap-3">
-                            <Checkbox
-                                id="perm-viewAllServices"
-                                checked={!!permissions.viewAllServices}
-                                onCheckedChange={(v) =>
-                                    togglePermission('viewAllServices', v)
-                                }
-                            />
-                            <span>View all services</span>
                         </Label>
                     </div>
                 </div>

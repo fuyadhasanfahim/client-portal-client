@@ -165,20 +165,20 @@ export default function MultiOrderInvoiceTemplate({
             <div className="rounded-xl border border-gray-200 overflow-hidden">
                 <Table className="w-full">
                     <TableHeader className="bg-gray-50">
-                        <TableRow>
-                            <TableHead className="w-[64px] text-xs font-semibold uppercase tracking-wide">
+                        <TableRow className="border border-gray-200">
+                            <TableHead className="border-r border-gray-200 w-[64px] text-xs font-semibold uppercase tracking-wide">
                                 Serial
                             </TableHead>
-                            <TableHead className="text-xs font-semibold uppercase tracking-wide">
+                            <TableHead className="border-r border-gray-200 text-xs font-semibold uppercase tracking-wide">
                                 Services
                             </TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wide">
+                            <TableHead className="border-r border-gray-200 text-right text-xs font-semibold uppercase tracking-wide">
                                 Qty
                             </TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wide">
+                            <TableHead className="border-r border-gray-200 text-right text-xs font-semibold uppercase tracking-wide">
                                 Price
                             </TableHead>
-                            <TableHead className="text-center text-xs font-semibold uppercase tracking-wide">
+                            <TableHead className="border-r border-gray-200 text-center text-xs font-semibold uppercase tracking-wide">
                                 Payment
                             </TableHead>
                             <TableHead className="text-right text-xs font-semibold uppercase tracking-wide">
@@ -187,16 +187,16 @@ export default function MultiOrderInvoiceTemplate({
                         </TableRow>
                     </TableHeader>
 
-                    <TableBody>
+                    <TableBody className="border border-gray-200">
                         {rows.map((r) => (
                             <TableRow
                                 key={`${r.orderID}-${r.serial}`}
-                                className="border-b border-gray-100"
+                                className="border-b border-r border-gray-200"
                             >
-                                <TableCell className="font-medium text-gray-800">
+                                <TableCell className="border-r border-gray-200 font-medium text-gray-800">
                                     #{r.serial}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="border-r border-gray-200 ">
                                     <div className="flex flex-col">
                                         <span className="font-medium">
                                             {r.serviceName}
@@ -213,13 +213,13 @@ export default function MultiOrderInvoiceTemplate({
                                         </span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="border-r border-gray-200 text-right">
                                     {r.qty}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="border-r border-gray-200 text-right">
                                     {currency(r.unitPrice)}
                                 </TableCell>
-                                <TableCell className="text-center">
+                                <TableCell className="border-r border-gray-200 text-center">
                                     <Badge
                                         variant="outline"
                                         className={`text-xs border ${statusBadge(
@@ -273,7 +273,7 @@ export default function MultiOrderInvoiceTemplate({
                                 </TableCell>
                             </TableRow>
                         )}
-                        <TableRow className="border-t-2 border-amber-500">
+                        <TableRow>
                             <TableCell
                                 colSpan={5}
                                 className="text-right font-bold text-gray-900"
@@ -290,8 +290,8 @@ export default function MultiOrderInvoiceTemplate({
 
             {/* Notes */}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="rounded-xl border border-gray-200">
-                    <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="rounded-t-xl bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                         Notes
                     </div>
                     <div className="p-4 text-sm text-gray-600">
@@ -300,8 +300,8 @@ export default function MultiOrderInvoiceTemplate({
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-gray-200">
-                    <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="rounded-t-xl bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                         Terms
                     </div>
                     <div className="p-4 text-sm text-gray-600">

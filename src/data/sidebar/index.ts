@@ -1,18 +1,18 @@
-// data/sidebar.ts
 import {
-    IconBrandMinecraft,
-    IconDashboard,
-    IconFileInvoice,
-    IconMessage,
-    IconPackage,
-    IconPackageExport,
-    IconReportAnalytics,
-    IconServer,
-    IconUsers,
-    IconUsersGroup,
-} from '@tabler/icons-react';
+    Clipboard,
+    FileText,
+    LayoutDashboard,
+    LucideIcon,
+    Mail,
+    Package,
+    Package2,
+    PackageMinus,
+    PackageOpen,
+    ServerIcon,
+    Users,
+    UsersRound,
+} from 'lucide-react';
 
-export type UserRole = 'admin' | 'user';
 export type TeamPermKey =
     | 'viewPrices'
     | 'createOrders'
@@ -22,74 +22,71 @@ export type TeamPermKey =
 export type SidebarItem = {
     title: string;
     url: string;
-    icon: any;
-    access: UserRole[];
-    hideForTeamMember?: boolean;
-    requireTeamPerm?: TeamPermKey | TeamPermKey[];
+    icon: LucideIcon;
+    access: string[];
+    hasOwnerID?: boolean;
+    permissions?: TeamPermKey;
 };
 
 export const sidebarItems: SidebarItem[] = [
     {
         title: 'Dashboard',
         url: '/dashboard',
-        icon: IconDashboard,
+        icon: LayoutDashboard,
         access: ['admin', 'user'],
     },
     {
         title: 'Orders',
         url: '/orders',
-        icon: IconPackage,
+        icon: Package,
         access: ['admin', 'user'],
-        requireTeamPerm: 'createOrders',
     },
     {
         title: 'Quotes',
         url: '/quotes',
-        icon: IconPackageExport,
+        icon: Package2,
         access: ['admin', 'user'],
     },
     {
         title: 'Drafts',
         url: '/drafts',
-        icon: IconBrandMinecraft,
+        icon: PackageOpen,
         access: ['admin', 'user'],
     },
     {
         title: 'Clients',
         url: '/clients',
-        icon: IconUsers,
+        icon: UsersRound,
         access: ['admin'],
     },
     {
         title: 'Services',
         url: '/services',
-        icon: IconServer,
+        icon: ServerIcon,
         access: ['admin'],
     },
     {
         title: 'Messages',
         url: '/messages',
-        icon: IconMessage,
+        icon: Mail,
         access: ['admin'],
     },
     {
         title: 'Team Members',
         url: '/team-members',
-        icon: IconUsersGroup,
+        icon: Users,
         access: ['admin', 'user'],
-        hideForTeamMember: true,
     },
     {
         title: 'Invoices',
         url: '/invoices',
-        icon: IconFileInvoice,
+        icon: FileText,
         access: ['admin', 'user'],
-        requireTeamPerm: 'exportInvoices',
     },
     {
         title: 'Reports',
         url: '/reports',
-        icon: IconReportAnalytics,
+        icon: Clipboard,
         access: ['admin', 'user'],
     },
 ];

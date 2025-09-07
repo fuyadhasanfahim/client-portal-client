@@ -13,10 +13,8 @@ import {
 import { sidebarItems } from '@/data/sidebar';
 import Link from 'next/link';
 import Image from 'next/image';
-import useLoggedInUser from '@/utils/getLoggedInUser';
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-    const { user } = useLoggedInUser();
 
     return (
         <Sidebar collapsible="offcanvas" {...props}>
@@ -45,7 +43,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={sidebarItems} role={user?.role} />
+                <NavMain items={sidebarItems} />
             </SidebarContent>
         </Sidebar>
     );

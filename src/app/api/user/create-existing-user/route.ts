@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
             isExistingUser,
             services,
             address,
+            currency,
         } = await req.json();
 
         if (!name || !email || !username || !address || !password) {
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
             services,
             address,
             isEmailVerified: false,
+            currency,
         });
 
         return NextResponse.json(
