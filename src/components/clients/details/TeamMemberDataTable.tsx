@@ -17,7 +17,6 @@ import { useGetTeamMembersQuery } from '@/redux/features/users/userApi';
 import Link from 'next/link';
 import { ISanitizedUser } from '@/types/user.interface';
 import { format } from 'date-fns';
-import useLoggedInUser from '@/utils/getLoggedInUser';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,

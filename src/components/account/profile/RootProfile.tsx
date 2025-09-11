@@ -62,24 +62,20 @@ import {
 
 export default function ProfilePage() {
     const { user, isLoading } = useLoggedInUser();
+    const { userID, email } = user || {};
 
-    const { data, isLoading: isServiceLoading } = useGetServicesQuery(
-        user?.userID!,
-        {
-            skip: !user?.userID,
-        }
-    );
-
-    const userServices = user?.services || [];
-    const mainServices =
-        !isServiceLoading && data?.data ? data?.data.services : [];
+    const { data, isLoading: isServiceLoading } = useGetServicesQuery(userID!, {
+        skip: !userID,
+    });
 
     const services = useMemo(() => {
         if (isServiceLoading || isLoading) return [];
 
+        const userServices = user?.services || [];
         if (userServices.length > 0) return userServices;
-        return mainServices;
-    }, [userServices, mainServices, isServiceLoading, isLoading]);
+
+        return data?.data?.services || [];
+    }, [user?.services, data?.data?.services, isServiceLoading, isLoading]);
 
     const [updatePassword, { isLoading: isUpdatingPassword }] =
         useUpdatePasswordMutation();
@@ -90,11 +86,9 @@ export default function ProfilePage() {
     const {
         data: additionalServiceData,
         isLoading: isAdditionalServiceLoading,
-    } = useCheckForAdditionalServiceQuery(user?.email!, {
-        skip: !user?.email,
+    } = useCheckForAdditionalServiceQuery(email!, {
+        skip: !email,
     });
-
-    console.log(additionalServiceData);
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [currentPassword, setCurrentPassword] = useState('');
@@ -114,7 +108,7 @@ export default function ProfilePage() {
 
         try {
             const res = await additionalService({
-                clientEmail: user?.email!,
+                clientEmail: email!,
                 serviceName,
                 servicePrice: Number(servicePrice),
             }).unwrap();

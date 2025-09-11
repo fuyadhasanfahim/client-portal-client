@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Card,
     CardHeader,
@@ -89,10 +89,10 @@ export default function RootAccess({ userID }: { userID: string }) {
     const additionalService =
         !isAdditionalServiceLoading && additionalServiceData?.data;
 
-    const { data, isLoading } = useGetServicesQuery({});
-    const services: TCatalog[] = Array.isArray(data?.data?.services)
-        ? data.data.services
-        : [];
+    const { data } = useGetServicesQuery({});
+    const services: TCatalog[] = useMemo(() => {
+        return Array.isArray(data?.data?.services) ? data.data.services : [];
+    }, [data?.data?.services]);
 
     const [isExistingUser, setIsExistingUser] = useState(false);
     const [mode, setMode] = useState<'regular' | 'custom'>('regular');

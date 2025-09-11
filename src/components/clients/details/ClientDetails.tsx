@@ -16,22 +16,12 @@ import {
     Crown,
     Loader2,
 } from 'lucide-react';
-import {
-    useGetUserInfoQuery,
-    useGetTeamMembersQuery,
-} from '@/redux/features/users/userApi';
+import { useGetUserInfoQuery } from '@/redux/features/users/userApi';
 import TeamMemberDataTable from './TeamMemberDataTable';
 
 interface Service {
     name: string;
     price: number;
-}
-
-interface TeamMember {
-    userID: string;
-    name: string;
-    email: string;
-    role: string;
 }
 
 interface UserData {
@@ -54,19 +44,6 @@ export default function ClientDetails({ userID }: { userID: string }) {
         error: userError,
     } = useGetUserInfoQuery(userID, { skip: !userID });
 
-    const {
-        data: teamData,
-        isLoading: isTeamLoading,
-        error: teamError,
-    } = useGetTeamMembersQuery(
-        {
-            userID: userID,
-        },
-        { skip: !userID }
-    );
-
-    console.log(teamData?.data?.clients);
-
     if (isUserLoading) {
         return (
             <div className="flex justify-center items-center py-12">
@@ -88,7 +65,6 @@ export default function ClientDetails({ userID }: { userID: string }) {
     }
 
     const user: UserData | undefined = userData?.data;
-    const teamMembers: TeamMember[] = teamData?.data?.clients || [];
 
     if (!user) {
         return (
