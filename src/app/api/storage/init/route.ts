@@ -12,6 +12,7 @@ import { clientPrefix, adminPrefix, keyUnder } from '@/lib/aws/keys';
 import OrderModel from '@/models/order.model';
 import QuoteModel from '@/models/quote.model';
 import { getNextRevision } from '@/lib/storage/record';
+import dbConfig from '@/lib/dbConfig';
 
 type InitFile = { filename: string; size: number; contentType?: string };
 
@@ -22,6 +23,8 @@ const MAX_PART = 16 * 1024 * 1024;
 const MPU_CONCURRENCY = 20; // cap parallel MPU creations
 
 export async function POST(req: NextRequest) {
+    await dbConfig();
+
     const {
         refType,
         refId,
@@ -48,6 +51,8 @@ export async function POST(req: NextRequest) {
     if (files.some((f) => !f.size || f.size <= 0)) {
         return NextResponse.json({ error: 'Zero-size file' }, { status: 400 });
     }
+
+    console.log(refId, refType);
 
     const doc =
         refType === 'order'

@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, model } from 'mongoose';
 import {
     IOrderUser,
     IOrder,
@@ -6,15 +6,15 @@ import {
     IOrderServiceComplexity,
     IOrderServiceSelection,
     IOrderServiceType,
-} from "../types/order.interface";
-import { models } from "mongoose";
+} from '../types/order.interface';
+import { models } from 'mongoose';
 
 const OrderUserSchema = new Schema<IOrderUser>(
     {
         userID: { type: String, required: true },
         name: { type: String, required: true },
         email: { type: String, required: true },
-        image: { type: String, required: true },
+        image: { type: String },
         company: { type: String },
         address: { type: String },
     },
@@ -75,26 +75,26 @@ export const OrderSchema = new Schema<IOrder>(
         status: {
             type: String,
             enum: [
-                "pending",
-                "in-progress",
-                "delivered",
-                "in-revision",
-                "completed",
-                "canceled",
+                'pending',
+                'in-progress',
+                'delivered',
+                'in-revision',
+                'completed',
+                'canceled',
             ],
-            default: "pending",
+            default: 'pending',
         },
         paymentID: { type: String },
         paymentStatus: {
             type: String,
             enum: [
-                "pending",
-                "pay-later",
-                "paid",
-                "payment-failed",
-                "refunded",
+                'pending',
+                'pay-later',
+                'paid',
+                'payment-failed',
+                'refunded',
             ],
-            default: "pending",
+            default: 'pending',
         },
         refundID: {
             type: String,
@@ -102,12 +102,12 @@ export const OrderSchema = new Schema<IOrder>(
         orderStage: {
             type: String,
             enum: [
-                "draft",
-                "services-selected",
-                "details-provided",
-                "payment-completed",
+                'draft',
+                'services-selected',
+                'details-provided',
+                'payment-completed',
             ],
-            default: "draft",
+            default: 'draft',
         },
     },
     {

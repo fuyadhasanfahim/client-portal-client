@@ -20,6 +20,9 @@ import {
     Lock,
     Globe,
     Building,
+    Server,
+    HardDrive,
+    Send,
 } from 'lucide-react';
 import {
     Card,
@@ -29,9 +32,17 @@ import {
     CardDescription,
     CardFooter,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import useLoggedInUser from '@/utils/getLoggedInUser';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -42,19 +53,83 @@ import toast from 'react-hot-toast';
 import ApiError from '../../shared/ApiError';
 import EditInfoForm from '@/components/auth/EditInfoForm';
 import { cn } from '@/lib/utils';
+import { useGetServicesQuery } from '@/redux/features/services/servicesApi';
+import { IService } from '@/types/service.interface';
+import {
+    useAdditionalServiceMutation,
+    useCheckForAdditionalServiceQuery,
+} from '@/redux/features/client/clientApi';
 
 export default function ProfilePage() {
     const { user, isLoading } = useLoggedInUser();
+
+    const { data, isLoading: isServiceLoading } = useGetServicesQuery(
+        user?.userID!,
+        {
+            skip: !user?.userID,
+        }
+    );
+
+    const userServices = user?.services || [];
+    const mainServices =
+        !isServiceLoading && data?.data ? data?.data.services : [];
+
+    const services = useMemo(() => {
+        if (isServiceLoading || isLoading) return [];
+
+        if (userServices.length > 0) return userServices;
+        return mainServices;
+    }, [userServices, mainServices, isServiceLoading, isLoading]);
+
     const [updatePassword, { isLoading: isUpdatingPassword }] =
         useUpdatePasswordMutation();
     const [updateAvatar, { isLoading: isUpdatingAvatar }] =
         useUpdateAvatarMutation();
+    const [additionalService, { isLoading: isRequesting }] =
+        useAdditionalServiceMutation();
+    const {
+        data: additionalServiceData,
+        isLoading: isAdditionalServiceLoading,
+    } = useCheckForAdditionalServiceQuery(user?.email!, {
+        skip: !user?.email,
+    });
+
+    console.log(additionalServiceData);
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [serviceName, setServiceName] = useState('');
+    const [servicePrice, setServicePrice] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleRequestService = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if (!serviceName || Number(servicePrice) <= 0) {
+            toast.error('Please provide valid service details');
+            return;
+        }
+
+        try {
+            const res = await additionalService({
+                clientEmail: user?.email!,
+                serviceName,
+                servicePrice: Number(servicePrice),
+            }).unwrap();
+
+            if (res.success) {
+                toast.success('Service request sent successfully');
+                setServiceName('');
+                setServicePrice('');
+            } else {
+                toast.error(res.message || 'Failed to send service request');
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
 
     if (isLoading || !user) {
         return (
@@ -169,7 +244,7 @@ export default function ProfilePage() {
     return (
         <section className="container space-y-6">
             {/* Profile Card */}
-            <Card className="bg-gradient-to-br from-primary/5 via-background to-secondary/5 border-primary/20 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <Card className="bg-gradient-to-br from-primary/5 via-background to-secondary/5 border-primary/20">
                 <CardContent className="relative pt-8 pb-6">
                     <div className="flex flex-col md:flex-row gap-8">
                         {/* Avatar Section */}
@@ -308,8 +383,8 @@ export default function ProfilePage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="border-primary/20 hover:border-primary/40 transition-colors duration-300 hover:shadow-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <Card className="border-primary/20 hover:border-primary/40 transition-colors duration-300">
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -394,7 +469,7 @@ export default function ProfilePage() {
 
                 {/* Security Card */}
                 {user.provider !== 'google' && (
-                    <Card className="border-primary/20 hover:border-primary/40 transition-colors duration-300 lg:col-span-2 hover:shadow-sm">
+                    <Card className="border-primary/20 hover:border-primary/40 transition-colors duration-300">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Lock className="w-5 h-5 text-primary" />
@@ -410,7 +485,7 @@ export default function ProfilePage() {
                                     <Key className="w-4 h-4" />
                                     Change Password
                                 </Label>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 gap-4">
                                     <div className="space-y-2">
                                         <Label
                                             htmlFor="current-password"
@@ -510,6 +585,139 @@ export default function ProfilePage() {
                         </CardFooter>
                     </Card>
                 )}
+
+                <Card className="border-primary/20 hover:border-primary/40 transition-colors duration-300">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Server className="w-5 h-5 text-primary" />
+                            Services
+                        </CardTitle>
+                        <CardDescription>
+                            The list of services you have access to
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <ul className="space-y-4 list-inside list-decimal">
+                            {services.map((service: IService) => (
+                                <li key={service._id} className="ml-2">
+                                    {service.name}
+                                </li>
+                            ))}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="secondary" size="sm">
+                                        <HardDrive />
+                                        Request for additional Service
+                                    </Button>
+                                </DialogTrigger>
+                                {!isAdditionalServiceLoading &&
+                                additionalServiceData &&
+                                additionalServiceData?.data ? (
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle className="text-2xl">
+                                                You have already requested a
+                                                service
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Our team is reviewing your
+                                                request for additional services.
+                                                We will notify you once it is
+                                                approved.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                    </DialogContent>
+                                ) : (
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle className="text-2xl">
+                                                Request Additional Service
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Please fill out the form below.
+                                                Our team will review your
+                                                request and get back to you
+                                                shortly.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <form
+                                            onSubmit={handleRequestService}
+                                            className="space-y-4"
+                                        >
+                                            <div className="grid gap-4 grid-cols-2">
+                                                {/* Service Name */}
+                                                <div className="grid gap-3">
+                                                    <Label htmlFor="service-name">
+                                                        Service Name
+                                                    </Label>
+                                                    <Input
+                                                        id="service-name"
+                                                        name="service-name"
+                                                        type="text"
+                                                        placeholder="Enter the service name"
+                                                        value={serviceName}
+                                                        onChange={(e) =>
+                                                            setServiceName(
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        required
+                                                    />
+                                                </div>
+
+                                                {/* Service Price */}
+                                                <div className="grid gap-3">
+                                                    <Label htmlFor="service-price">
+                                                        Service Price
+                                                    </Label>
+                                                    <Input
+                                                        id="service-price"
+                                                        name="service-price"
+                                                        type="number"
+                                                        value={servicePrice}
+                                                        onChange={(e) =>
+                                                            setServicePrice(
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        min={0}
+                                                        step={0.01}
+                                                        required
+                                                        placeholder="Enter the service price"
+                                                    />
+                                                </div>
+
+                                                {/* Submit Button */}
+                                                <div className="col-span-2 mt-3">
+                                                    <Button
+                                                        type="submit"
+                                                        className="w-full"
+                                                        disabled={
+                                                            !serviceName ||
+                                                            Number(
+                                                                servicePrice
+                                                            ) <= 0 ||
+                                                            isRequesting
+                                                        }
+                                                    >
+                                                        {isRequesting ? (
+                                                            <Loader2 className="animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                <Send />
+                                                                Send Request
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </DialogContent>
+                                )}
+                            </Dialog>
+                        </ul>
+                    </CardContent>
+                </Card>
             </div>
         </section>
     );

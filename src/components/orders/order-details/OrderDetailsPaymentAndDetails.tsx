@@ -299,13 +299,13 @@ export default function OrderDetailsPaymentAndDetails({
                                     onClick={handleCompleteOrder}
                                 >
                                     {isCompleting ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="animate-spin" />
                                     ) : (
-                                        <CheckCircle className="h-4 w-4" />
+                                        <CheckCircle />
                                     )}
-                                    <span className="ml-2">
-                                        Confirm Completion
-                                    </span>
+                                    {isCompleting
+                                        ? 'Processing...'
+                                        : 'Yes, Complete It'}
                                 </Button>
                                 <Button
                                     variant="secondary"

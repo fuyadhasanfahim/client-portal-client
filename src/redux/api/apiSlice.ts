@@ -17,6 +17,7 @@ export const apiSlice = createApi({
         'ConversationList',
         'MessageList',
         'Conversations',
+        'AdditionalService',
     ],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     endpoints: (_builder) => ({}),

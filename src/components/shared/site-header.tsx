@@ -88,9 +88,15 @@ export function SiteHeader() {
             setItems([]);
             refetch();
         });
+        socket.on('new_service_request', () => {
+            setPage(1);
+            setItems([]);
+            refetch();
+        });
 
         return () => {
             socket.off('new-notification');
+            socket.off('new_service_request');
             socket.disconnect();
         };
     }, [user?.userID, refetch]);
