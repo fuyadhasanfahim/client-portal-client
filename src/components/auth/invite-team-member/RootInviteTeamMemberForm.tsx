@@ -88,7 +88,7 @@ export default function RootInviteTeamMemberForm() {
                     : s.name
             )
             .join(', ');
-    }, [parsedServices]);
+    }, [parsedServices, parsedPermissions.viewPrices]);
 
     const [isLoading, setIsLoading] = useState(false);
 
