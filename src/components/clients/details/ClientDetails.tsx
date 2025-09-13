@@ -257,7 +257,10 @@ export default function ClientDetails({ userID }: { userID: string }) {
             )}
 
             {/* Team Members */}
-            <TeamMemberDataTable userID={userID} />
+            <div className='space-y-2'>
+                <h3>Team Members</h3>
+                <TeamMemberDataTable userID={userID} />
+            </div>
         </div>
     );
 }

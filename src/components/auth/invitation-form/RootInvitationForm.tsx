@@ -87,6 +87,7 @@ export default function RootInvitationForm() {
                     isExistingUser,
                     services,
                     currency,
+                    isEmailVerified: true,
                 }),
             });
 

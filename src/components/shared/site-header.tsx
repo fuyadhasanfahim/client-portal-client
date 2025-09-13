@@ -69,7 +69,11 @@ export function SiteHeader() {
     const [items, setItems] = useState<INotification[]>([]);
 
     const { data, isLoading, refetch, isFetching } = useGetNotificationsQuery(
-        { userID: user.userID, page, limit },
+        {
+            userID: user.isTeamMember === true ? user.ownerUserID : user.userID,
+            page,
+            limit,
+        },
         { skip: !user.userID }
     );
 

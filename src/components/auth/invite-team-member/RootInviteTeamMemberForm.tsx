@@ -56,6 +56,8 @@ export default function RootInviteTeamMemberForm() {
         }
     }, [rawPerms]);
 
+    console.log(parsedPermissions);
+
     // Parse services
     const parsedServices: TService[] = useMemo(() => {
         if (!rawServices) return [];
@@ -80,7 +82,11 @@ export default function RootInviteTeamMemberForm() {
     const serviceScopeText = useMemo(() => {
         if (!parsedServices.length) return 'No services assigned';
         return parsedServices
-            .map((s) => (s.price != null ? `${s.name} — $${s.price}` : s.name))
+            .map((s) =>
+                s.price != null && parsedPermissions.viewPrices === true
+                    ? `${s.name} — $${s.price}`
+                    : s.name
+            )
             .join(', ');
     }, [parsedServices]);
 
@@ -139,6 +145,7 @@ export default function RootInviteTeamMemberForm() {
                     services: parsedServices,
                     currency,
                     isTeamMember: true,
+                    isEmailVerified: true,
                 }),
             });
 

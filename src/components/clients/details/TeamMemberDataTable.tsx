@@ -11,7 +11,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Search, Eye } from 'lucide-react';
+import { ChevronDown, Search, Eye, EllipsisVerticalIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useGetTeamMembersQuery } from '@/redux/features/users/userApi';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -200,7 +201,7 @@ export default function TeamMemberDataTable({ userID }: { userID: string }) {
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                     <span className="group-hover:underline">
-                                                        View
+                                                        Details
                                                     </span>
                                                 </Link>
                                             </TableCell>

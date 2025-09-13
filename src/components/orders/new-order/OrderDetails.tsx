@@ -24,14 +24,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2, Trash2 } from 'lucide-react';
 import { NewOrderDetailsSchema } from '@/validations/order-details.schema';
-import { useNewOrderMutation } from '@/redux/features/orders/ordersApi';
+import {
+    useGetOrderByIDQuery,
+    useNewOrderMutation,
+} from '@/redux/features/orders/ordersApi';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { MultiSelect } from '@/components/shared/multi-select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { IOrderDetails } from '@/types/order.interface';
+import { IOrderDetails, IOrderServiceSelection } from '@/types/order.interface';
 import { DateAndTimePicker } from '@/components/shared/DateAndTimePicker';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import FileUploadField from '@/components/shared/FileUploadField';
@@ -39,6 +42,32 @@ import FileUploadField from '@/components/shared/FileUploadField';
 export default function OrderDetails({ orderID }: { orderID: string }) {
     const { user } = useLoggedInUser();
     const router = useRouter();
+
+    const { data, isLoading: isOrderLoading } = useGetOrderByIDQuery(orderID, {
+        skip: !orderID,
+    });
+
+    const { services } = !isOrderLoading && data ? data.data : [];
+
+    const totalNetPrice = services?.reduce(
+        (sum: number, service: IOrderServiceSelection) => {
+            let base = service.price ?? 0;
+
+            if (service.types) {
+                base += service.types?.reduce(
+                    (s, t) => s + (t.price ?? 0) + (t.complexity?.price ?? 0),
+                    0
+                );
+            }
+
+            if (service.complexity) {
+                base += service.complexity.price;
+            }
+
+            return sum + base;
+        },
+        0
+    );
 
     const form = useForm<z.infer<typeof NewOrderDetailsSchema>>({
         resolver: zodResolver(NewOrderDetailsSchema),
@@ -62,16 +91,36 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
 
     const onSubmit = async (data: Partial<IOrderDetails>) => {
         try {
-            const response = await newOrder({
-                userID: user?.userID,
-                orderStage: 'details-provided',
-                orderID,
-                details: data as IOrderDetails,
-            }).unwrap();
+            if (
+                user?.isTeamMember === true &&
+                user?.teamPermissions?.createOrders === true &&
+                user?.teamPermissions?.viewPrices === false
+            ) {
+                const response = await newOrder({
+                    userID: user?.userID,
+                    orderStage: 'payment-completed',
+                    orderID,
+                    details: data as IOrderDetails,
+                    total: totalNetPrice * Number(data.images),
+                    paymentStatus: 'pay-later',
+                }).unwrap();
 
-            if (response.success) {
-                toast.success('Details saved. Redirecting...');
-                router.push(`/orders/new-order/review/${orderID}`);
+                if (response.success) {
+                    toast.success('Details saved. Redirecting...');
+                    router.push(`/orders`);
+                }
+            } else {
+                const response = await newOrder({
+                    userID: user?.userID,
+                    orderStage: 'details-provided',
+                    orderID,
+                    details: data as IOrderDetails,
+                }).unwrap();
+
+                if (response.success) {
+                    toast.success('Details saved. Redirecting...');
+                    router.push(`/orders/new-order/review/${orderID}`);
+                }
             }
         } catch (error) {
             ApiError(error);
@@ -222,6 +271,7 @@ export default function OrderDetails({ orderID }: { orderID: string }) {
                                                 options={[
                                                     'Transparent',
                                                     'White',
+                                                    'Original Background',
                                                     'Colored',
                                                 ].map((option) => ({
                                                     label: option,

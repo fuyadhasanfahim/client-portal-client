@@ -6,7 +6,6 @@ export default function SelectedServicesCard({
 }: {
     services: IOrderServiceSelection[];
 }) {
-    console.log(services)
     return (
         services &&
         services.length > 0 &&

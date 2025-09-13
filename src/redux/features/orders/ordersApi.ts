@@ -12,6 +12,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                     details,
                     total,
                     payment,
+                    paymentStatus,
                 }) => ({
                     url: `orders/new-order/${orderStage}`,
                     method: 'POST',
@@ -22,6 +23,7 @@ export const ordersApi = apiSlice.injectEndpoints({
                         details,
                         total,
                         payment,
+                        paymentStatus,
                     },
                 }),
                 invalidatesTags: ['Orders'],

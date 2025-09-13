@@ -633,7 +633,6 @@ export default function FileUploadField(props: FileUploadFieldProps) {
             if (!res.ok) throw new Error('Failed to save link');
             setCurrentLink(url);
             setMode('link');
-            toast.success('Link saved!');
             onCompleted?.(url);
         } catch (e: any) {
             toast.error(e?.message || 'Failed to save link');

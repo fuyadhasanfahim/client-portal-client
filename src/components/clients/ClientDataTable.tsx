@@ -14,10 +14,11 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Search, Eye } from 'lucide-react';
+import { ChevronDown, Search, Eye, EllipsisVerticalIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useGetClientsQuery } from '@/redux/features/users/userApi';
 import Link from 'next/link';
@@ -165,7 +166,7 @@ export default function ClientDataTable() {
                                     </TableCell>
                                 </TableRow>
                             ))
-                        ) : data?.clients?.length === 0 ? (
+                        ) : data?.data.clients?.length === 0 ? (
                             <TableRow>
                                 <TableCell
                                     colSpan={6}
@@ -198,16 +199,41 @@ export default function ClientDataTable() {
                                         <TableCell className="border-r text-center">
                                             {format(client.createdAt, 'PPP')}
                                         </TableCell>
-                                        <TableCell>
-                                            <Link
-                                                href={`/clients/details/${client.userID}`}
-                                                className="flex items-center justify-center gap-1 group"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                                <span className="group-hover:underline">
-                                                    View
-                                                </span>
-                                            </Link>
+                                        <TableCell className='text-center'>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant={'ghost'}
+                                                        size={'icon'}
+                                                    >
+                                                        <EllipsisVerticalIcon />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem>
+                                                        <Link
+                                                            href={`/clients/details/${client.userID}`}
+                                                            className="flex items-center justify-center gap-1 group"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            <span className="group-hover:underline">
+                                                                Details
+                                                            </span>
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                        <Link
+                                                            href={`/clients/details/access/${client.userID}`}
+                                                            className="flex items-center justify-center gap-1 group"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            <span className="group-hover:underline">
+                                                                Access
+                                                            </span>
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
                                 )
