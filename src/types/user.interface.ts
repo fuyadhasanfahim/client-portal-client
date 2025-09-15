@@ -43,6 +43,9 @@ export interface IUser {
     isPasswordChanged?: boolean;
     lastPasswordChange?: Date;
 
+    lastSeenAt?: Date;
+    isOnline?: boolean;
+
     lastLogin: Date;
     image?: string;
 
@@ -76,7 +79,10 @@ export interface ISanitizedUser {
     currency?: string;
     lastLogin: Date;
     image?: string;
+    conversationID?: string;
     provider: string;
+    lastSeenAt?: Date;
+    isOnline?: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

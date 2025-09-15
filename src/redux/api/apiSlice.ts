@@ -15,7 +15,7 @@ export const apiSlice = createApi({
         'Payments',
         'Notifications',
         'ConversationList',
-        'MessageList',
+        'Messages',
         'Conversations',
         'AdditionalService',
     ],

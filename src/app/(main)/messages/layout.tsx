@@ -1,4 +1,9 @@
 import MessageSidebar from '@/components/messages/MessageSidebar';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Messages | Client Portal',
+};
 
 export default function MessageLayout({
     children,

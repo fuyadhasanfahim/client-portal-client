@@ -2,125 +2,117 @@
 'use client';
 
 import * as React from 'react';
-import { io, Socket } from 'socket.io-client';
 import FloatingMessenger from '@/components/shared/FloatingMessages/FloatingMessenger';
 import FloatingMessageButton from '@/components/shared/FloatingMessages/FloatingMessageButton';
-import { useLazyStartSupportQuery } from '@/redux/features/support/supportApi';
-import { useSendMessageMutation } from '@/redux/features/message/messageApi';
+import { useGetMessagesQuery } from '@/redux/features/message/messageApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
 import TestMessage from '../message';
-
-/** UI message shape expected by <FloatingMessenger /> */
-type ChatMessage = {
-    _id: string;
-    authorId: string;
-    text?: string;
-    sentAt: string | Date;
-    attachments?: Array<{
-        url: string;
-        name?: string;
-        mimeType?: string;
-        sizeBytes?: number;
-        thumbnailUrl?: string;
-    }>;
-};
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+import { socket } from '@/lib/socket';
+import { useUpdateUserMutation } from '@/redux/features/users/userApi';
+import { IMessage } from '@/types/message.interface';
 
 export default function MessagesFabProvider() {
     const { user } = useLoggedInUser();
+    const { conversationID, userID } = user;
 
     const [open, setOpen] = React.useState(false);
-    const [conversationId, setConversationId] = React.useState<string | null>(
-        null
-    );
-    const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+    const [cursor, setCursor] = React.useState<string | null>(null);
 
-    // API hooks
-    const [triggerStart, { isFetching: starting }] = useLazyStartSupportQuery();
-    const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
-
-    // socket
-    const socketRef = React.useRef<Socket | null>(null);
-
-    // Helper: map server message -> UI message
-    const mapServerMsg = React.useCallback((m: any): ChatMessage => {
-        return {
-            _id: m._id,
-            authorId: m.authorID ?? m.authorId,
-            text: m.text,
-            sentAt: m.sentAt,
-            attachments: m.attachments,
-        };
-    }, []);
-
-    // Open the panel → ensure conversation exists and load initial messages
-    React.useEffect(() => {
-        if (!open || conversationId) return;
-
-        (async () => {
-            try {
-                // POST /support/start -> { conversation, messages }
-                const res = await triggerStart({ limit: 50 }).unwrap();
-                console.log(res);
-                setConversationId(res.conversation._id);
-                setMessages((res.messages ?? []).map(mapServerMsg));
-            } catch (e) {
-                console.error('startSupport failed', e);
-            }
-        })();
-    }, [open, conversationId, triggerStart, mapServerMsg]);
-
-    // Join the socket room for realtime messages once we have a conversation
-    React.useEffect(() => {
-        if (!open || !conversationId) return;
-
-        if (!socketRef.current) {
-            socketRef.current = io(API_BASE, { withCredentials: true });
+    const { data, isFetching, refetch } = useGetMessagesQuery(
+        {
+            userID: userID,
+            conversationID: conversationID,
+            rawLimit: 50,
+            cursor: cursor ?? undefined,
+        },
+        {
+            skip: !user || !conversationID,
         }
-        const s = socketRef.current;
+    );
 
-        s.emit('join-conversation', conversationId);
+    const messages: IMessage[] = data?.data?.messages ?? [];
+    const nextCursor = data?.data?.nextCursor ?? null;
 
-        const onNew = (m: any) => {
-            const ui = mapServerMsg(m);
-            // dedupe (in case we also appended on POST success)
-            setMessages((prev) =>
-                prev.some((x) => x._id === ui._id) ? prev : [...prev, ui]
-            );
+    const [updateUser] = useUpdateUserMutation();
+
+    // Socket connection and real-time handling
+    React.useEffect(() => {
+        if (!conversationID || !userID) return;
+
+        console.log(
+            'MessagesFabProvider: Setting up socket for conversation',
+            conversationID
+        );
+
+        // Join conversation room when component mounts
+        socket.emit('conversation:join', {
+            conversationID,
+            userID,
+        });
+
+        // Handle new messages
+        const handleNewMessage = (message: IMessage) => {
+            console.log('MessagesFabProvider: New message received', message);
+            // Refetch messages to get the latest data
+            refetch();
         };
 
-        s.on('message:new', onNew);
+        socket.on('new-message', handleNewMessage);
+
+        // Cleanup on unmount
+        return () => {
+            socket.off('new-message', handleNewMessage);
+            socket.emit('conversation:leave', {
+                conversationID,
+                userID,
+            });
+            updateUser({
+                userID: userID,
+                data: {
+                    isOnline: false,
+                },
+            });
+        };
+    }, [conversationID, userID, refetch, updateUser]);
+
+    const unreadCount = 0;
+    const isTestDone = true;
+
+    const topRef = React.useRef<HTMLDivElement>(null);
+
+    // Intersection observer for pagination
+    React.useEffect(() => {
+        if (!topRef.current || !nextCursor || isFetching) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    console.log(
+                        'Loading more messages with cursor:',
+                        nextCursor
+                    );
+                    setCursor(nextCursor);
+                }
+            },
+            { threshold: 1 }
+        );
+
+        observer.observe(topRef.current);
 
         return () => {
-            s.emit('leave-conversation', conversationId);
-            s.off('message:new', onNew);
+            observer.disconnect();
         };
-    }, [open, conversationId, mapServerMsg]);
+    }, [nextCursor, isFetching]);
 
-    // Send a message
-    async function handleSend({ text }: { text: string }) {
-        if (!conversationId) return;
-        try {
-            // POST /messages/new-messages -> { message }
-            const { message } = await sendMessage({
-                conversationID: conversationId,
-                text,
-            }).unwrap();
-            const ui = mapServerMsg(message);
-            // append immediately; socket broadcast will be deduped by _id
-            setMessages((prev) =>
-                prev.some((x) => x._id === ui._id) ? prev : [...prev, ui]
-            );
-        } catch (e) {
-            console.error('sendMessage failed', e);
-        }
+    // Handle messages refetch for FloatingMessenger
+    const handleMessagesRefetch = React.useCallback(() => {
+        console.log('Refetching messages...');
+        refetch();
+    }, [refetch]);
+
+    if (!user || user.role !== 'user') {
+        return null;
     }
-
-    const currentUserId = user?.userID ?? 'me';
-    const unreadCount = 0;
-
-    const isTestDone = false;
 
     return (
         <>
@@ -130,21 +122,20 @@ export default function MessagesFabProvider() {
                 <FloatingMessenger
                     open={open}
                     onOpenChange={setOpen}
-                    currentUserId={currentUserId}
                     messages={messages}
-                    onSend={handleSend}
-                    sending={starting || sending}
+                    sending={isFetching}
+                    userID={userID}
+                    conversationID={conversationID!}
                     title="Support"
+                    onMessagesRefetch={handleMessagesRefetch}
                 />
             )}
 
-            {user && user.role === 'user' && (
-                <FloatingMessageButton
-                    isOpen={open}
-                    onToggle={() => setOpen((v) => !v)}
-                    unreadCount={unreadCount}
-                />
-            )}
+            <FloatingMessageButton
+                isOpen={open}
+                onToggle={() => setOpen((v) => !v)}
+                unreadCount={unreadCount}
+            />
         </>
     );
 }

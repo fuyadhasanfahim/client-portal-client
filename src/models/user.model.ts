@@ -50,6 +50,9 @@ const userSchema = new Schema<IUser & Document>(
         },
         currency: String,
 
+        lastSeenAt: { type: Date, default: new Date() },
+        isOnline: { type: Boolean, default: false },
+
         isEmailVerified: { type: Boolean, default: false },
         emailVerificationToken: String,
         emailVerificationTokenExpiry: Date,

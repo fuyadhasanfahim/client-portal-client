@@ -5,7 +5,7 @@ export type IParticipant = {
     image?: string;
     isOnline: boolean;
     lastSeenAt?: Date;
-    role: "admin" | "user";
+    role: 'admin' | 'user';
 };
 
 export type IConversation = {

@@ -13,11 +13,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
 import { useMemo, useState } from 'react';
 import { Button } from '../ui/button';
+import { useGetUserInfoQuery } from '@/redux/features/users/userApi';
 
 export default function MessageSidebar() {
     const { user } = useLoggedInUser();
     const { userID } = user || {};
-    const pathname = usePathname();
     const [search, setSearch] = useState<string>('');
 
     const { data, isLoading, isFetching, isError, refetch } =
@@ -86,60 +86,9 @@ export default function MessageSidebar() {
 
     const renderList = () => (
         <ul className="divide-y divide-gray-100">
-            {conversations.map((c: IConversation) => {
-                const u = c.participants.find((p) => p.role === 'user');
-                const isActive = pathname?.startsWith(`/messages/${c._id}`);
-                return (
-                    <li key={c._id}>
-                        <Link
-                            href={`/messages/${c._id}`}
-                            className={cn(
-                                'flex items-center gap-3 px-4 py-3 transition',
-                                'hover:bg-gray-50',
-                                isActive && 'bg-orange-50'
-                            )}
-                        >
-                            <div className="relative">
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage src={u?.image} alt={u?.name} />
-                                    <AvatarFallback>
-                                        {u?.name
-                                            ?.split(' ')
-                                            .map((x) => x[0])
-                                            .join('')}
-                                    </AvatarFallback>
-                                </Avatar>
-                                {u?.isOnline ? (
-                                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                                ) : (
-                                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-gray-500" />
-                                )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-2">
-                                    <p className="font-medium text-sm truncate">
-                                        {u?.name}
-                                    </p>
-                                    <span className="text-[11px] text-gray-400 shrink-0">
-                                        {c.lastMessageAt &&
-                                            formatDistanceToNow(
-                                                typeof c.lastMessageAt ===
-                                                    'string'
-                                                    ? new Date(c.lastMessageAt)
-                                                    : c.lastMessageAt,
-                                                { addSuffix: true }
-                                            )}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-gray-500 truncate">
-                                    {c.lastMessageText || 'No messages yet'}
-                                </p>
-                            </div>
-                        </Link>
-                    </li>
-                );
-            })}
+            {conversations.map((c: IConversation) => (
+                <ConversationItem key={c._id} conversation={c} />
+            ))}
         </ul>
     );
 
@@ -151,7 +100,7 @@ export default function MessageSidebar() {
                 </div>
                 <div>
                     <h2 className="text-sm font-semibold">Messages</h2>
-                    <p className="text-xs text-gray-500">Support inbox</p>
+                    <p className="text-xs text-gray-500">Admin inbox</p>
                 </div>
             </div>
 
@@ -185,6 +134,61 @@ export default function MessageSidebar() {
                 )}
             </div>
         </aside>
+    );
+}
+
+function ConversationItem({ conversation }: { conversation: IConversation }) {
+    const u = conversation.participants.find((p) => p.role === 'user');
+    const { data: userData } = useGetUserInfoQuery(u?.userID, {
+        skip: !u?.userID,
+    });
+
+    const pathname = usePathname();
+    const isActive = pathname?.startsWith(`/messages/${conversation._id}`);
+
+    return (
+        <li key={conversation._id}>
+            <Link
+                href={`/messages/${conversation._id}`}
+                className={cn(
+                    'flex items-center gap-3 px-4 py-3 transition',
+                    'hover:bg-gray-50',
+                    isActive && 'bg-orange-50'
+                )}
+            >
+                <div className="relative">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={userData?.data?.image} />
+                        <AvatarFallback>
+                            {userData?.data?.name?.charAt(0)}
+                        </AvatarFallback>
+                    </Avatar>
+                    {userData?.data?.isOnline ? (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                    ) : (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-gray-500" />
+                    )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-sm truncate">
+                            {userData?.data?.name}
+                        </p>
+                        <span className="text-[11px] text-gray-400 shrink-0">
+                            {conversation.lastMessageAt &&
+                                formatDistanceToNow(
+                                    new Date(conversation.lastMessageAt),
+                                    { addSuffix: true }
+                                )}
+                        </span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">
+                        {conversation.lastMessageText || 'No messages yet'}
+                    </p>
+                </div>
+            </Link>
+        </li>
     );
 }
 
