@@ -3,12 +3,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,7 +37,6 @@ export default function FloatingMessenger({
     userID,
     messages,
     sending = false,
-    title = 'Messages',
     footerExtras,
     onMessagesRefetch,
 }: FloatingMessengerProps) {

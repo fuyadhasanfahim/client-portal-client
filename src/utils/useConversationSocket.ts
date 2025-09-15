@@ -8,9 +8,10 @@ import {
     conversationApi,
     type ConversationListItem,
 } from '@/redux/features/conversation/conversationApi';
-import { messageApi, type Message } from '@/redux/features/message/messageApi';
+import { messageApi } from '@/redux/features/message/messageApi';
 import { IConversation } from '@/types/conversation.interface';
 import ApiError from '@/components/shared/ApiError';
+import { IMessage } from '@/types/message.interface';
 
 export type Mode =
     | { kind: 'admin' }
@@ -76,7 +77,7 @@ export function useConversationSocket(socketUrl: string, mode: Mode) {
                         )
                     );
                 } catch (error) {
-                    ApiError(error)
+                    ApiError(error);
                 }
             };
 
@@ -93,7 +94,7 @@ export function useConversationSocket(socketUrl: string, mode: Mode) {
         if (mode.kind === 'conversation') {
             const room = mode.conversationID;
 
-            const onNew = (m: Message) => {
+            const onNew = (m: IMessage) => {
                 // append to this conversation's cache, dedup by _id
                 try {
                     dispatch(
@@ -101,7 +102,11 @@ export function useConversationSocket(socketUrl: string, mode: Mode) {
                             'getMessages',
                             { conversationID: room, limit: 20, cursor: null },
                             (draft) => {
-                                if (!draft.items.some((x) => x._id === m._id)) {
+                                if (
+                                    !draft.items.some(
+                                        (x: any) => x._id === m._id
+                                    )
+                                ) {
                                     draft.items.push(m);
                                 }
                             }
