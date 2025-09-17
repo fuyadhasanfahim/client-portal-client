@@ -34,7 +34,6 @@ export default function ApplicantsTable() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
-    const [filter, setFilter] = useState('all');
     const [sortBy, setSortBy] = useState('createdAt');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -42,7 +41,7 @@ export default function ApplicantsTable() {
         search,
         page,
         limit,
-        filter,
+        filter: 'all',
         sort: sortBy,
         sortOrder,
     });
