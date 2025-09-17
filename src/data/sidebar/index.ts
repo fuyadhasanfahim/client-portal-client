@@ -1,4 +1,5 @@
 import {
+    Briefcase,
     Clipboard,
     FileText,
     LayoutDashboard,
@@ -81,6 +82,12 @@ export const sidebarItems: SidebarItem[] = [
         url: '/invoices',
         icon: FileText,
         access: ['admin', 'user'],
+    },
+    {
+        title: 'Jobs',
+        url: '/jobs',
+        icon: Briefcase,
+        access: ['admin'],
     },
     {
         title: 'Reports',
