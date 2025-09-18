@@ -90,18 +90,22 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
             };
 
             if (pendingStatus === 'interview') {
-                const [hours, minutes] = selectedTime.split(':').map(Number);
-                const interviewDateTime = new Date(selectedDate);
-                interviewDateTime.setHours(hours, minutes);
+                let formattedTime = selectedTime;
 
-                const suffix = hours >= 12 ? 'PM' : 'AM';
-                const formattedHours = ((hours + 11) % 12) + 1;
-                const formattedTime = `${formattedHours}:${minutes
-                    .toString()
-                    .padStart(2, '0')} ${suffix}`;
+                // Handle plain "HH:mm" from <input type="time" />
+                if (!/[APap][Mm]/.test(selectedTime)) {
+                    const [hours, minutes] = selectedTime
+                        .split(':')
+                        .map(Number);
+                    const suffix = hours >= 12 ? 'PM' : 'AM';
+                    const formattedHours = ((hours + 11) % 12) + 1;
+                    formattedTime = `${formattedHours}:${minutes
+                        .toString()
+                        .padStart(2, '0')} ${suffix}`;
+                }
 
-                updateData.date = format(selectedDate, 'PPP');
-                updateData.time = formattedTime;
+                updateData.date = format(selectedDate, 'PPP'); // e.g. Sep 20, 2025
+                updateData.time = formattedTime; // always safe AM/PM
             }
 
             const res = await updateApplicant({
