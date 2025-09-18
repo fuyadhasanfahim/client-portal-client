@@ -2,20 +2,58 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { useGetApplicantQuery } from '@/redux/features/applicant/applicantApi';
+import {
+    useGetApplicantQuery,
+    useUpdateApplicantMutation,
+} from '@/redux/features/applicant/applicantApi';
 import IApplicant from '@/types/applicant.interface';
+import { motion } from 'framer-motion';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import toast from 'react-hot-toast';
+import ApiError from '@/components/shared/ApiError';
+import { Loader2 } from 'lucide-react';
 
 export default function RootJobApplicantsDetails({ id }: { id: string }) {
     const { data, isLoading, error } = useGetApplicantQuery(id, {
         skip: !id,
     });
+    const [updateApplicant, { isLoading: isStatusChanging }] =
+        useUpdateApplicantMutation();
 
     const applicant: IApplicant = data?.applicant;
+
+    const handleStatusChange = async (status: string) => {
+        try {
+            const res = await updateApplicant({
+                id: applicant._id,
+                data: { status },
+            }).unwrap();
+
+            if (res.success) {
+                toast.success(`Applicant status changed to ${status}`);
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
 
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
             </div>
         );
     }
@@ -65,7 +103,11 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                             : 'bg-red-100 text-red-800'
                                     }`}
                                 >
-                                    {applicant.status}
+                                    {isStatusChanging ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        applicant.status
+                                    )}
                                 </span>
                             </div>
                         </div>
@@ -75,6 +117,94 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Main Content */}
                     <div className="md:col-span-2 space-y-6">
+                        {/* Status Update Section */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <Card className="border-orange-200">
+                                <CardHeader>
+                                    <CardTitle className="text-2xl">
+                                        Update Application Status
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Change the current status of this
+                                        application
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-6">
+                                    <Select
+                                        value={applicant?.status}
+                                        onValueChange={(value) => {
+                                            handleStatusChange(
+                                                value as IApplicant['status']
+                                            );
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem
+                                                value="applied"
+                                                disabled
+                                            >
+                                                Applied
+                                            </SelectItem>
+                                            <SelectItem value="shortlisted">
+                                                Shortlisted
+                                            </SelectItem>
+                                            <SelectItem value="interview">
+                                                Interview
+                                            </SelectItem>
+                                            <SelectItem value="hired">
+                                                Hired
+                                            </SelectItem>
+                                            <SelectItem value="rejected">
+                                                Rejected
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+
+                                    {/* Status Explanation */}
+                                    <div className="mt-6 pt-6 border-t border-gray-100">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">
+                                            Status meaning:
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                                                <span className="text-xs text-gray-600">
+                                                    Applied - Application
+                                                    received
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                                                <span className="text-xs text-gray-600">
+                                                    Shortlisted - Under review
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                                <span className="text-xs text-gray-600">
+                                                    Interview - Interview
+                                                    scheduled
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                                <span className="text-xs text-gray-600">
+                                                    Hired - Candidate selected
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+
                         {/* Contact Information */}
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -106,7 +236,7 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                             href={applicant.portfolioUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="font-medium text-blue-600 hover:underline"
+                                            className="font-medium text-orange-600 hover:underline"
                                         >
                                             {applicant.portfolioUrl}
                                         </a>
@@ -117,7 +247,12 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
 
                         {/* Cover Letter */}
                         {applicant.coverLetter && (
-                            <div className="bg-white rounded-lg shadow p-6">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-white rounded-lg shadow p-6"
+                            >
                                 <h2 className="text-lg font-medium text-gray-900 mb-4">
                                     Cover Letter
                                 </h2>
@@ -126,22 +261,38 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                         {applicant.coverLetter}
                                     </p>
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
 
                         {/* Work Experience */}
                         {applicant.experience &&
                             applicant.experience.length > 0 && (
-                                <div className="bg-white rounded-lg shadow p-6">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="bg-white rounded-lg shadow p-6"
+                                >
                                     <h2 className="text-lg font-medium text-gray-900 mb-4">
                                         Work Experience
                                     </h2>
                                     <div className="space-y-4">
                                         {applicant.experience.map(
                                             (exp, index) => (
-                                                <div
+                                                <motion.div
                                                     key={index}
-                                                    className="border-l-4 border-blue-500 pl-4 py-2"
+                                                    initial={{
+                                                        opacity: 0,
+                                                        x: -20,
+                                                    }}
+                                                    animate={{
+                                                        opacity: 1,
+                                                        x: 0,
+                                                    }}
+                                                    transition={{
+                                                        delay: index * 0.1,
+                                                    }}
+                                                    className="border-l-4 border-orange-500 pl-4 py-2"
                                                 >
                                                     <h3 className="font-medium text-gray-800">
                                                         {exp.role}
@@ -169,18 +320,23 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                                             {exp.description}
                                                         </p>
                                                     )}
-                                                </div>
+                                                </motion.div>
                                             )
                                         )}
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
                     </div>
 
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Application Details */}
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="bg-white rounded-lg shadow p-6"
+                        >
                             <h2 className="text-lg font-medium text-gray-900 mb-4">
                                 Application Details
                             </h2>
@@ -210,20 +366,25 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                             href={applicant.documentUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="font-medium text-blue-600 hover:underline"
+                                            className="font-medium text-orange-600 hover:underline"
                                         >
                                             View Document
                                         </a>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </motion.div>
 
                         {/* Social Links */}
                         {applicant.socials &&
                             (applicant.socials.linkedin ||
                                 applicant.socials.facebook) && (
-                                <div className="bg-white rounded-lg shadow p-6">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="bg-white rounded-lg shadow p-6"
+                                >
                                     <h2 className="text-lg font-medium text-gray-900 mb-4">
                                         Social Links
                                     </h2>
@@ -237,7 +398,7 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                                     }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center text-blue-600 hover:underline"
+                                                    className="flex items-center text-orange-600 hover:underline"
                                                 >
                                                     <svg
                                                         className="w-5 h-5 mr-2"
@@ -259,7 +420,7 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                                     }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center text-blue-600 hover:underline"
+                                                    className="flex items-center text-orange-600 hover:underline"
                                                 >
                                                     <svg
                                                         className="w-5 h-5 mr-2"
@@ -273,12 +434,17 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
 
                         {/* Notes */}
                         {applicant.notes && (
-                            <div className="bg-white rounded-lg shadow p-6">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="bg-white rounded-lg shadow p-6"
+                            >
                                 <h2 className="text-lg font-medium text-gray-900 mb-4">
                                     Notes
                                 </h2>
@@ -287,7 +453,7 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                         {applicant.notes}
                                     </p>
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
                     </div>
                 </div>
