@@ -54,13 +54,16 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
 
     const [showModal, setShowModal] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [selectedTime, setSelectedTime] = useState('00:00');
+    const [selectedTime, setSelectedTime] = useState(
+        new Date().toISOString().slice(11, 16)
+    );
     const [pendingStatus, setPendingStatus] = useState<string>('');
 
     const applicant: IApplicant = data?.applicant;
 
     const handleStatusChange = async (status: string) => {
-        if (status === 'shortlisted') {
+        // Show modal only for interview status
+        if (status === 'interview') {
             setPendingStatus(status);
             setShowModal(true);
             return;
@@ -86,13 +89,19 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                 status: pendingStatus,
             };
 
-            if (pendingStatus === 'shortlisted') {
-                const [hours, minutes] = selectedTime.split(':');
+            if (pendingStatus === 'interview') {
+                const [hours, minutes] = selectedTime.split(':').map(Number);
                 const interviewDateTime = new Date(selectedDate);
-                interviewDateTime.setHours(parseInt(hours), parseInt(minutes));
+                interviewDateTime.setHours(hours, minutes);
 
-                updateData.date = selectedDate.toISOString().split('T')[0];
-                updateData.time = selectedTime;
+                const suffix = hours >= 12 ? 'PM' : 'AM';
+                const formattedHours = ((hours + 11) % 12) + 1;
+                const formattedTime = `${formattedHours}:${minutes
+                    .toString()
+                    .padStart(2, '0')} ${suffix}`;
+
+                updateData.date = format(selectedDate, 'PPP');
+                updateData.time = formattedTime;
             }
 
             const res = await updateApplicant({
@@ -102,12 +111,12 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
 
             if (res.success) {
                 toast.success(`Applicant status changed to ${pendingStatus}`);
-                if (pendingStatus === 'shortlisted') {
+                if (pendingStatus === 'interview') {
                     toast.success(
                         `Interview scheduled for ${format(
                             selectedDate,
                             'PPP'
-                        )} at ${selectedTime}`
+                        )} at ${updateData.time}`
                     );
                 }
             }
@@ -145,14 +154,13 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
-            {/* Modal for scheduling interview when shortlisting */}
+            {/* Modal for scheduling interview */}
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Schedule Interview</DialogTitle>
                         <DialogDescription>
-                            Please select date and time for the interview before
-                            shortlisting this candidate.
+                            Please select date and time for the interview.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -233,7 +241,7 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
                                     Updating...
                                 </>
                             ) : (
-                                'Confirm Shortlist'
+                                'Schedule Interview'
                             )}
                         </Button>
                     </DialogFooter>
