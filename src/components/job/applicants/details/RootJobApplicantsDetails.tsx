@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import {
     useGetApplicantQuery,
@@ -22,9 +23,27 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import ApiError from '@/components/shared/ApiError';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CalendarIcon } from 'lucide-react';
 
 export default function RootJobApplicantsDetails({ id }: { id: string }) {
     const { data, isLoading, error } = useGetApplicantQuery(id, {
@@ -33,9 +52,20 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
     const [updateApplicant, { isLoading: isStatusChanging }] =
         useUpdateApplicantMutation();
 
+    const [showModal, setShowModal] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedTime, setSelectedTime] = useState('00:00');
+    const [pendingStatus, setPendingStatus] = useState<string>('');
+
     const applicant: IApplicant = data?.applicant;
 
     const handleStatusChange = async (status: string) => {
+        if (status === 'shortlisted') {
+            setPendingStatus(status);
+            setShowModal(true);
+            return;
+        }
+
         try {
             const res = await updateApplicant({
                 id: applicant._id,
@@ -45,6 +75,45 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
             if (res.success) {
                 toast.success(`Applicant status changed to ${status}`);
             }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
+
+    const confirmStatusChange = async () => {
+        try {
+            const updateData: any = {
+                status: pendingStatus,
+            };
+
+            if (pendingStatus === 'shortlisted') {
+                const [hours, minutes] = selectedTime.split(':');
+                const interviewDateTime = new Date(selectedDate);
+                interviewDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+                updateData.date = selectedDate.toISOString().split('T')[0];
+                updateData.time = selectedTime;
+            }
+
+            const res = await updateApplicant({
+                id: applicant._id,
+                data: updateData,
+            }).unwrap();
+
+            if (res.success) {
+                toast.success(`Applicant status changed to ${pendingStatus}`);
+                if (pendingStatus === 'shortlisted') {
+                    toast.success(
+                        `Interview scheduled for ${format(
+                            selectedDate,
+                            'PPP'
+                        )} at ${selectedTime}`
+                    );
+                }
+            }
+
+            setShowModal(false);
+            setPendingStatus('');
         } catch (error) {
             ApiError(error);
         }
@@ -76,6 +145,101 @@ export default function RootJobApplicantsDetails({ id }: { id: string }) {
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
+            {/* Modal for scheduling interview when shortlisting */}
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Schedule Interview</DialogTitle>
+                        <DialogDescription>
+                            Please select date and time for the interview before
+                            shortlisting this candidate.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="date" className="text-right">
+                                Date
+                            </Label>
+                            <div className="col-span-3">
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={'outline'}
+                                            className={cn(
+                                                'w-full justify-start text-left font-normal',
+                                                !selectedDate &&
+                                                    'text-muted-foreground'
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {selectedDate ? (
+                                                format(selectedDate, 'PPP')
+                                            ) : (
+                                                <span>Pick a date</span>
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="w-auto p-0"
+                                        align="start"
+                                    >
+                                        <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={(date) =>
+                                                date && setSelectedDate(date)
+                                            }
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="time" className="text-right">
+                                Time
+                            </Label>
+                            <div className="col-span-3">
+                                <div className="relative">
+                                    <Input
+                                        type="time"
+                                        value={selectedTime}
+                                        onChange={(e) =>
+                                            setSelectedTime(e.target.value)
+                                        }
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowModal(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmStatusChange}
+                            disabled={isStatusChanging}
+                        >
+                            {isStatusChanging ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    Updating...
+                                </>
+                            ) : (
+                                'Confirm Shortlist'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Section */}
                 <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
