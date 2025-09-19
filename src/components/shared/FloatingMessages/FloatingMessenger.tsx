@@ -17,6 +17,7 @@ import { IMessage } from '@/types/message.interface';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useGetUserInfoQuery } from '@/redux/features/users/userApi';
 import { socket } from '@/lib/socket';
+import { Input } from '@/components/ui/input';
 
 type FloatingMessengerProps = {
     open: boolean;
@@ -228,19 +229,21 @@ export default function FloatingMessenger({
                 {/* Footer should never disappear; keep it shrink-0 */}
                 <div className="border-t p-3 shrink-0 bg-white">
                     <div className="flex items-end gap-2">
-                        <Button variant="outline" size="icon">
-                            <Paperclip />
-                        </Button>
-                        <Button variant="outline" size="icon">
-                            <SmilePlus />
-                        </Button>
-
-                        <Textarea
+                        <Input
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            onKeyDown={onKeyDown}
-                            placeholder="Write a message…  (Ctrl/⌘ + Enter to send)"
-                            className="min-h-[36px] max-h-40 resize-y"
+                            onKeyDown={(e) => {
+                                if (
+                                    e.key === 'Enter' &&
+                                    !e.shiftKey &&
+                                    !isLoading
+                                ) {
+                                    e.preventDefault();
+                                    void handleSend();
+                                }
+                            }}
+                            placeholder="Write a message…  (Enter to send)"
+                            className="flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-y"
                             disabled={isLoading}
                         />
 
