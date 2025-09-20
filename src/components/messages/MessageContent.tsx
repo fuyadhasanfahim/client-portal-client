@@ -1,23 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send } from 'lucide-react';
+import { ArrowUp, Loader2, Paperclip } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import useLoggedInUser from '@/utils/getLoggedInUser';
+import { Input } from '../ui/input';
+import { Skeleton } from '../ui/skeleton';
+import { IMessage } from '@/types/message.interface';
+import ApiError from '../shared/ApiError';
 import {
     useGetMessagesQuery,
     useNewMessageMutation,
 } from '@/redux/features/message/messageApi';
-import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
-import useLoggedInUser from '@/utils/getLoggedInUser';
-import { Input } from '../ui/input';
-import ApiError from '../shared/ApiError';
-import { Skeleton } from '../ui/skeleton';
-import { IConversation } from '@/types/conversation.interface';
-import { IMessage } from '@/types/message.interface';
-import { socket } from '@/lib/socket';
-import { useUpdateUserMutation } from '@/redux/features/users/userApi';
 
 export default function MessageContent({
     conversationID,
@@ -25,134 +21,56 @@ export default function MessageContent({
     conversationID: string;
 }) {
     const { user } = useLoggedInUser();
-    console.log(user?.isOnline);
 
-    const listRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const [messages, setMessages] = useState<IMessage[] | []>([]);
+    const [text, setText] = useState('');
 
-    const { data: conversationData, isLoading: isConversationLoading } =
-        useGetConversationQuery(conversationID, {
-            skip: !conversationID,
-        });
-
-    const conversation: IConversation =
-        (!isConversationLoading &&
-            conversationData &&
-            conversationData?.conversation) ??
-        [];
-
-    const conversationUser = conversation?.participants?.find(
-        (p) => p.role === 'user'
-    );
-
-    const [cursor, setCursor] = useState<string | null>(null);
-
-    const { data, isFetching, refetch } = useGetMessagesQuery(
-        {
+    const { data: messagesData, isLoading: isMessagesLoading } =
+        useGetMessagesQuery({
             userID: user?.userID,
             conversationID,
-            rawLimit: 50,
-            cursor: cursor ?? undefined,
-        },
-        {
-            skip: !user?.userID || !conversationID,
+            rawLimit: 25,
+            cursor: '',
+        });
+
+    const [newMessage, { isLoading: isNewMessageSending }] =
+        useNewMessageMutation();
+
+    useEffect(() => {
+        if (!isMessagesLoading || messagesData) {
+            setMessages(messagesData?.data.messages);
+        } else {
+            setMessages([]);
         }
-    );
+    }, [messagesData, isMessagesLoading]);
 
-    const messages: IMessage[] = data?.data?.messages ?? [];
-    const nextCursor = data?.data?.nextCursor ?? null;
+    const isConversationLoading = false;
 
-    const [text, setText] = useState('');
-    const [sendMessage, { isLoading: sending }] = useNewMessageMutation();
-
-    const doSend = async () => {
-        if (!text.trim()) return;
-
+    const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         try {
-            const res = await sendMessage({
-                conversationID,
-                text: text.trim(),
-                senderID: user?.userID,
-            });
+            e.preventDefault();
 
-            if (res.data?.success) {
+            const res = await newMessage({
+                conversationID,
+                text,
+                senderID: user?.userID,
+            }).unwrap();
+
+            if (res?.success) {
                 setText('');
-                inputRef.current?.focus();
+                setMessages((pre) => [...pre, res.message]);
             }
         } catch (error) {
             ApiError(error);
         }
     };
 
-    const [updateUser] = useUpdateUserMutation();
-
-    // Socket connection and real-time message handling
-    useEffect(() => {
-        if (!conversationID || !user?.userID) return;
-
-        console.log('Joining conversation:', conversationID);
-
-        // Join the conversation room
-        socket.emit('conversation:join', {
-            conversationID,
-            userID: user.userID,
-        });
-
-        // Listen for new messages
-        const handleNewMessage = (message: IMessage) => {
-            console.log('New message received:', message);
-            // Refetch messages to get the latest data
-            refetch();
-        };
-
-        socket.on('new-message', handleNewMessage);
-
-        // Cleanup function
-        return () => {
-            socket.off('new-message', handleNewMessage);
-            socket.emit('conversation:leave', {
-                conversationID,
-                userID: user.userID,
-            });
-
-            // Update user status to offline when leaving
-            updateUser({
-                userID: user?.userID,
-                data: {
-                    isOnline: false,
-                },
-            });
-        };
-    }, [conversationID, user?.userID, refetch, updateUser]);
-
-    const topRef = useRef<HTMLDivElement>(null);
-
-    // Intersection observer for pagination
-    useEffect(() => {
-        if (!topRef.current || !nextCursor || isFetching) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting) {
-                    setCursor(nextCursor);
-                }
-            },
-            { threshold: 1 }
-        );
-
-        observer.observe(topRef.current);
-
-        return () => {
-            observer.disconnect();
-        };
-    }, [nextCursor, isFetching]);
-
-    // Auto-scroll to bottom when new messages arrive
-    useEffect(() => {
-        if (listRef.current) {
-            listRef.current.scrollTop = listRef.current.scrollHeight;
-        }
-    }, [messages.length]);
+    const conversationUser = {
+        image: '',
+        name: 'Client',
+        isOnline: true,
+        email: 'client@gmail.com',
+    };
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-white">
@@ -195,11 +113,7 @@ export default function MessageContent({
                 )}
             </div>
 
-            <div
-                ref={listRef}
-                className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3"
-            >
-                <div ref={topRef}></div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
                 {messages.map((m) => {
                     const mine = m.authorID === user.userID;
                     const author = mine ? 'Me' : conversationUser?.name;
@@ -234,42 +148,43 @@ export default function MessageContent({
                     );
                 })}
 
-                {isFetching && !messages.length && (
-                    <div className="text-center text-[11px] text-gray-500 mt-2">
+                {isMessagesLoading && !messages.length && (
+                    <div className="w-full h-full flex items-center justify-center">
                         <Loader2 className="animate-spin" />
                     </div>
                 )}
             </div>
 
-            {/* Composer */}
             <div className="shrink-0 border-t px-3 py-3">
-                <div className="flex items-center gap-2">
+                <form
+                    onSubmit={handleSendMessage}
+                    className="flex items-center gap-2"
+                >
+                    <Button
+                        size={'icon'}
+                        variant={'secondary'}
+                        disabled={isNewMessageSending}
+                    >
+                        <Paperclip />
+                    </Button>
                     <Input
-                        ref={inputRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && !sending) {
-                                e.preventDefault();
-                                doSend();
-                            }
-                        }}
-                        className="flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
+                        className="resize-y"
                         placeholder="Write a message…"
-                        disabled={sending}
+                        disabled={isNewMessageSending}
                     />
                     <Button
                         size="icon"
-                        onClick={doSend}
-                        disabled={sending || !text.trim()}
+                        disabled={isNewMessageSending || !text.trim()}
                     >
-                        {sending ? (
+                        {isNewMessageSending ? (
                             <Loader2 className="animate-spin" />
                         ) : (
-                            <Send />
+                            <ArrowUp />
                         )}
                     </Button>
-                </div>
+                </form>
             </div>
         </div>
     );

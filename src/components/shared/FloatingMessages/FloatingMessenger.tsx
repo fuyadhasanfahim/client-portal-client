@@ -1,54 +1,54 @@
 'use client';
 
-import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2 } from 'lucide-react';
-import { useNewMessageMutation } from '@/redux/features/message/messageApi';
+import { Loader2, Paperclip, ArrowUp } from 'lucide-react';
+import {
+    useGetMessagesQuery,
+    useNewMessageMutation,
+} from '@/redux/features/message/messageApi';
 import ApiError from '../ApiError';
 import { format, formatDistanceToNow } from 'date-fns';
-import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
-import { IConversation } from '@/types/conversation.interface';
 import { IMessage } from '@/types/message.interface';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useGetUserInfoQuery } from '@/redux/features/users/userApi';
-import { socket } from '@/lib/socket';
 import { Input } from '@/components/ui/input';
+import { ISanitizedUser } from '@/types/user.interface';
+import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
+import { IConversation } from '@/types/conversation.interface';
 
 type FloatingMessengerProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    conversationID: string;
-    userID: string;
-    messages: IMessage[];
-    sending?: boolean;
-    title?: string;
+    user: ISanitizedUser;
     footerExtras?: React.ReactNode;
-    onMessagesRefetch?: () => void;
 };
 
 export default function FloatingMessenger({
     open,
     onOpenChange,
-    conversationID,
-    userID,
-    messages,
-    sending = false,
+    user,
     footerExtras,
-    onMessagesRefetch,
 }: FloatingMessengerProps) {
-    const [text, setText] = React.useState('');
-    const bottomRef = React.useRef<HTMLDivElement>(null);
-    const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+    const [text, setText] = useState('');
+    const [messages, setMessages] = useState<IMessage[] | []>([]);
 
-    const [sendMessage, { isLoading }] = useNewMessageMutation();
+    const [newMessage, { isLoading: isNewMessageSending }] =
+        useNewMessageMutation();
+
+    const { data: messagesData, isLoading: isMessagesLoading } =
+        useGetMessagesQuery({
+            userID: user?.userID,
+            conversationID: user?.conversationID,
+            rawLimit: 25,
+            cursor: '',
+        });
 
     const { data: conversationData, isLoading: isConversationLoading } =
-        useGetConversationQuery(conversationID, {
-            skip: !conversationID,
+        useGetConversationQuery(user?.conversationID, {
+            skip: !user?.conversationID,
         });
 
     const conversation: IConversation =
@@ -61,92 +61,57 @@ export default function FloatingMessenger({
         (p) => p.role === 'user'
     );
 
-    const { data: userData } = useGetUserInfoQuery(conversationUser?.userID, {
-        skip: !conversationUser?.userID,
-    });
+    useEffect(() => {
+        if (!isMessagesLoading || messagesData) {
+            setMessages(messagesData?.data.messages);
+        } else {
+            setMessages([]);
+        }
+    }, [messagesData, isMessagesLoading]);
 
-    const handleSend = async () => {
-        if (!text.trim()) return;
-
+    const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         try {
-            const res = await sendMessage({
-                conversationID,
-                text: text.trim(),
-                senderID: userID,
+            e.preventDefault();
+
+            const res = await newMessage({
+                conversationID: user?.conversationID,
+                text,
+                senderID: user?.userID,
             }).unwrap();
 
-            if (res.success) {
+            if (res?.success) {
                 setText('');
+                setMessages((pre) => [...pre, res.message]);
             }
         } catch (error) {
             ApiError(error);
         }
     };
 
-    function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-        if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-            e.preventDefault();
-            void handleSend();
+    useEffect(() => {
+        if (!conversation._id || !user) {
+            return;
         }
-    }
 
-    // Socket connection for real-time messages
-    React.useEffect(() => {
-        if (!open || !conversationID || !userID) return;
-
-        console.log('FloatingMessenger: Joining conversation', conversationID);
-
-        // Join the conversation room
-        socket.emit('conversation:join', {
-            conversationID,
-            userID,
-        });
-
-        // Listen for new messages
-        const handleNewMessage = (message: IMessage) => {
-            console.log('FloatingMessenger: New message received', message);
-            // Trigger refetch from parent component
-            onMessagesRefetch?.();
-        };
-
-        socket.on('new-message', handleNewMessage);
-
-        return () => {
-            socket.off('new-message', handleNewMessage);
-            socket.emit('conversation:leave', {
-                conversationID,
-                userID,
-            });
-        };
-    }, [open, conversationID, userID, onMessagesRefetch]);
-
-    // Auto-scroll to bottom on new messages
-    React.useEffect(() => {
-        if (bottomRef.current && scrollAreaRef.current) {
-            bottomRef.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'end',
-            });
-        }
-    }, [messages.length]);
+        
+    }, []);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            {/* Make the content a flex column and prevent outer overflow */}
             <SheetContent
                 side="right"
-                className="sm:max-w-md p-0 flex h-full flex-col overflow-hidden"
+                className="sm:max-w-md p-0 flex h-full flex-col overflow-hidden !gap-0"
             >
                 <SheetHeader className="px-4 py-3 border-b shrink-0">
                     <div className={cn('flex items-center gap-3 transition')}>
                         <div className="relative">
                             <Avatar className="h-9 w-9">
-                                <AvatarImage src={userData?.data?.image} />
+                                <AvatarImage src={user.image} />
                                 <AvatarFallback>
-                                    {userData?.data?.name?.charAt(0)}
+                                    {user?.name?.charAt(0)}
                                 </AvatarFallback>
                             </Avatar>
-                            {userData?.data?.isOnline ? (
+                            {user?.isOnline ? (
                                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
                             ) : (
                                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-gray-500" />
@@ -155,7 +120,7 @@ export default function FloatingMessenger({
 
                         <div className="min-w-0 flex-1">
                             <p className="font-medium text-base truncate">
-                                {userData?.data?.name}
+                                {user?.name}
                             </p>
                             <span className="text-[11px] text-gray-400 shrink-0">
                                 {conversation.lastMessageAt &&
@@ -166,97 +131,91 @@ export default function FloatingMessenger({
                             </span>
                         </div>
                     </div>
+
+                    {isMessagesLoading && !messages.length && (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <Loader2 className="animate-spin" />
+                        </div>
+                    )}
                 </SheetHeader>
 
-                <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 px-3">
-                    <div className="space-y-3 py-3">
-                        <AnimatePresence initial={false}>
-                            {messages.map((m) => {
-                                const mine = m.authorID === userID;
-                                const author = mine
-                                    ? 'Me'
-                                    : conversationUser?.name;
-                                return (
-                                    <motion.div
-                                        key={m._id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        transition={{ duration: 0.2 }}
-                                        className={`flex ${
+                <ScrollArea className="min-h-0">
+                    <div className="flex-1 px-4 py-3 !space-y-3">
+                        {messages.map((m) => {
+                            const mine = m.authorID === user?.userID;
+                            const author = mine ? 'Me' : conversationUser?.name;
+                            return (
+                                <div
+                                    key={m._id}
+                                    className={`flex ${
+                                        mine ? 'justify-end' : 'justify-start'
+                                    }`}
+                                >
+                                    <div
+                                        className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
                                             mine
-                                                ? 'justify-end'
-                                                : 'justify-start'
+                                                ? 'bg-orange-500 text-white rounded-br-none'
+                                                : 'bg-gray-100 text-gray-800 rounded-bl-none'
                                         }`}
                                     >
+                                        {!!m.text && (
+                                            <p className="whitespace-pre-wrap">
+                                                {m.text}
+                                            </p>
+                                        )}
                                         <div
-                                            className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                                            className={`mt-1 text-[10px] ${
                                                 mine
-                                                    ? 'bg-orange-500 text-white rounded-br-none'
-                                                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                                                    ? 'text-white/80'
+                                                    : 'text-gray-500'
                                             }`}
                                         >
-                                            {!!m.text && (
-                                                <p className="whitespace-pre-wrap">
-                                                    {m.text}
-                                                </p>
+                                            {author} •{' '}
+                                            {formatDistanceToNow(
+                                                new Date(
+                                                    conversation.lastMessageAt
+                                                ),
+                                                { addSuffix: true }
                                             )}
-                                            <div
-                                                className={`mt-1 text-[10px] ${
-                                                    mine
-                                                        ? 'text-white/80'
-                                                        : 'text-gray-500'
-                                                }`}
-                                            >
-                                                {author} •{' '}
-                                                {format(
-                                                    new Date(m.sentAt),
-                                                    'p'
-                                                )}
-                                            </div>
                                         </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
-
-                        {/* anchor to keep view pinned to bottom */}
-                        <div ref={bottomRef} />
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </ScrollArea>
 
                 {/* Footer should never disappear; keep it shrink-0 */}
                 <div className="border-t p-3 shrink-0 bg-white">
-                    <div className="flex items-end gap-2">
+                    <form
+                        onSubmit={handleSendMessage}
+                        className="flex items-center gap-2"
+                    >
+                        <Button
+                            size={'icon'}
+                            variant={'secondary'}
+                            disabled={isNewMessageSending}
+                        >
+                            <Paperclip />
+                        </Button>
                         <Input
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (
-                                    e.key === 'Enter' &&
-                                    !e.shiftKey &&
-                                    !isLoading
-                                ) {
-                                    e.preventDefault();
-                                    void handleSend();
-                                }
-                            }}
-                            placeholder="Write a message…  (Enter to send)"
-                            className="flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-y"
-                            disabled={isLoading}
+                            className="resize-y"
+                            placeholder="Write a message…"
+                            disabled={isNewMessageSending}
                         />
-
                         <Button
-                            onClick={() => void handleSend()}
-                            disabled={!text.trim() || sending || isLoading}
+                            size="icon"
+                            disabled={isNewMessageSending || !text.trim()}
                         >
-                            {isLoading ? (
+                            {isNewMessageSending ? (
                                 <Loader2 className="animate-spin" />
                             ) : (
-                                <Send />
+                                <ArrowUp />
                             )}
                         </Button>
-                    </div>
+                    </form>
 
                     {footerExtras ? (
                         <div className="mt-2">{footerExtras}</div>
