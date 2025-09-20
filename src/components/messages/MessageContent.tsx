@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ArrowUp, Loader2, Paperclip } from 'lucide-react';
@@ -27,25 +27,46 @@ export default function MessageContent({
 
     const [messages, setMessages] = useState<IMessage[] | []>([]);
     const [text, setText] = useState('');
+    const [cursor, setCursor] = useState<string | null>(null);
+
+    const inputRef = useRef<HTMLInputElement>(null);
+    const bottomRef = useRef<HTMLDivElement>(null);
 
     const { data: messagesData, isLoading: isMessagesLoading } =
-        useGetMessagesQuery({
-            userID: user?.userID,
-            conversationID,
-            rawLimit: 25,
-            cursor: '',
-        });
+        useGetMessagesQuery(
+            {
+                userID: user?.userID,
+                conversationID,
+                rawLimit: 25,
+                cursor: cursor ?? '',
+            },
+            {
+                skip: !user?.userID,
+            }
+        );
 
     const [newMessage, { isLoading: isNewMessageSending }] =
         useNewMessageMutation();
 
     useEffect(() => {
-        if (!isMessagesLoading || messagesData) {
-            setMessages(messagesData?.data.messages);
-        } else {
-            setMessages([]);
+        if (inputRef.current) {
+            inputRef.current.focus();
         }
-    }, [messagesData, isMessagesLoading]);
+    }, []);
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    useEffect(() => {
+        if (messagesData?.data?.messages) {
+            setMessages((prev) =>
+                cursor
+                    ? [...messagesData.data.messages, ...prev]
+                    : messagesData.data.messages
+            );
+        }
+    }, [messagesData]);
 
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         try {
@@ -59,7 +80,7 @@ export default function MessageContent({
 
             if (res?.success) {
                 setText('');
-                setMessages((pre) => [...pre, res.message]);
+                inputRef.current?.focus();
             }
         } catch (error) {
             ApiError(error);
@@ -82,30 +103,39 @@ export default function MessageContent({
     );
 
     useEffect(() => {
-        if (!conversationID || !user.userID) return;
+        if (!conversation._id || !user?.userID) return;
 
         if (!socket.connected) socket.connect();
 
-        const joinRoom = () => {
-            socket.emit('join-conversation', conversationID);
+        const handleNewMessage = (data: {
+            message: IMessage;
+            userID: string;
+        }) => {
+            console.log('New message:', data.message);
+            setMessages((prev) => [...prev, data.message]);
         };
 
-        joinRoom();
-        socket.on('connect', joinRoom);
-
-        const handleNewMessage = (message: IMessage) => {
-            console.log('New message:', message);
-            setMessages((pre) => [...pre, message]);
-        };
+        socket.emit('join-conversation', {
+            conversationID: conversation._id,
+            userID: user.userID,
+        });
 
         socket.on('new-message', handleNewMessage);
 
         return () => {
             socket.off('new-message', handleNewMessage);
-            socket.off('connect', joinRoom);
-            socket.emit('leave-conversation', conversationID);
+            socket.emit('leave-conversation', {
+                conversationID: conversation._id,
+                userID: user.userID,
+            });
         };
-    }, [conversationID, user?.userID]);
+    }, [conversation._id, user?.userID]);
+
+    const handleLoadMore = () => {
+        if (messages.length > 0) {
+            setCursor(messages[0]._id);
+        }
+    };
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-white">
@@ -148,7 +178,15 @@ export default function MessageContent({
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
+            <div
+                className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
+                onScroll={(e) => {
+                    const target = e.currentTarget;
+                    if (target.scrollTop === 0 && !isMessagesLoading) {
+                        handleLoadMore();
+                    }
+                }}
+            >
                 {messages.map((m, i) => {
                     const mine = m.authorID === user.userID;
                     const author = mine ? 'Me' : conversationUser?.name;
@@ -188,6 +226,8 @@ export default function MessageContent({
                         <Loader2 className="animate-spin" />
                     </div>
                 )}
+
+                <div ref={bottomRef} />
             </div>
 
             <div className="shrink-0 border-t px-3 py-3">
@@ -203,6 +243,7 @@ export default function MessageContent({
                         <Paperclip />
                     </Button>
                     <Input
+                        ref={inputRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         className="resize-y"
