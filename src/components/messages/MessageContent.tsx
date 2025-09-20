@@ -17,6 +17,7 @@ import {
 import { socket } from '@/lib/socket';
 import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MessageContent({
     conversationID,
@@ -88,8 +89,8 @@ export default function MessageContent({
         if (messagesData?.data?.messages) {
             setMessages(
                 cursor
-                    ? (prev) => [...messagesData.data.messages, ...prev] // prepend older
-                    : messagesData.data.messages // reset on first load
+                    ? (prev) => [...messagesData.data.messages, ...prev]
+                    : messagesData.data.messages
             );
 
             // ✅ On very first load, scroll to bottom automatically
@@ -113,10 +114,8 @@ export default function MessageContent({
         }) => {
             setMessages((prev) => [...prev, data.message]);
 
-            // ✅ Only scroll if YOU are the sender
-            if (data.userID === user.userID) {
-                setScrollMode('append');
-            }
+            setScrollMode('append');
+            requestAnimationFrame(() => inputRef.current?.focus());
         };
 
         socket.emit('join-conversation', {
@@ -164,7 +163,12 @@ export default function MessageContent({
     };
 
     return (
-        <div className="flex h-full min-h-0 flex-col bg-white">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+            className="flex h-full min-h-0 flex-col bg-white"
+        >
             {/* Header */}
             <div className="shrink-0 border-b px-4 py-3">
                 {isConversationLoading ? (
@@ -176,7 +180,12 @@ export default function MessageContent({
                         </div>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 min-w-0">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="flex items-center gap-3 min-w-0"
+                    >
                         <div className="relative">
                             <Avatar className="h-9 w-9">
                                 <AvatarImage
@@ -203,7 +212,7 @@ export default function MessageContent({
                                 {conversationUser?.email}
                             </p>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
             </div>
 
@@ -218,39 +227,49 @@ export default function MessageContent({
                     }
                 }}
             >
-                {messages.map((m) => {
-                    const mine = m.authorID === user.userID;
-                    const author = mine ? 'Me' : conversationUser?.name;
-                    return (
-                        <div
-                            key={m._id}
-                            className={`flex ${
-                                mine ? 'justify-end' : 'justify-start'
-                            }`}
-                        >
-                            <div
-                                className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                                    mine
-                                        ? 'bg-orange-500 text-white rounded-br-none'
-                                        : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                <AnimatePresence initial={false}>
+                    {messages.map((m) => {
+                        const mine = m.authorID === user.userID;
+                        const author = mine ? 'Me' : conversationUser?.name;
+                        return (
+                            <motion.div
+                                key={m._id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className={`flex ${
+                                    mine ? 'justify-end' : 'justify-start'
                                 }`}
                             >
-                                {m.text && (
-                                    <p className="whitespace-pre-wrap">
-                                        {m.text}
-                                    </p>
-                                )}
-                                <div
-                                    className={`mt-1 text-[10px] ${
-                                        mine ? 'text-white/80' : 'text-gray-500'
+                                <motion.div
+                                    whileHover={{ scale: 1.02 }}
+                                    className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                                        mine
+                                            ? 'bg-orange-500 text-white rounded-br-none'
+                                            : 'bg-gray-100 text-gray-800 rounded-bl-none'
                                     }`}
                                 >
-                                    {author} • {format(new Date(m.sentAt), 'p')}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
+                                    {m.text && (
+                                        <p className="whitespace-pre-wrap">
+                                            {m.text}
+                                        </p>
+                                    )}
+                                    <div
+                                        className={`mt-1 text-[10px] ${
+                                            mine
+                                                ? 'text-white/80'
+                                                : 'text-gray-500'
+                                        }`}
+                                    >
+                                        {author} •{' '}
+                                        {format(new Date(m.sentAt), 'p')}
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        );
+                    })}
+                </AnimatePresence>
 
                 {isMessagesLoading && !messages.length && (
                     <div className="w-full h-full flex items-center justify-center">
@@ -262,7 +281,12 @@ export default function MessageContent({
             </div>
 
             {/* Footer */}
-            <div className="shrink-0 border-t px-3 py-3">
+            <motion.div
+                initial={{ y: 40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 150, damping: 18 }}
+                className="shrink-0 border-t px-3 py-3"
+            >
                 <form
                     onSubmit={handleSendMessage}
                     className="flex items-center gap-2"
@@ -271,8 +295,11 @@ export default function MessageContent({
                         size="icon"
                         variant="secondary"
                         disabled={isNewMessageSending}
+                        asChild
                     >
-                        <Paperclip />
+                        <motion.div whileTap={{ scale: 0.9 }}>
+                            <Paperclip />
+                        </motion.div>
                     </Button>
                     <Input
                         ref={inputRef}
@@ -285,15 +312,21 @@ export default function MessageContent({
                     <Button
                         size="icon"
                         disabled={isNewMessageSending || !text.trim()}
+                        asChild
                     >
-                        {isNewMessageSending ? (
-                            <Loader2 className="animate-spin" />
-                        ) : (
-                            <ArrowUp />
-                        )}
+                        <motion.div
+                            whileTap={{ scale: 0.85 }}
+                            whileHover={{ scale: 1.1 }}
+                        >
+                            {isNewMessageSending ? (
+                                <Loader2 className="animate-spin" />
+                            ) : (
+                                <ArrowUp />
+                            )}
+                        </motion.div>
                     </Button>
                 </form>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
