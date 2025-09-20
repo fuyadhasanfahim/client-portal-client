@@ -8,7 +8,7 @@ import useLoggedInUser from '@/utils/getLoggedInUser';
 export default function MessagesFabProvider() {
     const { user } = useLoggedInUser();
 
-    const [open, setOpen] = useState(true);
+    const [open, setOpen] = useState(false);
 
     if (!user || user.role !== 'user') {
         return null;
