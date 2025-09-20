@@ -63,10 +63,12 @@ export default function FloatingMessenger({
             { skip: !user?.userID }
         );
 
-    const { data: conversationData, isLoading: isConversationLoading } =
-        useGetConversationQuery(user?.conversationID, {
+    const { data: conversationData } = useGetConversationQuery(
+        user?.conversationID,
+        {
             skip: !user?.conversationID,
-        });
+        }
+    );
 
     const conversation: IConversation =
         conversationData?.conversation ?? ({} as IConversation);
@@ -114,9 +116,8 @@ export default function FloatingMessenger({
                 setInitialLoad(false);
             }
         }
-    }, [messagesData]);
+    }, [messagesData, cursor, initialLoad]);
 
-    // ✅ Socket join/leave + new messages
     useEffect(() => {
         if (!conversation._id || !user?.userID) return;
         if (!socket.connected) socket.connect();
@@ -314,7 +315,7 @@ export default function FloatingMessenger({
                             stiffness: 120,
                             damping: 15,
                         }}
-                        className="border-t p-3 shrink-0 bg-white"
+                        className="border-t p-3 shrink-0 bg-white justify-end"
                     >
                         <form
                             onSubmit={handleSendMessage}

@@ -64,12 +64,10 @@ export default function MessageContent({
         (p) => p.role === 'user'
     );
 
-    // ✅ Always focus input on mount
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
-    // ✅ Scroll behavior
     useEffect(() => {
         if (scrollMode === 'append') {
             bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,13 +76,12 @@ export default function MessageContent({
             const prevHeight = el.scrollHeight;
             requestAnimationFrame(() => {
                 const newHeight = el.scrollHeight;
-                el.scrollTop = newHeight - prevHeight; // preserve scroll
+                el.scrollTop = newHeight - prevHeight;
             });
         }
         setScrollMode(null);
     }, [messages, scrollMode]);
 
-    // ✅ Update messages when data comes in
     useEffect(() => {
         if (messagesData?.data?.messages) {
             setMessages(
@@ -93,7 +90,6 @@ export default function MessageContent({
                     : messagesData.data.messages
             );
 
-            // ✅ On very first load, scroll to bottom automatically
             if (!cursor && initialLoad) {
                 requestAnimationFrame(() => {
                     bottomRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -101,7 +97,7 @@ export default function MessageContent({
                 setInitialLoad(false);
             }
         }
-    }, [messagesData]);
+    }, [messagesData, cursor, initialLoad]);
 
     // ✅ Socket handling
     useEffect(() => {
