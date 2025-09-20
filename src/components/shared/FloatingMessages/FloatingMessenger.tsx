@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
 import {
     Sheet,
     SheetContent,
@@ -30,7 +29,6 @@ type FloatingMessengerProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     user: ISanitizedUser;
-    footerExtras?: React.ReactNode;
 };
 
 export default function FloatingMessenger({
@@ -39,10 +37,15 @@ export default function FloatingMessenger({
     user,
 }: FloatingMessengerProps) {
     const [text, setText] = useState('');
-    const [messages, setMessages] = useState<IMessage[] | []>([]);
+    const [messages, setMessages] = useState<IMessage[]>([]);
     const [cursor, setCursor] = useState<string | null>(null);
+    const [scrollMode, setScrollMode] = useState<'append' | 'prepend' | null>(
+        null
+    );
+    const [initialLoad, setInitialLoad] = useState(true);
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     const [newMessage, { isLoading: isNewMessageSending }] =
@@ -56,9 +59,7 @@ export default function FloatingMessenger({
                 rawLimit: 25,
                 cursor: cursor ?? '',
             },
-            {
-                skip: !user?.userID,
-            }
+            { skip: !user?.userID }
         );
 
     const { data: conversationData, isLoading: isConversationLoading } =
@@ -67,25 +68,35 @@ export default function FloatingMessenger({
         });
 
     const conversation: IConversation =
-        (!isConversationLoading &&
-            conversationData &&
-            conversationData?.conversation) ??
-        [];
+        conversationData?.conversation ?? ({} as IConversation);
 
     const conversationUser = conversation?.participants?.find(
         (p) => p.role === 'admin'
     );
 
+    // ✅ Focus input when opening
     useEffect(() => {
-        if (open && inputRef.current) {
-            inputRef.current.focus();
+        if (open) {
+            requestAnimationFrame(() => inputRef.current?.focus());
         }
     }, [open]);
 
+    // ✅ Scroll handling
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        if (scrollMode === 'append') {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } else if (scrollMode === 'prepend' && scrollContainerRef.current) {
+            const el = scrollContainerRef.current;
+            const prevHeight = el.scrollHeight;
+            requestAnimationFrame(() => {
+                const newHeight = el.scrollHeight;
+                el.scrollTop = newHeight - prevHeight; // preserve position
+            });
+        }
+        setScrollMode(null);
+    }, [messages, scrollMode]);
 
+    // ✅ Update messages when fetching
     useEffect(() => {
         if (messagesData?.data?.messages) {
             setMessages((prev) =>
@@ -93,20 +104,32 @@ export default function FloatingMessenger({
                     ? [...messagesData.data.messages, ...prev]
                     : messagesData.data.messages
             );
+
+            // Scroll to bottom on first load
+            if (!cursor && initialLoad) {
+                requestAnimationFrame(() => {
+                    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+                });
+                setInitialLoad(false);
+            }
         }
     }, [messagesData]);
 
+    // ✅ Socket join/leave + new messages
     useEffect(() => {
         if (!conversation._id || !user?.userID) return;
-
         if (!socket.connected) socket.connect();
 
         const handleNewMessage = (data: {
             message: IMessage;
             userID: string;
         }) => {
-            console.log('New message:', data.message);
             setMessages((prev) => [...prev, data.message]);
+
+            // Only auto-scroll if you are the sender
+            if (data.userID === user.userID) {
+                setScrollMode('append');
+            }
         };
 
         socket.emit('join-conversation', {
@@ -125,10 +148,11 @@ export default function FloatingMessenger({
         };
     }, [conversation._id, user?.userID]);
 
+    // ✅ Send message
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!text.trim()) return;
         try {
-            e.preventDefault();
-
             const res = await newMessage({
                 conversationID: user?.conversationID,
                 text,
@@ -137,16 +161,19 @@ export default function FloatingMessenger({
 
             if (res?.success) {
                 setText('');
-                inputRef.current?.focus();
+                setScrollMode('append');
+                requestAnimationFrame(() => inputRef.current?.focus());
             }
         } catch (error) {
             ApiError(error);
         }
     };
 
+    // ✅ Load older
     const handleLoadMore = () => {
         if (messages.length > 0) {
             setCursor(messages[0]._id);
+            setScrollMode('prepend');
         }
     };
 
@@ -156,6 +183,7 @@ export default function FloatingMessenger({
                 side="right"
                 className="sm:max-w-md p-0 flex h-full flex-col overflow-hidden !gap-0"
             >
+                {/* Header */}
                 <SheetHeader className="px-4 py-3 border-b shrink-0">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="relative">
@@ -168,11 +196,13 @@ export default function FloatingMessenger({
                                     {conversationUser?.name?.charAt(0)}
                                 </AvatarFallback>
                             </Avatar>
-                            {conversationUser?.isOnline ? (
-                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                            ) : (
-                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-gray-500" />
-                            )}
+                            <span
+                                className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
+                                    conversationUser?.isOnline
+                                        ? 'bg-emerald-500'
+                                        : 'bg-gray-500'
+                                }`}
+                            />
                         </div>
                         <div className="min-w-0">
                             <p className="font-semibold text-sm truncate">
@@ -187,33 +217,33 @@ export default function FloatingMessenger({
                             </p>
                         </div>
                     </div>
-
                     {isMessagesLoading && !messages.length && (
                         <div className="w-full h-full flex items-center justify-center">
                             <Loader2 className="animate-spin" />
                         </div>
                     )}
-
-                    <SheetTitle className="sr-only"></SheetTitle>
-                    <SheetDescription className="sr-only"></SheetDescription>
+                    <SheetTitle className="sr-only" />
+                    <SheetDescription className="sr-only" />
                 </SheetHeader>
 
+                {/* Messages */}
                 <ScrollArea
-                    className="min-h-0"
+                    ref={scrollContainerRef}
                     onScroll={(e) => {
                         const target = e.currentTarget;
                         if (target.scrollTop === 0 && !isMessagesLoading) {
                             handleLoadMore();
                         }
                     }}
+                    className="min-h-0"
                 >
-                    <div className="flex-1 px-4 min-h-full py-3 !space-y-3">
-                        {messages.map((m, i) => {
+                    <div className="flex-1 px-4 min-h-full py-3 space-y-3">
+                        {messages.map((m) => {
                             const mine = m.authorID === user?.userID;
                             const author = mine ? 'Me' : conversationUser?.name;
                             return (
                                 <div
-                                    key={i}
+                                    key={m._id}
                                     className={`flex ${
                                         mine ? 'justify-end' : 'justify-start'
                                     }`}
@@ -225,7 +255,7 @@ export default function FloatingMessenger({
                                                 : 'bg-gray-100 text-gray-800 rounded-bl-none'
                                         }`}
                                     >
-                                        {!!m.text && (
+                                        {m.text && (
                                             <p className="whitespace-pre-wrap">
                                                 {m.text}
                                             </p>
@@ -238,13 +268,10 @@ export default function FloatingMessenger({
                                             }`}
                                         >
                                             {author} •{' '}
-                                            {conversation.lastMessageAt &&
-                                                formatDistanceToNow(
-                                                    new Date(
-                                                        conversation.lastMessageAt
-                                                    ),
-                                                    { addSuffix: true }
-                                                )}
+                                            {formatDistanceToNow(
+                                                new Date(m.sentAt),
+                                                { addSuffix: true }
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -254,25 +281,23 @@ export default function FloatingMessenger({
                     </div>
                 </ScrollArea>
 
-                {/* Footer should never disappear; keep it shrink-0 */}
+                {/* Footer */}
                 <div className="border-t p-3 shrink-0 bg-white">
                     <form
                         onSubmit={handleSendMessage}
                         className="flex items-center gap-2"
                     >
                         <Button
-                            size={'icon'}
-                            variant={'secondary'}
+                            size="icon"
+                            variant="secondary"
                             disabled={isNewMessageSending}
                         >
                             <Paperclip />
                         </Button>
                         <Input
-                            autoFocus
                             ref={inputRef}
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            className="resize-y"
                             placeholder="Write a message…"
                             disabled={isNewMessageSending}
                         />

@@ -25,11 +25,16 @@ export default function MessageContent({
 }) {
     const { user } = useLoggedInUser();
 
-    const [messages, setMessages] = useState<IMessage[] | []>([]);
+    const [messages, setMessages] = useState<IMessage[]>([]);
     const [text, setText] = useState('');
     const [cursor, setCursor] = useState<string | null>(null);
+    const [scrollMode, setScrollMode] = useState<'append' | 'prepend' | null>(
+        null
+    );
+    const [initialLoad, setInitialLoad] = useState(true);
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     const { data: messagesData, isLoading: isMessagesLoading } =
@@ -40,52 +45,11 @@ export default function MessageContent({
                 rawLimit: 25,
                 cursor: cursor ?? '',
             },
-            {
-                skip: !user?.userID,
-            }
+            { skip: !user?.userID }
         );
 
     const [newMessage, { isLoading: isNewMessageSending }] =
         useNewMessageMutation();
-
-    useEffect(() => {
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, []);
-
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    useEffect(() => {
-        if (messagesData?.data?.messages) {
-            setMessages((prev) =>
-                cursor
-                    ? [...messagesData.data.messages, ...prev]
-                    : messagesData.data.messages
-            );
-        }
-    }, [messagesData]);
-
-    const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
-        try {
-            e.preventDefault();
-
-            const res = await newMessage({
-                conversationID,
-                text,
-                senderID: user?.userID,
-            }).unwrap();
-
-            if (res?.success) {
-                setText('');
-                inputRef.current?.focus();
-            }
-        } catch (error) {
-            ApiError(error);
-        }
-    };
 
     const { data: conversationData, isLoading: isConversationLoading } =
         useGetConversationQuery(user?.conversationID, {
@@ -93,33 +57,72 @@ export default function MessageContent({
         });
 
     const conversation: IConversation =
-        (!isConversationLoading &&
-            conversationData &&
-            conversationData?.conversation) ??
-        [];
+        conversationData?.conversation ?? ({} as IConversation);
 
     const conversationUser = conversation?.participants?.find(
         (p) => p.role === 'user'
     );
 
+    // ✅ Always focus input on mount
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    // ✅ Scroll behavior
+    useEffect(() => {
+        if (scrollMode === 'append') {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } else if (scrollMode === 'prepend' && scrollRef.current) {
+            const el = scrollRef.current;
+            const prevHeight = el.scrollHeight;
+            requestAnimationFrame(() => {
+                const newHeight = el.scrollHeight;
+                el.scrollTop = newHeight - prevHeight; // preserve scroll
+            });
+        }
+        setScrollMode(null);
+    }, [messages, scrollMode]);
+
+    // ✅ Update messages when data comes in
+    useEffect(() => {
+        if (messagesData?.data?.messages) {
+            setMessages(
+                cursor
+                    ? (prev) => [...messagesData.data.messages, ...prev] // prepend older
+                    : messagesData.data.messages // reset on first load
+            );
+
+            // ✅ On very first load, scroll to bottom automatically
+            if (!cursor && initialLoad) {
+                requestAnimationFrame(() => {
+                    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+                });
+                setInitialLoad(false);
+            }
+        }
+    }, [messagesData]);
+
+    // ✅ Socket handling
     useEffect(() => {
         if (!conversation._id || !user?.userID) return;
-
         if (!socket.connected) socket.connect();
 
         const handleNewMessage = (data: {
             message: IMessage;
             userID: string;
         }) => {
-            console.log('New message:', data.message);
             setMessages((prev) => [...prev, data.message]);
+
+            // ✅ Only scroll if YOU are the sender
+            if (data.userID === user.userID) {
+                setScrollMode('append');
+            }
         };
 
         socket.emit('join-conversation', {
             conversationID: conversation._id,
             userID: user.userID,
         });
-
         socket.on('new-message', handleNewMessage);
 
         return () => {
@@ -131,14 +134,38 @@ export default function MessageContent({
         };
     }, [conversation._id, user?.userID]);
 
+    // ✅ Send new message
+    const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!text.trim()) return;
+        try {
+            const res = await newMessage({
+                conversationID,
+                text,
+                senderID: user?.userID,
+            }).unwrap();
+
+            if (res?.success) {
+                setText('');
+                setScrollMode('append');
+                requestAnimationFrame(() => inputRef.current?.focus());
+            }
+        } catch (error) {
+            ApiError(error);
+        }
+    };
+
+    // ✅ Load older
     const handleLoadMore = () => {
         if (messages.length > 0) {
             setCursor(messages[0]._id);
+            setScrollMode('prepend');
         }
     };
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-white">
+            {/* Header */}
             <div className="shrink-0 border-b px-4 py-3">
                 {isConversationLoading ? (
                     <div className="flex items-center gap-3 min-w-0">
@@ -160,11 +187,13 @@ export default function MessageContent({
                                     {conversationUser?.name?.charAt(0)}
                                 </AvatarFallback>
                             </Avatar>
-                            {conversationUser?.isOnline ? (
-                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                            ) : (
-                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-gray-500" />
-                            )}
+                            <span
+                                className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
+                                    conversationUser?.isOnline
+                                        ? 'bg-emerald-500'
+                                        : 'bg-gray-500'
+                                }`}
+                            />
                         </div>
                         <div className="min-w-0">
                             <p className="font-semibold text-sm truncate">
@@ -178,7 +207,9 @@ export default function MessageContent({
                 )}
             </div>
 
+            {/* Messages */}
             <div
+                ref={scrollRef}
                 className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
                 onScroll={(e) => {
                     const target = e.currentTarget;
@@ -187,12 +218,12 @@ export default function MessageContent({
                     }
                 }}
             >
-                {messages.map((m, i) => {
+                {messages.map((m) => {
                     const mine = m.authorID === user.userID;
                     const author = mine ? 'Me' : conversationUser?.name;
                     return (
                         <div
-                            key={i}
+                            key={m._id}
                             className={`flex ${
                                 mine ? 'justify-end' : 'justify-start'
                             }`}
@@ -204,7 +235,7 @@ export default function MessageContent({
                                         : 'bg-gray-100 text-gray-800 rounded-bl-none'
                                 }`}
                             >
-                                {!!m.text && (
+                                {m.text && (
                                     <p className="whitespace-pre-wrap">
                                         {m.text}
                                     </p>
@@ -230,14 +261,15 @@ export default function MessageContent({
                 <div ref={bottomRef} />
             </div>
 
+            {/* Footer */}
             <div className="shrink-0 border-t px-3 py-3">
                 <form
                     onSubmit={handleSendMessage}
                     className="flex items-center gap-2"
                 >
                     <Button
-                        size={'icon'}
-                        variant={'secondary'}
+                        size="icon"
+                        variant="secondary"
                         disabled={isNewMessageSending}
                     >
                         <Paperclip />
