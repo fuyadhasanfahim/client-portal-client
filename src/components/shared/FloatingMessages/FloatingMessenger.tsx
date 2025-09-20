@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { ISanitizedUser } from '@/types/user.interface';
 import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
+import { socket } from '@/lib/socket';
 
 type FloatingMessengerProps = {
     open: boolean;
@@ -89,12 +90,30 @@ export default function FloatingMessenger({
     };
 
     useEffect(() => {
-        if (!conversation._id || !user) {
-            return;
-        }
+        if (!conversation._id || !user.userID) return;
 
-        
-    }, []);
+        if (!socket.connected) socket.connect();
+
+        const joinRoom = () => {
+            socket.emit('join-conversation', conversation._id);
+        };
+
+        joinRoom();
+        socket.on('connect', joinRoom);
+
+        const handleNewMessage = (message: IMessage) => {
+            console.log('New message:', message);
+            setMessages((pre) => [...pre, message]);
+        };
+
+        socket.on('new-message', handleNewMessage);
+
+        return () => {
+            socket.off('new-message', handleNewMessage);
+            socket.off('connect', joinRoom);
+            socket.emit('leave-conversation', conversation._id);
+        };
+    }, [conversation._id, user?.userID]);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -140,13 +159,13 @@ export default function FloatingMessenger({
                 </SheetHeader>
 
                 <ScrollArea className="min-h-0">
-                    <div className="flex-1 px-4 py-3 !space-y-3">
-                        {messages.map((m) => {
+                    <div className="flex-1 px-4 min-h-0 py-3 !space-y-3">
+                        {messages.map((m, i) => {
                             const mine = m.authorID === user?.userID;
                             const author = mine ? 'Me' : conversationUser?.name;
                             return (
                                 <div
-                                    key={m._id}
+                                    key={i}
                                     className={`flex ${
                                         mine ? 'justify-end' : 'justify-start'
                                     }`}

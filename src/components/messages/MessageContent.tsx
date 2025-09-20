@@ -14,6 +14,9 @@ import {
     useGetMessagesQuery,
     useNewMessageMutation,
 } from '@/redux/features/message/messageApi';
+import { socket } from '@/lib/socket';
+import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
+import { IConversation } from '@/types/conversation.interface';
 
 export default function MessageContent({
     conversationID,
@@ -44,8 +47,6 @@ export default function MessageContent({
         }
     }, [messagesData, isMessagesLoading]);
 
-    const isConversationLoading = false;
-
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         try {
             e.preventDefault();
@@ -65,12 +66,46 @@ export default function MessageContent({
         }
     };
 
-    const conversationUser = {
-        image: '',
-        name: 'Client',
-        isOnline: true,
-        email: 'client@gmail.com',
-    };
+    const { data: conversationData, isLoading: isConversationLoading } =
+        useGetConversationQuery(user?.conversationID, {
+            skip: !user?.conversationID,
+        });
+
+    const conversation: IConversation =
+        (!isConversationLoading &&
+            conversationData &&
+            conversationData?.conversation) ??
+        [];
+
+    const conversationUser = conversation?.participants?.find(
+        (p) => p.role === 'user'
+    );
+
+    useEffect(() => {
+        if (!conversationID || !user.userID) return;
+
+        if (!socket.connected) socket.connect();
+
+        const joinRoom = () => {
+            socket.emit('join-conversation', conversationID);
+        };
+
+        joinRoom();
+        socket.on('connect', joinRoom);
+
+        const handleNewMessage = (message: IMessage) => {
+            console.log('New message:', message);
+            setMessages((pre) => [...pre, message]);
+        };
+
+        socket.on('new-message', handleNewMessage);
+
+        return () => {
+            socket.off('new-message', handleNewMessage);
+            socket.off('connect', joinRoom);
+            socket.emit('leave-conversation', conversationID);
+        };
+    }, [conversationID, user?.userID]);
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-white">
@@ -114,12 +149,12 @@ export default function MessageContent({
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
-                {messages.map((m) => {
+                {messages.map((m, i) => {
                     const mine = m.authorID === user.userID;
                     const author = mine ? 'Me' : conversationUser?.name;
                     return (
                         <div
-                            key={m._id}
+                            key={i}
                             className={`flex ${
                                 mine ? 'justify-end' : 'justify-start'
                             }`}
