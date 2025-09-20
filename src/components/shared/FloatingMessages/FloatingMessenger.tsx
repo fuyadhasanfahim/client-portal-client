@@ -11,7 +11,7 @@ import {
     useNewMessageMutation,
 } from '@/redux/features/message/messageApi';
 import ApiError from '../ApiError';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { IMessage } from '@/types/message.interface';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
