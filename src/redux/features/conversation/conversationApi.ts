@@ -28,8 +28,28 @@ export const conversationApi = apiSlice.injectEndpoints({
             }),
             providesTags: ['Conversations'],
         }),
+        joinConversation: builder.mutation({
+            query: ({ conversationID, userID }) => ({
+                url: `conversations/join`,
+                method: 'POST',
+                body: { conversationID, userID },
+            }),
+            invalidatesTags: ['Conversations'],
+        }),
+        leaveConversation: builder.mutation({
+            query: ({ conversationID, userID }) => ({
+                url: `conversations/leave`,
+                method: 'POST',
+                body: { conversationID, userID },
+            }),
+            invalidatesTags: ['Conversations'],
+        }),
     }),
 });
 
-export const { useGetConversationsQuery, useGetConversationQuery } =
-    conversationApi;
+export const {
+    useGetConversationsQuery,
+    useGetConversationQuery,
+    useJoinConversationMutation,
+    useLeaveConversationMutation,
+} = conversationApi;

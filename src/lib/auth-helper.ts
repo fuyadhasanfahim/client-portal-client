@@ -30,6 +30,8 @@ export async function ensureSupportConversation(userID: string) {
         isOnline: false,
         lastSeenAt: undefined,
         role: userDoc.role ?? 'user',
+        unreadCount: 0,
+        lastReadMessageID: null,
     };
 
     const adminParticipants = adminDocs.map((a) => ({
@@ -40,6 +42,8 @@ export async function ensureSupportConversation(userID: string) {
         isOnline: false,
         lastSeenAt: undefined,
         role: a.role ?? 'admin',
+        unreadCount: 0,
+        lastReadMessageID: null,
     }));
 
     await ConversationModel.findOneAndUpdate(
@@ -49,9 +53,11 @@ export async function ensureSupportConversation(userID: string) {
                 participants: [userParticipant, ...adminParticipants],
                 type: 'support',
                 lastMessageAt: new Date(),
-                unread: 0,
                 lastMessageText: '',
-                lastMessageAuthorId: '',
+                lastMessageAuthorID: null,
+                activeAdminID: null,
+                activeClientID: userDoc.userID,
+                lock: false,
             },
         },
         { upsert: true, new: true }

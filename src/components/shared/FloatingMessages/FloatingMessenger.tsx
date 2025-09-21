@@ -21,21 +21,28 @@ import { IMessage } from '@/types/message.interface';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ISanitizedUser } from '@/types/user.interface';
-import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
+import {
+    useGetConversationQuery,
+    useJoinConversationMutation,
+    useLeaveConversationMutation,
+} from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
 import { socket } from '@/lib/socket';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePresignUploadMutation } from '@/redux/features/upload/uploadApi';
 
 type FloatingMessengerProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     user: ISanitizedUser;
+    setUnreadCount: (unreadCount: number) => void;
 };
 
 export default function FloatingMessenger({
     open,
     onOpenChange,
     user,
+    setUnreadCount,
 }: FloatingMessengerProps) {
     const [text, setText] = useState('');
     const [messages, setMessages] = useState<IMessage[]>([]);
@@ -70,21 +77,34 @@ export default function FloatingMessenger({
         }
     );
 
+    const [joinConversation] = useJoinConversationMutation();
+    const [leaveConversation] = useLeaveConversationMutation();
+    const [presignUpload] = usePresignUploadMutation();
+
     const conversation: IConversation =
         conversationData?.conversation ?? ({} as IConversation);
+
+    useEffect(() => {
+        if (!conversation) return;
+
+        setUnreadCount(
+            conversation.participants?.find((p) => p.userID === user?.userID)
+                ?.unreadCount ?? 0
+        );
+    }, [conversation, user]);
 
     const conversationUser = conversation?.participants?.find(
         (p) => p.role === 'admin'
     );
 
-    // ✅ Focus input when opening
+    // ✅ focus input when opening
     useEffect(() => {
         if (open) {
             requestAnimationFrame(() => inputRef.current?.focus());
         }
     }, [open]);
 
-    // ✅ Scroll handling
+    // ✅ scroll behavior
     useEffect(() => {
         if (scrollMode === 'append') {
             bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -93,13 +113,13 @@ export default function FloatingMessenger({
             const prevHeight = el.scrollHeight;
             requestAnimationFrame(() => {
                 const newHeight = el.scrollHeight;
-                el.scrollTop = newHeight - prevHeight; // preserve position
+                el.scrollTop = newHeight - prevHeight;
             });
         }
         setScrollMode(null);
     }, [messages, scrollMode]);
 
-    // ✅ Update messages when fetching
+    // ✅ messages from API
     useEffect(() => {
         if (messagesData?.data?.messages) {
             setMessages((prev) =>
@@ -107,8 +127,6 @@ export default function FloatingMessenger({
                     ? [...messagesData.data.messages, ...prev]
                     : messagesData.data.messages
             );
-
-            // Scroll to bottom on first load
             if (!cursor && initialLoad) {
                 requestAnimationFrame(() => {
                     bottomRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -118,6 +136,7 @@ export default function FloatingMessenger({
         }
     }, [messagesData, cursor, initialLoad]);
 
+    // ✅ socket handling
     useEffect(() => {
         if (!conversation._id || !user?.userID) return;
         if (!socket.connected) socket.connect();
@@ -129,6 +148,12 @@ export default function FloatingMessenger({
             setMessages((prev) => [...prev, data.message]);
             setScrollMode('append');
             requestAnimationFrame(() => inputRef.current?.focus());
+
+            // ✅ live unread updates
+            setUnreadCount(
+                conversation.participants.find((p) => p.userID === user?.userID)
+                    ?.unreadCount ?? 0
+            );
         };
 
         socket.emit('join-conversation', {
@@ -145,9 +170,25 @@ export default function FloatingMessenger({
                 userID: user.userID,
             });
         };
-    }, [conversation._id, user?.userID]);
+    }, [conversation._id, user?.userID, open, setUnreadCount]);
 
-    // ✅ Send message
+    // ✅ join/leave lifecycle
+    useEffect(() => {
+        if (conversation._id && user.userID) {
+            joinConversation({
+                conversationID: conversation._id,
+                userID: user.userID,
+            });
+            return () => {
+                leaveConversation({
+                    conversationID: conversation._id,
+                    userID: user.userID,
+                });
+            };
+        }
+    }, [conversation._id, user.userID]);
+
+    // ✅ send message
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!text.trim()) return;
@@ -157,18 +198,59 @@ export default function FloatingMessenger({
                 text,
                 senderID: user?.userID,
             }).unwrap();
-
             if (res?.success) {
                 setText('');
                 setScrollMode('append');
                 requestAnimationFrame(() => inputRef.current?.focus());
             }
         } catch (error) {
+            console.log(error);
             ApiError(error);
         }
     };
 
-    // ✅ Load older
+    // ✅ file upload
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 50 * 1024 * 1024) {
+            alert('Max file size is 50MB');
+            return;
+        }
+
+        try {
+            const res = await presignUpload({
+                fileName: file.name,
+                contentType: file.type,
+                size: file.size,
+                conversationID: conversation._id,
+                senderID: user.userID,
+            }).unwrap();
+
+            const { url, publicUrl } = res.upload;
+
+            await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': file.type },
+                body: file,
+            });
+
+            await newMessage({
+                conversationID: conversation._id,
+                senderID: user.userID,
+                attachment: {
+                    url: publicUrl,
+                    name: file.name,
+                    size: file.size,
+                    contentType: file.type,
+                },
+            }).unwrap();
+        } catch (err) {
+            ApiError(err);
+        }
+    };
+
     const handleLoadMore = () => {
         if (messages.length > 0) {
             setCursor(messages[0]._id);
@@ -182,7 +264,6 @@ export default function FloatingMessenger({
                 side="right"
                 className="sm:max-w-md p-0 flex h-full flex-col overflow-hidden !gap-0"
             >
-                {/* Animate sheet entrance */}
                 <motion.div
                     initial={{ x: 300, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -193,29 +274,15 @@ export default function FloatingMessenger({
                     {/* Header */}
                     <SheetHeader className="px-4 py-3 border-b shrink-0">
                         <div className="flex items-center gap-3 min-w-0">
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: 0.1 }}
-                                className="relative"
-                            >
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage
-                                        src={conversationUser?.image}
-                                        alt={conversationUser?.name}
-                                    />
-                                    <AvatarFallback>
-                                        {conversationUser?.name?.charAt(0)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <span
-                                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
-                                        conversationUser?.isOnline
-                                            ? 'bg-emerald-500'
-                                            : 'bg-gray-500'
-                                    }`}
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage
+                                    src={conversationUser?.image}
+                                    alt={conversationUser?.name}
                                 />
-                            </motion.div>
+                                <AvatarFallback>
+                                    {conversationUser?.name?.charAt(0)}
+                                </AvatarFallback>
+                            </Avatar>
                             <div className="min-w-0">
                                 <p className="font-semibold text-sm truncate">
                                     {conversationUser?.name}
@@ -226,7 +293,9 @@ export default function FloatingMessenger({
                                             new Date(
                                                 conversationUser.lastSeenAt
                                             ),
-                                            { addSuffix: true }
+                                            {
+                                                addSuffix: true,
+                                            }
                                         )}
                                 </p>
                             </div>
@@ -253,14 +322,26 @@ export default function FloatingMessenger({
                     >
                         <div className="px-4 py-3 space-y-3">
                             <AnimatePresence initial={false}>
-                                {messages.map((m) => {
-                                    const mine = m.authorID === user?.userID;
+                                {messages?.filter(Boolean).map((m, i) => {
+                                    if (!m) return null;
+
+                                    if (m?.kind === 'system') {
+                                        return (
+                                            <div
+                                                key={i}
+                                                className="text-center text-xs text-gray-500 my-2"
+                                            >
+                                                {m?.text}
+                                            </div>
+                                        );
+                                    }
+                                    const mine = m?.authorID === user?.userID;
                                     const author = mine
                                         ? 'Me'
                                         : conversationUser?.name;
                                     return (
                                         <motion.div
-                                            key={m._id}
+                                            key={i}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -10 }}
@@ -281,8 +362,18 @@ export default function FloatingMessenger({
                                             >
                                                 {m.text && (
                                                     <p className="whitespace-pre-wrap">
-                                                        {m.text}
+                                                        {m?.text}
                                                     </p>
+                                                )}
+                                                {m.attachment && (
+                                                    <a
+                                                        href={m.attachment.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="block mt-1 text-xs underline"
+                                                    >
+                                                        📎 {m.attachment.name}
+                                                    </a>
                                                 )}
                                                 <div
                                                     className={`mt-1 text-[10px] ${
@@ -294,7 +385,9 @@ export default function FloatingMessenger({
                                                     {author} •{' '}
                                                     {formatDistanceToNow(
                                                         new Date(m.sentAt),
-                                                        { addSuffix: true }
+                                                        {
+                                                            addSuffix: true,
+                                                        }
                                                     )}
                                                 </div>
                                             </motion.div>
@@ -321,16 +414,24 @@ export default function FloatingMessenger({
                             onSubmit={handleSendMessage}
                             className="flex items-center gap-2"
                         >
-                            <Button
-                                size="icon"
-                                variant="secondary"
-                                disabled={isNewMessageSending}
-                                asChild
-                            >
-                                <motion.div whileTap={{ scale: 0.9 }}>
-                                    <Paperclip />
-                                </motion.div>
-                            </Button>
+                            <input
+                                type="file"
+                                hidden
+                                id="client-file-input"
+                                onChange={handleFileSelect}
+                            />
+                            <label htmlFor="client-file-input">
+                                <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    disabled={isNewMessageSending}
+                                    asChild
+                                >
+                                    <motion.div whileTap={{ scale: 0.9 }}>
+                                        <Paperclip />
+                                    </motion.div>
+                                </Button>
+                            </label>
                             <Input
                                 ref={inputRef}
                                 value={text}

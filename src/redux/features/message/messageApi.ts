@@ -11,10 +11,10 @@ export const messageApi = apiSlice.injectEndpoints({
             providesTags: ['Messages'],
         }),
         newMessage: builder.mutation({
-            query: ({ conversationID, text, senderID }) => ({
+            query: ({ conversationID, text, senderID, attachment }) => ({
                 url: `messages/new-message`,
                 method: 'POST',
-                body: { conversationID, text, senderID },
+                body: { conversationID, text, senderID, attachment }, // ✅ match backend
             }),
             invalidatesTags: ['Messages', 'Conversations'],
         }),

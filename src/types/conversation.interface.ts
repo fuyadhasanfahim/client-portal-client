@@ -1,4 +1,6 @@
-export type IParticipant = {
+import { Document } from 'mongoose';
+
+export interface IParticipant {
     userID: string;
     name: string;
     email: string;
@@ -6,16 +8,19 @@ export type IParticipant = {
     isOnline: boolean;
     lastSeenAt?: Date;
     role: 'admin' | 'user';
-};
+    unreadCount?: number;
+    lastReadMessageID?: string;
+}
 
-export type IConversation = {
+export interface IConversation extends Document {
     _id: string;
     participants: IParticipant[];
     lastMessageAt: Date;
-    unread?: number;
     lastMessageText?: string;
     lastMessageAuthorID?: string;
-    type?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
-};
+    activeAdminID?: string | null;
+    activeClientID?: string | null;
+    lock?: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
