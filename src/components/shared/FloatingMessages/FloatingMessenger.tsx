@@ -10,14 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-    Loader2,
-    Paperclip,
-    ArrowUp,
-    Check,
-    CheckCheck,
-    Send,
-} from 'lucide-react';
+import { Loader2, Paperclip, ArrowUp, Check, CheckCheck } from 'lucide-react';
 import {
     useGetMessagesQuery,
     useNewMessageMutation,
@@ -35,12 +28,7 @@ import {
 } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
 import { socket } from '@/lib/socket';
-import {
-    motion,
-    AnimatePresence,
-    useSpring,
-    useTransform,
-} from 'framer-motion';
+import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import { usePresignUploadMutation } from '@/redux/features/upload/uploadApi';
 
 type FloatingMessengerProps = {
@@ -72,10 +60,7 @@ export default function FloatingMessenger({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Spring animations for smooth interactions
     const inputFocusSpring = useSpring(0);
-    const messageCountSpring = useSpring(messages.length);
-    const onlineStatusSpring = useSpring(0);
 
     const [newMessage, { isLoading: isNewMessageSending }] =
         useNewMessageMutation();
@@ -102,8 +87,10 @@ export default function FloatingMessenger({
     const [leaveConversation] = useLeaveConversationMutation();
     const [presignUpload] = usePresignUploadMutation();
 
-    const conversation: IConversation =
-        conversationData?.conversation ?? ({} as IConversation);
+    const conversation: IConversation = React.useMemo(
+        () => conversationData?.conversation ?? ({} as IConversation),
+        [conversationData]
+    );
 
     useEffect(() => {
         if (!conversation) return;
@@ -112,7 +99,7 @@ export default function FloatingMessenger({
             conversation.participants?.find((p) => p.userID === user?.userID)
                 ?.unreadCount ?? 0
         );
-    }, [conversation, user]);
+    }, [conversation, user, setUnreadCount]);
 
     const conversationUser = conversation?.participants?.find(
         (p) => p.role === 'admin'
@@ -132,7 +119,7 @@ export default function FloatingMessenger({
             scale: 1,
             filter: 'blur(0px)',
             transition: {
-                type: "spring" as const,
+                type: 'spring' as const,
                 stiffness: 200,
                 damping: 20,
                 mass: 0.8,
@@ -152,7 +139,7 @@ export default function FloatingMessenger({
             x: 0,
             opacity: 1,
             transition: {
-                type: "spring" as const,
+                type: 'spring' as const,
                 stiffness: 120,
                 damping: 20,
                 staggerChildren: 0.1,
@@ -171,7 +158,7 @@ export default function FloatingMessenger({
             opacity: 1,
             y: 0,
             transition: {
-                type: "spring" as const,
+                type: 'spring' as const,
                 stiffness: 150,
                 damping: 25,
                 delay: 0.1,
@@ -185,7 +172,7 @@ export default function FloatingMessenger({
             opacity: 1,
             y: 0,
             transition: {
-                type: "spring" as const,
+                type: 'spring' as const,
                 stiffness: 120,
                 damping: 15,
                 delay: 0.2,
@@ -289,7 +276,7 @@ export default function FloatingMessenger({
                 userID: user.userID,
             });
         };
-    }, [conversation._id, user?.userID, open, setUnreadCount]);
+    }, [conversation, user?.userID, open, setUnreadCount]);
 
     // ✅ join/leave lifecycle
     useEffect(() => {
@@ -305,7 +292,7 @@ export default function FloatingMessenger({
                 });
             };
         }
-    }, [conversation._id, user.userID]);
+    }, [conversation, user.userID, joinConversation, leaveConversation]);
 
     // ✅ send message with enhanced UX
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {

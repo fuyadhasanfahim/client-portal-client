@@ -32,7 +32,6 @@ import {
     motion,
     AnimatePresence,
     useSpring,
-    useTransform,
 } from 'framer-motion';
 import { usePresignUploadMutation } from '@/redux/features/upload/uploadApi';
 import {
@@ -68,10 +67,7 @@ export default function MessageContent({
     const scrollRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Spring animations for smooth interactions
     const inputFocusSpring = useSpring(0);
-    const messageCountSpring = useSpring(messages.length);
-    const typingSpring = useSpring(isTyping ? 1 : 0);
 
     const { data: messagesData, isLoading: isMessagesLoading } =
         useGetMessagesQuery(
@@ -94,8 +90,10 @@ export default function MessageContent({
     const [leaveConversation] = useLeaveConversationMutation();
     const [presignUpload] = usePresignUploadMutation();
 
-    const conversation: IConversation =
-        conversationData?.conversation ?? ({} as IConversation);
+    const conversation: IConversation = React.useMemo(
+        () => conversationData?.conversation ?? ({} as IConversation),
+        [conversationData?.conversation]
+    );
 
     const conversationUser = conversation?.participants?.find(
         (p) => p.role === 'user'
@@ -178,7 +176,7 @@ export default function MessageContent({
             setJoined(online);
             setShowJoinDialog(!online);
         }
-    }, [conversation, user?.userID]);
+    }, [conversation, user?.userID, joined]);
 
     useEffect(() => {
         if (scrollMode === 'append') {
@@ -192,9 +190,8 @@ export default function MessageContent({
             });
         }
         setScrollMode(null);
-    }, [messages, scrollMode]);
+    }, [messages, scrollMode, joined]);
 
-    // Typing indicator simulation
     useEffect(() => {
         let typingTimeout: NodeJS.Timeout | undefined = undefined;
 
@@ -432,7 +429,7 @@ export default function MessageContent({
                                     </DialogTitle>
                                 </DialogHeader>
                                 <DialogDescription>
-                                    Once you join, you'll appear in this chat
+                                    Once you join, you&apos;ll appear in this chat
                                     and the client will be notified.
                                 </DialogDescription>
                                 <DialogFooter className="flex justify-end gap-2">
