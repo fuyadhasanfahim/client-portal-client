@@ -47,11 +47,10 @@ export async function ensureSupportConversation(userID: string) {
     }));
 
     await ConversationModel.findOneAndUpdate(
-        { type: 'support', 'participants.userID': userID },
+        { 'participants.userID': userID },
         {
             $setOnInsert: {
                 participants: [userParticipant, ...adminParticipants],
-                type: 'support',
                 lastMessageAt: new Date(),
                 lastMessageText: '',
                 lastMessageAuthorID: null,
