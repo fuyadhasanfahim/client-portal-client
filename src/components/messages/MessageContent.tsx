@@ -57,7 +57,7 @@ export default function MessageContent({
     );
     const [initialLoad, setInitialLoad] = useState(true);
     const [joined, setJoined] = useState(false);
-    const [showJoinDialog, setShowJoinDialog] = useState(true);
+    const [showJoinDialog, setShowJoinDialog] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
@@ -172,11 +172,13 @@ export default function MessageContent({
         );
         const online = !!me?.isOnline;
 
-        if (online !== joined) {
-            setJoined(online);
-            setShowJoinDialog(!online);
+        if (online) {
+            setJoined(true);
+            setShowJoinDialog(true);
         }
-    }, [conversation, user?.userID, joined]);
+    }, [conversation, user?.userID]); // Removed 'joined' from here
+
+    console.log(showJoinDialog);
 
     useEffect(() => {
         if (scrollMode === 'append') {
@@ -262,10 +264,13 @@ export default function MessageContent({
     // ✅ Join / Leave handlers
     const handleJoin = async () => {
         try {
+            console.log('handle join clicked!');
+
             const res = await joinConversation({
                 conversationID,
                 userID: user.userID,
             }).unwrap();
+            console.log('res', res, res.success);
 
             if (res.success) {
                 setJoined(true);
@@ -277,9 +282,12 @@ export default function MessageContent({
                 });
             }
         } catch (err) {
+            console.log(err);
             ApiError(err);
         }
     };
+
+    console.log('join', joined);
 
     const handleLeave = async () => {
         try {
@@ -434,7 +442,10 @@ export default function MessageContent({
             {/* ✅ Enhanced Join confirmation dialog */}
             <AnimatePresence>
                 {!isConversationLoading && showJoinDialog && !joined && (
-                    <Dialog open={true} onOpenChange={setShowJoinDialog}>
+                    <Dialog
+                        open={showJoinDialog}
+                        onOpenChange={(value) => setShowJoinDialog(value)}
+                    >
                         <DialogContent>
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
@@ -450,11 +461,12 @@ export default function MessageContent({
                                     <DialogTitle>
                                         Join this conversation?
                                     </DialogTitle>
+                                    <DialogDescription>
+                                        Once you join, you&apos;ll appear in
+                                        this chat and the client will be
+                                        notified.
+                                    </DialogDescription>
                                 </DialogHeader>
-                                <DialogDescription>
-                                    Once you join, you&apos;ll appear in this
-                                    chat and the client will be notified.
-                                </DialogDescription>
                                 <DialogFooter className="flex justify-end gap-2">
                                     <Button
                                         variant="secondary"
