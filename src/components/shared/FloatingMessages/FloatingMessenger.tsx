@@ -51,6 +51,7 @@ export default function FloatingMessenger({
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const [showTypingIndicator, setShowTypingIndicator] = useState(false);
+    const [joined, setJoined] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -250,13 +251,11 @@ export default function FloatingMessenger({
             setScrollMode('append');
             requestAnimationFrame(() => inputRef.current?.focus());
 
-            // Show typing indicator briefly for admin messages
             if (data.message?.authorID === user.userID) {
                 setShowTypingIndicator(true);
                 setTimeout(() => setShowTypingIndicator(false), 500);
             }
 
-            // ✅ live unread updates
             setUnreadCount(
                 conversation.participants.find((p) => p.userID === user?.userID)
                     ?.unreadCount ?? 0
@@ -267,6 +266,8 @@ export default function FloatingMessenger({
             conversationID: conversation._id,
             userID: user.userID,
         });
+
+        setJoined(true);
 
         socket.on('new-message', handleNewMessage);
 
@@ -298,7 +299,7 @@ export default function FloatingMessenger({
     // ✅ send message with enhanced UX
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!text.trim()) return;
+        if (!text.trim() || !joined) return;
 
         const messageText = text;
         setText(''); // Clear immediately for better UX
@@ -314,16 +315,15 @@ export default function FloatingMessenger({
                 requestAnimationFrame(() => inputRef.current?.focus());
             }
         } catch (error) {
-            setText(messageText); // Restore text on error
+            setText(messageText);
             console.log(error);
-            ApiError(error);
         }
     };
 
     // ✅ enhanced file upload with progress
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file || !joined) return;
 
         if (file.size > 50 * 1024 * 1024) {
             alert('Max file size is 50MB');
@@ -344,7 +344,7 @@ export default function FloatingMessenger({
 
             console.log(res);
 
-            const { url, publicUrl } = res.upload;
+            const { url, publicUrl, key } = res.upload;
 
             // Simulate upload progress
             const progressInterval = setInterval(() => {
@@ -366,12 +366,12 @@ export default function FloatingMessenger({
                 attachment: {
                     url: publicUrl,
                     name: file.name,
+                    key,
                     size: file.size,
                     contentType: file.type,
                 },
             }).unwrap();
         } catch (err) {
-            console.log(err);
             ApiError(err);
         } finally {
             setIsUploading(false);
