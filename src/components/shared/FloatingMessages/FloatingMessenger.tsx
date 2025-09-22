@@ -23,8 +23,6 @@ import { Input } from '@/components/ui/input';
 import { ISanitizedUser } from '@/types/user.interface';
 import {
     useGetConversationQuery,
-    useJoinConversationMutation,
-    useLeaveConversationMutation,
 } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
 import { socket } from '@/lib/socket';
@@ -83,8 +81,6 @@ export default function FloatingMessenger({
         }
     );
 
-    const [joinConversation] = useJoinConversationMutation();
-    const [leaveConversation] = useLeaveConversationMutation();
     const [presignUpload] = usePresignUploadMutation();
 
     const conversation: IConversation = React.useMemo(
