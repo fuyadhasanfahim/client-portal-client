@@ -279,20 +279,20 @@ export default function FloatingMessenger({
     }, [conversation, user?.userID, open, setUnreadCount]);
 
     // ✅ join/leave lifecycle
-    useEffect(() => {
-        if (conversation._id && user.userID) {
-            joinConversation({
-                conversationID: conversation._id,
-                userID: user.userID,
-            });
-            return () => {
-                leaveConversation({
-                    conversationID: conversation._id,
-                    userID: user.userID,
-                });
-            };
-        }
-    }, [conversation, user.userID, joinConversation, leaveConversation]);
+    // useEffect(() => {
+    //     if (conversation._id && user.userID) {
+    //         joinConversation({
+    //             conversationID: conversation._id,
+    //             userID: user.userID,
+    //         });
+    //         return () => {
+    //             leaveConversation({
+    //                 conversationID: conversation._id,
+    //                 userID: user.userID,
+    //             });
+    //         };
+    //     }
+    // }, [conversation, user.userID, joinConversation, leaveConversation]);
 
     // ✅ send message with enhanced UX
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
