@@ -28,12 +28,11 @@ import {
     useLeaveConversationMutation,
 } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
+import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import {
-    motion,
-    AnimatePresence,
-    useSpring,
-} from 'framer-motion';
-import { usePresignUploadMutation } from '@/redux/features/upload/uploadApi';
+    useLazyDownloadFileQuery,
+    usePresignUploadMutation,
+} from '@/redux/features/upload/uploadApi';
 import {
     Dialog,
     DialogContent,
@@ -89,6 +88,7 @@ export default function MessageContent({
     const [joinConversation] = useJoinConversationMutation();
     const [leaveConversation] = useLeaveConversationMutation();
     const [presignUpload] = usePresignUploadMutation();
+    const [downloadFile] = useLazyDownloadFileQuery();
 
     const conversation: IConversation = React.useMemo(
         () => conversationData?.conversation ?? ({} as IConversation),
@@ -364,7 +364,7 @@ export default function MessageContent({
                 senderID: user.userID,
             }).unwrap();
 
-            const { url, publicUrl } = res.upload;
+            const { url, publicUrl, key } = res.upload;
 
             // Simulate upload progress
             const progressInterval = setInterval(() => {
@@ -385,6 +385,7 @@ export default function MessageContent({
                 senderID: user.userID,
                 attachment: {
                     url: publicUrl,
+                    key,
                     name: file.name,
                     size: file.size,
                     contentType: file.type,
@@ -395,6 +396,23 @@ export default function MessageContent({
         } finally {
             setIsUploading(false);
             setUploadProgress(0);
+        }
+    };
+
+    const handleDownload = async (key: string, fileName: string) => {
+        try {
+            const res = await downloadFile(key).unwrap();
+            if (res.success && res.url) {
+                // Force browser to download
+                const link = document.createElement('a');
+                link.href = res.url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            }
+        } catch (err) {
+            ApiError(err);
         }
     };
 
@@ -429,8 +447,8 @@ export default function MessageContent({
                                     </DialogTitle>
                                 </DialogHeader>
                                 <DialogDescription>
-                                    Once you join, you&apos;ll appear in this chat
-                                    and the client will be notified.
+                                    Once you join, you&apos;ll appear in this
+                                    chat and the client will be notified.
                                 </DialogDescription>
                                 <DialogFooter className="flex justify-end gap-2">
                                     <Button
@@ -598,13 +616,18 @@ export default function MessageContent({
                                             </motion.p>
                                         )}
                                         {m?.attachment && (
-                                            <motion.a
+                                            <motion.button
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.2 }}
-                                                href={m.attachment.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                                onClick={() =>
+                                                    handleDownload(
+                                                        m.attachment
+                                                            ?.key as string,
+                                                        m.attachment
+                                                            ?.name as string
+                                                    )
+                                                }
                                                 className={`flex items-center gap-2 mt-2 p-2 rounded-lg text-xs underline transition-colors ${
                                                     mine
                                                         ? 'bg-white/20 hover:bg-white/30'
@@ -613,7 +636,7 @@ export default function MessageContent({
                                             >
                                                 <Paperclip className="w-3 h-3" />
                                                 {m?.attachment.name}
-                                            </motion.a>
+                                            </motion.button>
                                         )}
                                         <motion.div
                                             initial={{ opacity: 0 }}

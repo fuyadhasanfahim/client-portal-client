@@ -341,6 +341,8 @@ export default function FloatingMessenger({
                 senderID: user.userID,
             }).unwrap();
 
+            console.log(res);
+
             const { url, publicUrl } = res.upload;
 
             // Simulate upload progress
@@ -368,6 +370,7 @@ export default function FloatingMessenger({
                 },
             }).unwrap();
         } catch (err) {
+            console.log(err);
             ApiError(err);
         } finally {
             setIsUploading(false);

@@ -3,7 +3,8 @@ import { Document } from 'mongoose';
 export interface IAttachment {
     url: string;
     name: string;
-    size: number; // bytes
+    key: string;
+    size: number;
     contentType?: string;
 }
 

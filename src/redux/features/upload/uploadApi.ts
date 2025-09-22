@@ -15,7 +15,17 @@ export const uploadApi = apiSlice.injectEndpoints({
                 body: { fileName, contentType, size, conversationID, senderID },
             }),
         }),
+        downloadFile: builder.query({
+            query: (key) => ({
+                url: `uploads/download?key=${encodeURIComponent(key)}`,
+                method: 'GET',
+            }),
+        }),
     }),
 });
 
-export const { usePresignUploadMutation } = uploadApi;
+export const {
+    usePresignUploadMutation,
+    useDownloadFileQuery,
+    useLazyDownloadFileQuery,
+} = uploadApi;
