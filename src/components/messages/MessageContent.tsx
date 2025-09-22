@@ -211,11 +211,16 @@ export default function MessageContent({
     // ✅ Messages from API
     useEffect(() => {
         if (messagesData?.data?.messages) {
-            setMessages(
-                cursor
-                    ? (prev) => [...messagesData.data.messages, ...prev]
-                    : messagesData.data.messages
-            );
+            setMessages((prev) => {
+                const combined = cursor
+                    ? [...messagesData.data.messages, ...prev]
+                    : messagesData.data.messages;
+
+                const unique = new Map(
+                    combined.map((m: IMessage) => [m._id, m])
+                );
+                return Array.from(unique.values()) as IMessage[];
+            });
 
             if (!cursor && initialLoad) {
                 requestAnimationFrame(() => {
@@ -687,7 +692,7 @@ export default function MessageContent({
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="flex justify-start"
+                                className="flex justify-end"
                             >
                                 <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
                                     <div className="flex space-x-1">

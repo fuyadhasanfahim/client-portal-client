@@ -21,9 +21,7 @@ import { IMessage } from '@/types/message.interface';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ISanitizedUser } from '@/types/user.interface';
-import {
-    useGetConversationQuery,
-} from '@/redux/features/conversation/conversationApi';
+import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
 import { socket } from '@/lib/socket';
 import { motion, AnimatePresence, useSpring } from 'framer-motion';
@@ -218,11 +216,18 @@ export default function FloatingMessenger({
     // ✅ messages from API
     useEffect(() => {
         if (messagesData?.data?.messages) {
-            setMessages((prev) =>
-                cursor
+            setMessages((prev) => {
+                const combined = cursor
                     ? [...messagesData.data.messages, ...prev]
-                    : messagesData.data.messages
-            );
+                    : messagesData.data.messages;
+
+                // Deduplicate by _id
+                const unique = new Map(
+                    combined.map((m: IMessage) => [m._id, m])
+                );
+                return Array.from(unique.values()) as IMessage[];
+            });
+
             if (!cursor && initialLoad) {
                 requestAnimationFrame(() => {
                     bottomRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -246,7 +251,7 @@ export default function FloatingMessenger({
             requestAnimationFrame(() => inputRef.current?.focus());
 
             // Show typing indicator briefly for admin messages
-            if (data.message.authorID !== user.userID) {
+            if (data.message?.authorID === user.userID) {
                 setShowTypingIndicator(true);
                 setTimeout(() => setShowTypingIndicator(false), 500);
             }
@@ -654,13 +659,13 @@ export default function FloatingMessenger({
                                 {(showTypingIndicator ||
                                     (isTyping &&
                                         messages.some(
-                                            (m) => m.authorID !== user.userID
+                                            (m) => m.authorID === user.userID
                                         ))) && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
-                                        className="flex justify-start"
+                                        className="flex justify-end"
                                     >
                                         <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
                                             <div className="flex space-x-1">
