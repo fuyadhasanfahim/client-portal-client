@@ -31,7 +31,7 @@ import {
 } from '@/redux/features/conversation/conversationApi';
 import { IConversation } from '@/types/conversation.interface';
 import { socket } from '@/lib/socket';
-import { motion, AnimatePresence, useSpring } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     useLazyDownloadFileQuery,
     usePresignUploadMutation,
@@ -72,7 +72,7 @@ export default function FloatingMessenger({
     const prevScrollHeightRef = useRef<number>(0);
     const prevScrollTopRef = useRef<number>(0);
 
-    const inputFocusSpring = useSpring(0);
+    // const inputFocusSpring = useSpring(0);
 
     const [newMessage, { isLoading: isNewMessageSending }] =
         useNewMessageMutation();
@@ -159,6 +159,22 @@ export default function FloatingMessenger({
             handleLoadMore(); // will record heights inside
         }
     };
+
+    useEffect(() => {
+        let typingTimeout: NodeJS.Timeout | undefined = undefined;
+
+        if (text.length > 0) {
+            setIsTyping(true);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => setIsTyping(false), 1000);
+        } else {
+            setIsTyping(false);
+        }
+
+        return () => {
+            if (typingTimeout) clearTimeout(typingTimeout);
+        };
+    }, [text]);
 
     // ✅ Smooth/precise scroll adjustments AFTER messages change
     useLayoutEffect(() => {
@@ -438,10 +454,10 @@ export default function FloatingMessenger({
                         )}
 
                         <AnimatePresence initial={false} mode="popLayout">
-                            {messages.filter(Boolean).map((m, i) => {
+                            {messages.filter(Boolean).map((m: IMessage, i) => {
                                 if (!m) return null;
 
-                                if ((m as any).kind === 'system') {
+                                if (m.kind === 'system') {
                                     return (
                                         <motion.div
                                             key={`sys-${m._id}`}
@@ -450,13 +466,12 @@ export default function FloatingMessenger({
                                             exit={{ opacity: 0, scale: 0.8 }}
                                             className="text-center text-xs text-gray-500 my-4 px-3 py-2 bg-gray-100/50 rounded-full mx-auto w-fit backdrop-blur-sm"
                                         >
-                                            {(m as any).text}
+                                            {m.text}
                                         </motion.div>
                                     );
                                 }
 
-                                const mine =
-                                    (m as any).authorID === user?.userID;
+                                const mine = m.authorID === user?.userID;
                                 const author = mine
                                     ? 'You'
                                     : conversationUser?.name;
@@ -478,12 +493,12 @@ export default function FloatingMessenger({
                                                     : 'bg-white text-gray-800 rounded-bl-md border border-gray-100'
                                             }`}
                                         >
-                                            {(m as any).text && (
+                                            {m.text && (
                                                 <p className="whitespace-pre-wrap leading-relaxed">
-                                                    {(m as any).text}
+                                                    {m.text}
                                                 </p>
                                             )}
-                                            {(m as any)?.attachment && (
+                                            {m?.attachment && (
                                                 <motion.button
                                                     initial={{
                                                         opacity: 0,
@@ -496,11 +511,9 @@ export default function FloatingMessenger({
                                                     transition={{ delay: 0.2 }}
                                                     onClick={() =>
                                                         handleDownload(
-                                                            (m as any)
-                                                                .attachment
+                                                            m.attachment
                                                                 ?.key as string,
-                                                            (m as any)
-                                                                .attachment
+                                                            m.attachment
                                                                 ?.name as string
                                                         )
                                                     }
@@ -511,10 +524,7 @@ export default function FloatingMessenger({
                                                     }`}
                                                 >
                                                     <Paperclip className="w-3 h-3" />
-                                                    {
-                                                        (m as any)?.attachment
-                                                            .name
-                                                    }
+                                                    {m?.attachment.name}
                                                 </motion.button>
                                             )}
                                             <div
@@ -527,9 +537,7 @@ export default function FloatingMessenger({
                                                 <span>
                                                     {author} •{' '}
                                                     {formatDistanceToNow(
-                                                        new Date(
-                                                            (m as any).sentAt
-                                                        ),
+                                                        new Date(m.sentAt),
                                                         {
                                                             addSuffix: true,
                                                         }

@@ -7,7 +7,7 @@ import { MessageCircle, Search, Inbox, RotateCcw, CircleX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGetConversationsQuery } from '@/redux/features/conversation/conversationApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
-import { IConversation, IParticipant } from '@/types/conversation.interface';
+import { IConversation } from '@/types/conversation.interface';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
