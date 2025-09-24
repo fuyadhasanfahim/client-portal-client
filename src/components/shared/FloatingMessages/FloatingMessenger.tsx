@@ -18,7 +18,6 @@ import {
 import ApiError from '../ApiError';
 import { formatDistanceToNow } from 'date-fns';
 import { IMessage } from '@/types/message.interface';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ISanitizedUser } from '@/types/user.interface';
 import { useGetConversationQuery } from '@/redux/features/conversation/conversationApi';
@@ -420,28 +419,9 @@ export default function FloatingMessenger({
                                         damping: 17,
                                     }}
                                 >
-                                    <Avatar className="h-10 w-10 ring-2 ring-transparent hover:ring-orange-200 transition-all duration-300">
-                                        <AvatarImage
-                                            src={conversationUser?.image}
-                                            alt={conversationUser?.name}
-                                        />
-                                        <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-semibold">
-                                            {conversationUser?.name?.charAt(0)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{
-                                            scale: conversationUser?.isOnline
-                                                ? 1
-                                                : 0.8,
-                                            backgroundColor:
-                                                conversationUser?.isOnline
-                                                    ? '#10b981'
-                                                    : '#6b7280',
-                                        }}
-                                        className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm"
-                                    />
+                                    <p className="text-lg font-semibold">
+                                        Support
+                                    </p>
                                 </motion.div>
                                 <div className="min-w-0 flex-1">
                                     <motion.p

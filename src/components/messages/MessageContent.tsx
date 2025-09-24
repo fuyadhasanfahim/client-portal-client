@@ -241,8 +241,10 @@ export default function MessageContent({
             message: IMessage;
             userID: string;
         }) => {
-            setMessages((prev) => [...prev, data.message]);
-            setScrollMode('append');
+            if (data.message.conversationID === conversation._id) {
+                setMessages((prev) => [...prev, data.message]);
+                setScrollMode('append');
+            }
         };
 
         // Only join socket room if user has joined the conversation
@@ -299,7 +301,7 @@ export default function MessageContent({
                 userID: user.userID,
             }).unwrap();
 
-            console.log(res)
+            console.log(res);
 
             if (res.success) {
                 setJoined(false);
@@ -466,6 +468,7 @@ export default function MessageContent({
                                     stiffness: 200,
                                     damping: 25,
                                 }}
+                                className="space-y-6"
                             >
                                 <DialogHeader>
                                     <DialogTitle>

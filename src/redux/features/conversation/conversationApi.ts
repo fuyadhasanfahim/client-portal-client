@@ -44,6 +44,14 @@ export const conversationApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['Conversations'],
         }),
+        markAsRead: builder.mutation({
+            query: (body) => ({
+                url: `conversations/mark-as-read`,
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: ['Conversations'],
+        }),
     }),
 });
 

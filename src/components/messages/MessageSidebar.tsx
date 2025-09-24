@@ -7,13 +7,14 @@ import { MessageCircle, Search, Inbox, RotateCcw, CircleX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGetConversationsQuery } from '@/redux/features/conversation/conversationApi';
 import useLoggedInUser from '@/utils/getLoggedInUser';
-import { IConversation } from '@/types/conversation.interface';
+import { IConversation, IParticipant } from '@/types/conversation.interface';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 import { useGetUserInfoQuery } from '@/redux/features/users/userApi';
+import { socket } from '@/lib/socket';
 
 export default function MessageSidebar() {
     const { user } = useLoggedInUser();
@@ -25,9 +26,15 @@ export default function MessageSidebar() {
 
     const conversations = useMemo(() => {
         const list = data?.conversations ?? [];
-        if (!search.trim()) return list;
+        const sorted = [...list].sort(
+            (a, b) =>
+                new Date(b.lastMessageAt).getTime() -
+                new Date(a.lastMessageAt).getTime()
+        );
+
+        if (!search.trim()) return sorted;
         const s = search.trim().toLowerCase();
-        return list.filter((c: IConversation) => {
+        return sorted.filter((c: IConversation) => {
             const u = c.participants.find((p) => p.role === 'user');
             return (
                 u?.name?.toLowerCase().includes(s) ||
@@ -36,6 +43,31 @@ export default function MessageSidebar() {
             );
         });
     }, [data, search]);
+
+    useEffect(() => {
+        if (!user?.userID) return;
+        if (!socket.connected) socket.connect();
+
+        conversations.forEach((c) => {
+            socket.emit('join-conversation', {
+                conversationID: c._id,
+                userID: user.userID,
+            });
+        });
+
+        const handleNewMessage = () => {
+            // ✅ only refetch if query is active
+            if (userID) {
+                refetch();
+            }
+        };
+
+        socket.on('new-message', handleNewMessage);
+
+        return () => {
+            socket.off('new-message', handleNewMessage);
+        };
+    }, [conversations.map((c) => c._id).join(','), userID]);
 
     const renderLoading = () => (
         <ul className="divide-y divide-gray-100">
@@ -139,6 +171,7 @@ export default function MessageSidebar() {
 
 function ConversationItem({ conversation }: { conversation: IConversation }) {
     const u = conversation.participants.find((p) => p.role === 'user');
+    const me = conversation.participants.find((p) => p.role === 'admin');
     const { data: userData } = useGetUserInfoQuery(u?.userID, {
         skip: !u?.userID,
     });
@@ -172,7 +205,14 @@ function ConversationItem({ conversation }: { conversation: IConversation }) {
 
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium text-sm truncate">
+                        <p
+                            className={cn(
+                                'truncate text-sm',
+                                me?.unreadCount
+                                    ? 'font-bold text-gray-900'
+                                    : 'font-medium text-gray-700'
+                            )}
+                        >
                             {userData?.data?.name}
                         </p>
                         <span className="text-[11px] text-gray-400 shrink-0">
@@ -183,9 +223,23 @@ function ConversationItem({ conversation }: { conversation: IConversation }) {
                                 )}
                         </span>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">
-                        {conversation.lastMessageText || 'No messages yet'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p
+                            className={cn(
+                                'truncate text-xs flex-1',
+                                me?.unreadCount
+                                    ? 'font-semibold text-gray-900'
+                                    : 'text-gray-500'
+                            )}
+                        >
+                            {conversation.lastMessageText || 'No messages yet'}
+                        </p>
+                        {me?.unreadCount ? (
+                            <span className="ml-2 min-w-[20px] px-1.5 py-0.5 text-[10px] rounded-full bg-orange-500 text-white text-center font-medium">
+                                {me.unreadCount}
+                            </span>
+                        ) : null}
+                    </div>
                 </div>
             </Link>
         </li>
