@@ -7,23 +7,29 @@ import useLoggedInUser from '@/utils/getLoggedInUser';
 
 export default function MessagesFabProvider() {
     const { user } = useLoggedInUser();
-
     const [open, setOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadCount, setUnreadCount] = useState<number>(0);
 
-    if (!user || user.role !== 'user') {
-        return null;
-    }
+    if (!user || user.role !== 'user') return null;
 
-    console.log(unreadCount)
+    const handleOpenChange = async (val: boolean) => {
+        setOpen(val);
+        if (val) {
+            setUnreadCount(0);
+        }
+    };
 
     return (
         <>
-            <FloatingMessenger open={open} onOpenChange={setOpen} user={user} setUnreadCount={setUnreadCount} />
-
+            <FloatingMessenger
+                open={open}
+                onOpenChange={handleOpenChange}
+                user={user}
+                setUnreadCount={setUnreadCount}
+            />
             <FloatingMessageButton
                 isOpen={open}
-                onToggle={() => setOpen((v) => !v)}
+                onToggle={() => handleOpenChange(!open)}
                 unreadCount={unreadCount}
             />
         </>

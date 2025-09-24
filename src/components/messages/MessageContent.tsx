@@ -241,7 +241,7 @@ export default function MessageContent({
             message: IMessage;
             userID: string;
         }) => {
-            if (data.message.conversationID === conversation._id) {
+            if (data.message?.conversationID === conversation._id) {
                 setMessages((prev) => [...prev, data.message]);
                 setScrollMode('append');
             }
