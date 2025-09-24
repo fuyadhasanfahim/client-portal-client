@@ -174,11 +174,10 @@ export default function MessageContent({
 
         if (online) {
             setJoined(true);
-            setShowJoinDialog(true);
+        } else {
+            setJoined(false);
         }
-    }, [conversation, user?.userID]); // Removed 'joined' from here
-
-    console.log(showJoinDialog);
+    }, [conversation, user?.userID]);
 
     useEffect(() => {
         if (scrollMode === 'append') {
@@ -264,13 +263,10 @@ export default function MessageContent({
     // ✅ Join / Leave handlers
     const handleJoin = async () => {
         try {
-            console.log('handle join clicked!');
-
             const res = await joinConversation({
                 conversationID,
                 userID: user.userID,
             }).unwrap();
-            console.log('res', res, res.success);
 
             if (res.success) {
                 setJoined(true);
@@ -280,28 +276,42 @@ export default function MessageContent({
                     conversationID,
                     userID: user.userID,
                 });
+
+                if (res.systemMessage) {
+                    setMessages((prev) => [...prev, res.systemMessage]);
+                    setScrollMode('append');
+                }
             }
         } catch (err) {
-            console.log(err);
             ApiError(err);
         }
     };
 
-    console.log('join', joined);
-
     const handleLeave = async () => {
         try {
-            // Leave socket room first
             socket.emit('leave-conversation', {
                 conversationID,
                 userID: user.userID,
             });
 
-            // Then call the API
-            await leaveConversation({ conversationID, userID: user.userID });
-        } finally {
-            setJoined(false);
-            setShowJoinDialog(true);
+            const res = await leaveConversation({
+                conversationID,
+                userID: user.userID,
+            }).unwrap();
+
+            console.log(res)
+
+            if (res.success) {
+                setJoined(false);
+                setShowJoinDialog(true);
+
+                if (res.systemMessage) {
+                    setMessages((prev) => [...prev, res.systemMessage]);
+                    setScrollMode('append');
+                }
+            }
+        } catch (error) {
+            ApiError(error);
         }
     };
 
@@ -890,9 +900,14 @@ export default function MessageContent({
                         animate={{ opacity: 1, y: 0 }}
                         className="shrink-0 border-t bg-gray-50/80 backdrop-blur-sm"
                     >
-                        <p className="text-sm text-gray-500 text-center py-4">
-                            You have left this chat.
-                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                            <p className="text-sm text-gray-500 text-center py-4">
+                                You have left this chat.
+                            </p>
+                            <Button onClick={() => setShowJoinDialog(true)}>
+                                Join the chat
+                            </Button>
+                        </div>
                     </motion.div>
                 )}
             </motion.div>
