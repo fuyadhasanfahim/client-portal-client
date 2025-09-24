@@ -432,6 +432,7 @@ export default function MessageContent({
                 const link = document.createElement('a');
                 link.href = res.url;
                 link.download = fileName;
+                link.target = 'blank';
                 document.body.appendChild(link);
                 link.click();
                 link.remove();

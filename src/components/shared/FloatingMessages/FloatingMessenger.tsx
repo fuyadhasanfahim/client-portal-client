@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     Sheet,
     SheetContent,
@@ -9,7 +15,6 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Paperclip, ArrowUp, Check, CheckCheck } from 'lucide-react';
 import {
     useGetMessagesQuery,
@@ -37,7 +42,7 @@ type FloatingMessengerProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     user: ISanitizedUser;
-    setUnreadCount: React.Dispatch<React.SetStateAction<number>>; // ✅ functional updater
+    setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export default function FloatingMessenger({
@@ -59,8 +64,13 @@ export default function FloatingMessenger({
     const [showTypingIndicator, setShowTypingIndicator] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const scrollViewportRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
+
+    // --- NEW: scroll bookkeeping refs
+    const wasAtBottomRef = useRef<boolean>(true);
+    const prevScrollHeightRef = useRef<number>(0);
+    const prevScrollTopRef = useRef<number>(0);
 
     const inputFocusSpring = useSpring(0);
 
@@ -82,12 +92,10 @@ export default function FloatingMessenger({
 
     const { data: conversationData } = useGetConversationQuery(
         user?.conversationID,
-        {
-            skip: !user?.conversationID,
-        }
+        { skip: !user?.conversationID }
     );
 
-    const conversation: IConversation = React.useMemo(
+    const conversation: IConversation = useMemo(
         () => conversationData?.conversation ?? ({} as IConversation),
         [conversationData]
     );
@@ -96,44 +104,20 @@ export default function FloatingMessenger({
         (p) => p.role === 'admin'
     );
 
-    // ✅ focus input when opening
-    useEffect(() => {
-        if (open) requestAnimationFrame(() => inputRef.current?.focus());
-    }, [open]);
+    // Helpers
+    const isNearBottom = (el: HTMLDivElement, threshold = 80) =>
+        el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
-    // ✅ scroll behavior
-    useEffect(() => {
-        if (scrollMode === 'append') {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-        } else if (scrollMode === 'prepend' && scrollContainerRef.current) {
-            const el = scrollContainerRef.current;
-            const prevHeight = el.scrollHeight;
-            requestAnimationFrame(() => {
-                const newHeight = el.scrollHeight;
-                el.scrollTop = newHeight - prevHeight;
-            });
-        }
-        setScrollMode(null);
-    }, [messages, scrollMode]);
+    const scrollToBottom = (smooth = false) => {
+        const el = scrollViewportRef.current;
+        if (!el) return;
+        el.scrollTo({
+            top: el.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto',
+        });
+    };
 
-    // ✅ typing indicator & input focus spring
-    useEffect(() => {
-        let typingTimeout: NodeJS.Timeout | undefined;
-        if (text.length > 0) {
-            setIsTyping(true);
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => setIsTyping(false), 1000);
-            inputFocusSpring.set(1);
-        } else {
-            setIsTyping(false);
-            inputFocusSpring.set(0);
-        }
-        return () => {
-            if (typingTimeout) clearTimeout(typingTimeout);
-        };
-    }, [text, inputFocusSpring]);
-
-    // ✅ messages from API (dedupe)
+    // ✅ Messages from API (dedupe)
     useEffect(() => {
         if (messagesData?.data?.messages) {
             setMessages((prev) => {
@@ -146,17 +130,67 @@ export default function FloatingMessenger({
                 });
                 return Array.from(map.values());
             });
-
-            if (!cursor && initialLoad) {
-                requestAnimationFrame(() =>
-                    bottomRef.current?.scrollIntoView({ behavior: 'auto' })
-                );
-                setInitialLoad(false);
-            }
         }
-    }, [messagesData, cursor, initialLoad]);
+    }, [messagesData, cursor]);
 
-    // ✅ unread from server snapshot whenever conversation changes
+    // ✅ Initial scroll when first batch arrives OR when sheet opens
+    useLayoutEffect(() => {
+        if (!initialLoad || !messages.length) return;
+        scrollToBottom(false);
+        wasAtBottomRef.current = true;
+        setInitialLoad(false);
+    }, [initialLoad, messages.length]);
+
+    useEffect(() => {
+        if (open) {
+            requestAnimationFrame(() => {
+                inputRef.current?.focus();
+                scrollToBottom(false);
+                wasAtBottomRef.current = true;
+            });
+        }
+    }, [open]);
+
+    // ✅ Track near-bottom on every user scroll
+    const handleViewportScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const el = e.currentTarget;
+        wasAtBottomRef.current = isNearBottom(el);
+        if (el.scrollTop === 0 && !isMessagesLoading) {
+            handleLoadMore(); // will record heights inside
+        }
+    };
+
+    // ✅ Smooth/precise scroll adjustments AFTER messages change
+    useLayoutEffect(() => {
+        const el = scrollViewportRef.current;
+        if (!el || !messages.length) return;
+
+        if (scrollMode === 'prepend') {
+            // Keep the viewport anchored around the same visible message
+            const prevHeight = prevScrollHeightRef.current || 0;
+            const prevTop = prevScrollTopRef.current || 0;
+            const delta = el.scrollHeight - prevHeight;
+            el.scrollTop = prevTop + delta;
+            setScrollMode(null);
+            return;
+        }
+
+        // Append case (new messages at bottom)
+        if (scrollMode === 'append') {
+            if (wasAtBottomRef.current) {
+                scrollToBottom(true);
+            }
+            setScrollMode(null);
+            return;
+        }
+
+        // Non-explicit mode: if we just added messages and the user was at bottom, stick to bottom
+        if (wasAtBottomRef.current) {
+            scrollToBottom(false);
+        }
+    }, [messages, scrollMode]);
+
+    // ✅ Unread from server snapshot whenever conversation changes
     useEffect(() => {
         if (!conversation) return;
         const mine = conversation.participants?.find(
@@ -165,7 +199,7 @@ export default function FloatingMessenger({
         setUnreadCount(mine?.unreadCount ?? 0);
     }, [conversation, user, setUnreadCount]);
 
-    // ✅ mark all as read when opening or when new message arrives while open
+    // ✅ Mark all as read when opening or when new message arrives while open
     const markCurrentAsRead = async (lastMessageID?: string) => {
         if (!conversation?._id || !user?.userID) return;
         try {
@@ -181,11 +215,12 @@ export default function FloatingMessenger({
     };
 
     useEffect(() => {
-        if (open) markCurrentAsRead(messages[messages.length - 1]?._id);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open]);
+        if (open && messages.length > 0) {
+            markCurrentAsRead(messages[messages.length - 1]?._id);
+        }
+    }, [open, messages]);
 
-    // ✅ socket handling (room per conversation, dedupe, guard by conversationID)
+    // ✅ Socket handling
     useEffect(() => {
         if (!conversation._id || !user?.userID) return;
         if (!socket.connected) socket.connect();
@@ -195,9 +230,12 @@ export default function FloatingMessenger({
             userID: string;
         }) => {
             const msg = data.message;
-            if (!msg || msg.conversationID !== conversation._id) return; // guard: wrong conversation
+            if (!msg || msg.conversationID !== conversation._id) return;
 
-            // dedupe insert
+            // if the user is near bottom before appending, remember it
+            const el = scrollViewportRef.current;
+            if (el) wasAtBottomRef.current = isNearBottom(el);
+
             setMessages((prev) => {
                 const map = new Map(prev.map((m) => [m._id, m]));
                 map.set(msg._id, msg);
@@ -206,20 +244,15 @@ export default function FloatingMessenger({
             setScrollMode('append');
 
             const isMine = msg.authorID === user.userID;
-
-            // Show a quick "typing" bounce when I send a message
             if (isMine) {
                 setShowTypingIndicator(true);
                 setTimeout(() => setShowTypingIndicator(false), 400);
             }
 
-            // unread accounting
             if (!isMine) {
                 if (open) {
-                    // chat is visible → mark read to this message
                     markCurrentAsRead(msg._id);
                 } else {
-                    // chat hidden → bump counter locally
                     setUnreadCount((prev) => prev + 1);
                 }
             }
@@ -239,9 +272,9 @@ export default function FloatingMessenger({
                 userID: user.userID,
             });
         };
-    }, [conversation._id, user?.userID, open, setUnreadCount]); // markCurrentAsRead is stable enough here
+    }, [conversation._id, user?.userID, open, setUnreadCount]);
 
-    // ✅ send message (let socket append; no local duplicate)
+    // ✅ Send message
     const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!text.trim()) return;
@@ -257,7 +290,8 @@ export default function FloatingMessenger({
             }).unwrap();
 
             if (res?.success) {
-                // rely on socket 'new-message' to append & dedupe
+                // Ensure we stick to bottom after our own send
+                wasAtBottomRef.current = true;
                 requestAnimationFrame(() => inputRef.current?.focus());
             }
         } catch (error) {
@@ -266,7 +300,7 @@ export default function FloatingMessenger({
         }
     };
 
-    // ✅ file upload
+    // ✅ File upload
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -289,7 +323,6 @@ export default function FloatingMessenger({
 
             const { url, publicUrl, key } = res.upload;
 
-            // Simulate upload progress
             const progressInterval = setInterval(() => {
                 setUploadProgress((prev) => Math.min(prev + 10, 90));
             }, 100);
@@ -314,6 +347,9 @@ export default function FloatingMessenger({
                     contentType: file.type,
                 },
             }).unwrap();
+
+            // After sending attachment, keep to bottom
+            wasAtBottomRef.current = true;
         } catch (err) {
             ApiError(err);
         } finally {
@@ -328,7 +364,6 @@ export default function FloatingMessenger({
         try {
             const res = await downloadFile(key).unwrap();
             if (res.success && res.url) {
-                // Force browser to download
                 const link = document.createElement('a');
                 link.href = res.url;
                 link.download = fileName;
@@ -343,10 +378,15 @@ export default function FloatingMessenger({
     };
 
     const handleLoadMore = () => {
-        if (messages.length > 0) {
-            setCursor(messages[0]._id);
-            setScrollMode('prepend');
+        if (!messages.length) return;
+        const el = scrollViewportRef.current;
+        if (el) {
+            // record current heights to restore position after prepend
+            prevScrollHeightRef.current = el.scrollHeight;
+            prevScrollTopRef.current = el.scrollTop;
         }
+        setCursor(messages[0]._id);
+        setScrollMode('prepend');
     };
 
     return (
@@ -372,7 +412,9 @@ export default function FloatingMessenger({
                                     conversationUser?.lastSeenAt &&
                                     formatDistanceToNow(
                                         new Date(conversationUser.lastSeenAt),
-                                        { addSuffix: true }
+                                        {
+                                            addSuffix: true,
+                                        }
                                     )
                                 )}
                             </p>
@@ -383,15 +425,10 @@ export default function FloatingMessenger({
                 </SheetHeader>
 
                 {/* Messages */}
-                <ScrollArea
-                    ref={scrollContainerRef}
-                    onScroll={(e) => {
-                        const target = e.currentTarget;
-                        if (target.scrollTop === 0 && !isMessagesLoading) {
-                            handleLoadMore();
-                        }
-                    }}
-                    className="min-h-0 flex-1"
+                <div
+                    ref={scrollViewportRef}
+                    onScroll={handleViewportScroll}
+                    className="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-4 scroll-smooth"
                 >
                     <div className="px-4 py-4 space-y-4">
                         {isMessagesLoading && !messages.length && (
@@ -404,7 +441,7 @@ export default function FloatingMessenger({
                             {messages.filter(Boolean).map((m, i) => {
                                 if (!m) return null;
 
-                                if (m.kind === 'system') {
+                                if ((m as any).kind === 'system') {
                                     return (
                                         <motion.div
                                             key={`sys-${m._id}`}
@@ -413,12 +450,13 @@ export default function FloatingMessenger({
                                             exit={{ opacity: 0, scale: 0.8 }}
                                             className="text-center text-xs text-gray-500 my-4 px-3 py-2 bg-gray-100/50 rounded-full mx-auto w-fit backdrop-blur-sm"
                                         >
-                                            {m.text}
+                                            {(m as any).text}
                                         </motion.div>
                                     );
                                 }
 
-                                const mine = m.authorID === user?.userID;
+                                const mine =
+                                    (m as any).authorID === user?.userID;
                                 const author = mine
                                     ? 'You'
                                     : conversationUser?.name;
@@ -440,12 +478,12 @@ export default function FloatingMessenger({
                                                     : 'bg-white text-gray-800 rounded-bl-md border border-gray-100'
                                             }`}
                                         >
-                                            {m.text && (
+                                            {(m as any).text && (
                                                 <p className="whitespace-pre-wrap leading-relaxed">
-                                                    {m.text}
+                                                    {(m as any).text}
                                                 </p>
                                             )}
-                                            {m?.attachment && (
+                                            {(m as any)?.attachment && (
                                                 <motion.button
                                                     initial={{
                                                         opacity: 0,
@@ -458,9 +496,11 @@ export default function FloatingMessenger({
                                                     transition={{ delay: 0.2 }}
                                                     onClick={() =>
                                                         handleDownload(
-                                                            m.attachment
+                                                            (m as any)
+                                                                .attachment
                                                                 ?.key as string,
-                                                            m.attachment
+                                                            (m as any)
+                                                                .attachment
                                                                 ?.name as string
                                                         )
                                                     }
@@ -471,7 +511,10 @@ export default function FloatingMessenger({
                                                     }`}
                                                 >
                                                     <Paperclip className="w-3 h-3" />
-                                                    {m?.attachment.name}
+                                                    {
+                                                        (m as any)?.attachment
+                                                            .name
+                                                    }
                                                 </motion.button>
                                             )}
                                             <div
@@ -484,8 +527,12 @@ export default function FloatingMessenger({
                                                 <span>
                                                     {author} •{' '}
                                                     {formatDistanceToNow(
-                                                        new Date(m.sentAt),
-                                                        { addSuffix: true }
+                                                        new Date(
+                                                            (m as any).sentAt
+                                                        ),
+                                                        {
+                                                            addSuffix: true,
+                                                        }
                                                     )}
                                                 </span>
                                                 {mine &&
@@ -499,15 +546,12 @@ export default function FloatingMessenger({
                                     </motion.div>
                                 );
                             })}
+                            <div ref={bottomRef} />
                         </AnimatePresence>
 
-                        {/* Typing indicator (kept) */}
+                        {/* Typing indicator */}
                         <AnimatePresence>
-                            {(showTypingIndicator ||
-                                (isTyping &&
-                                    messages.some(
-                                        (m) => m.authorID === user.userID
-                                    ))) && (
+                            {(showTypingIndicator || isTyping) && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -536,10 +580,8 @@ export default function FloatingMessenger({
                                 </motion.div>
                             )}
                         </AnimatePresence>
-
-                        <div ref={bottomRef} />
                     </div>
-                </ScrollArea>
+                </div>
 
                 {/* Footer */}
                 <div className="border-t p-4 shrink-0 bg-white/80 backdrop-blur-sm shadow-lg">
