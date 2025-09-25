@@ -157,10 +157,7 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                         components: 'buttons',
                     }}
                 >
-                    <PayPalCheckoutButton
-                        order={orderData.data}
-                        userID={userID}
-                    />
+                    <PayPalCheckoutButton order={orderData.data} />
                 </PayPalScriptProvider>
             );
         }

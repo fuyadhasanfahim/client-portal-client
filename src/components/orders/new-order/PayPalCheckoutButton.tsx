@@ -4,20 +4,12 @@ import { useState } from 'react';
 import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { useNewPaymentMutation } from '@/redux/features/payments/paymentApi';
 import ApiError from '@/components/shared/ApiError';
 import { Loader2 } from 'lucide-react';
 import { IOrder } from '@/types/order.interface';
 
-export default function PayPalCheckoutButton({
-    order,
-    userID,
-}: {
-    order: IOrder;
-    userID: string;
-}) {
+export default function PayPalCheckoutButton({ order }: { order: IOrder }) {
     const router = useRouter();
-    const [newPayment] = useNewPaymentMutation();
     const [isProcessing, setIsProcessing] = useState(false);
     const [{ isPending }] = usePayPalScriptReducer();
 
@@ -79,24 +71,10 @@ export default function PayPalCheckoutButton({
             const captureData = await captureResponse.json();
 
             if (captureData.status === 'COMPLETED') {
-                const paymentResponse = await newPayment({
-                    userID,
-                    orderID: order.orderID,
-                    paymentOption: 'pay-now',
-                    paymentMethod: 'paypal',
-                    paymentMethodID: data.orderID,
-                    status: 'paid',
-                    amount: order.total ?? 0,
-                    currency: 'USD',
-                }).unwrap();
-
-                if (paymentResponse?.success) {
-                    toast.success('Payment completed successfully!');
-                    router.push('/orders');
-                }
+                toast.success('Payment completed successfully!');
+                router.push('/orders');
             }
         } catch (err) {
-            console.error('Payment capture failed:', err);
             ApiError(err);
         } finally {
             setIsProcessing(false);
