@@ -94,6 +94,7 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                     setClientSecret(res.data);
                 }
             } catch (err) {
+                console.log(err);
                 ApiError(err);
             } finally {
                 setIsLoading(false);
@@ -120,6 +121,7 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                 router.push('/orders');
             }
         } catch (err) {
+            console.log(err);
             ApiError(err);
         } finally {
             setIsProcessingPayLater(false);
@@ -152,7 +154,7 @@ export default function RootNewOrderPayment({ orderID }: { orderID: string }) {
                 <PayPalScriptProvider
                     options={{
                         clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
-                        currency: 'USD',
+                        currency: user?.currency ?? 'USD',
                         intent: 'capture',
                         components: 'buttons',
                     }}
